@@ -33,8 +33,8 @@ const Hero = () => {
             </h1>
 
             <p className="max-w-[30ch] text-muted-foreground leading-relaxed text-base sm:text-lg mb-8">
-              17&nbsp;символов&nbsp;— и мы находим оригинал под ваш автомобиль.
-              Опт для сервисов, розница для водителей.
+              Напишите VIN или Frame-номер автомобиля, и мы подберём для вас
+              оригинал и аналоги интересующих запчастей.
             </p>
 
             <form
