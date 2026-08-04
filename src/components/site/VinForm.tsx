@@ -5,9 +5,16 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
+const messengers = [
+  { id: 'telegram', label: 'Telegram', icon: 'Send' },
+  { id: 'max', label: 'MAX', icon: 'MessageSquare' },
+  { id: 'whatsapp', label: 'WhatsApp', icon: 'MessageCircle' },
+] as const;
+
 const VinForm = () => {
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState({ vin: '', name: '', phone: '', parts: '' });
+  const [messenger, setMessenger] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const set =
@@ -34,6 +41,7 @@ const VinForm = () => {
       description: 'Менеджер свяжется с вами в течение 15 минут.',
     });
     setForm({ vin: '', name: '', phone: '', parts: '' });
+    setMessenger(null);
   };
 
   return (
@@ -129,6 +137,33 @@ const VinForm = () => {
                   {errors.phone && (
                     <p className="text-primary text-xs mt-1">{errors.phone}</p>
                   )}
+                </div>
+              </div>
+              <div>
+                <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+                  Удобный мессенджер
+                </label>
+                <div className="mt-1.5 grid grid-cols-3 gap-2">
+                  {messengers.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setMessenger((cur) => (cur === m.id ? null : m.id))}
+                      className={`relative flex items-center justify-center gap-2 h-11 rounded-sm border text-sm transition-colors ${
+                        messenger === m.id
+                          ? 'border-primary bg-primary/10 text-foreground'
+                          : 'border-steel text-muted-foreground hover:border-primary/60'
+                      }`}
+                    >
+                      <Icon name={m.icon} size={16} />
+                      {m.label}
+                      {messenger === m.id && (
+                        <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                          <Icon name="Check" size={12} className="text-primary-foreground" />
+                        </span>
+                      )}
+                    </button>
+                  ))}
                 </div>
               </div>
               <div>
