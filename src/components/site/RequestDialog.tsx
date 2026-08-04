@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -34,24 +34,49 @@ const messengers = [
   { id: 'whatsapp', label: 'WhatsApp', icon: 'MessageCircle' },
 ] as const;
 
+const STORAGE_KEY = 'zapoptom_request_draft';
+
+const emptyForm = { vin: '', name: '', phone: '', parts: '' };
+
+const loadDraft = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as { form: typeof emptyForm; messenger: string | null };
+  } catch {
+    return null;
+  }
+};
+
 export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [sent, setSent] = useState(false);
-  const [form, setForm] = useState({
-    vin: '',
-    name: '',
-    phone: '',
-    parts: '',
-  });
+  const [form, setForm] = useState(emptyForm);
   const [messenger, setMessenger] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft) {
+      setForm(draft.form);
+      setMessenger(draft.messenger);
+    }
+  }, []);
+
+  useEffect(() => {
+    const hasData = form.vin || form.name || form.phone || form.parts || messenger;
+    if (hasData) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ form, messenger }));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [form, messenger]);
 
   const open = (vin?: string) => {
     setSent(false);
     setErrors({});
     setForm((f) => ({ ...f, vin: vin ?? f.vin }));
-    setMessenger(null);
     setIsOpen(true);
   };
 
@@ -80,8 +105,9 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
 
   const { submitLead, submitting } = useSubmitLead(() => {
     setSent(true);
-    setForm({ vin: '', name: '', phone: '', parts: '' });
+    setForm(emptyForm);
     setMessenger(null);
+    localStorage.removeItem(STORAGE_KEY);
   });
 
   const submit = (ev: React.FormEvent) => {
