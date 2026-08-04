@@ -70,10 +70,7 @@ const Hero = () => {
             </form>
 
             <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-muted-foreground text-sm">
-              <span className="flex items-center gap-2">
-                <i className="w-1.5 h-1.5 bg-primary inline-block rotate-45" />
-                Ответ за 15&nbsp;минут
-              </span>
+              <span className="flex items-center gap-2"></span>
               <span className="flex items-center gap-2">
                 <i className="w-1.5 h-1.5 bg-primary inline-block rotate-45" />
                 Проверенные автозапчасти
