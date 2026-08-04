@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Icon from '@/components/ui/icon';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
+import InstallGuide from './InstallGuide';
 
 const links = [
   { label: 'Подбор по VIN', href: '#vin' },
@@ -12,6 +13,14 @@ const links = [
 const Header = () => {
   const [open, setOpen] = useState(false);
   const { canInstall, promptInstall } = usePwaInstall();
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideTab, setGuideTab] = useState<'ios' | 'android'>('ios');
+
+  const openGuide = (tab: 'ios' | 'android') => {
+    setOpen(false);
+    setGuideTab(tab);
+    setGuideOpen(true);
+  };
 
   const scrollTo = (href: string) => {
     setOpen(false);
@@ -40,12 +49,32 @@ const Header = () => {
           </span>
         </a>
 
+        <div className="flex items-center gap-2 -ml-1">
+          <button
+            onClick={() => openGuide('ios')}
+            aria-label="Установить на iPhone"
+            title="Установить на iPhone"
+            className="flex items-center justify-center w-9 h-9 rounded-sm border border-steel text-foreground/80 hover:border-primary/60 hover:text-primary transition-colors"
+          >
+            <Icon name="Apple" size={18} />
+          </button>
+          <button
+            onClick={() => openGuide('android')}
+            aria-label="Установить на Android"
+            title="Установить на Android"
+            className="flex items-center justify-center w-9 h-9 rounded-sm border border-steel text-foreground/80 hover:border-primary/60 hover:text-primary transition-colors"
+          >
+            <Icon name="Smartphone" size={18} />
+          </button>
+        </div>
+
+        <InstallGuide key={guideTab} open={guideOpen} onOpenChange={setGuideOpen} defaultTab={guideTab} />
         {canInstall && (
           <button
             onClick={promptInstall}
             aria-label="Установить приложение"
             title="Установить приложение"
-            className="flex items-center justify-center w-9 h-9 rounded-sm border border-primary/60 text-primary hover:bg-primary/10 transition-colors -ml-2"
+            className="hidden sm:flex items-center justify-center w-9 h-9 rounded-sm border border-primary/60 text-primary hover:bg-primary/10 transition-colors"
           >
             <Icon name="Download" size={16} />
           </button>
