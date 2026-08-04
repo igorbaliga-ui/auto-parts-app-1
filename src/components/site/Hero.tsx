@@ -74,7 +74,8 @@ const Hero = () => {
                 <i className="w-1.5 h-1.5 bg-primary inline-block rotate-45" />
                 Ответ за 15&nbsp;минут
               </span>
-              <span className="flex items-center gap-2">Проверка  запчастей на подлинность</span>
+              <span className="w-1.5 h-1.5 bg-primary inline-block rotate-45
+flex items-center gap-2">Проверка  запчастей на подлинность</span>
             </div>
           </div>
 
