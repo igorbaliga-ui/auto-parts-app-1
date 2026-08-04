@@ -40,7 +40,7 @@ const Hero = () => {
               деталь
             </h1>
 
-            <p className="max-w-[30ch] text-muted-foreground leading-relaxed text-base sm:text-lg mb-8">
+            <p className="max-w-[30ch] text-muted-foreground leading-relaxed text-base sm:text-lg mb-8 text-center">
               Напишите VIN или Frame-номер автомобиля, и мы подберём для вас
               оригинал и аналоги интересующих запчастей.
             </p>
