@@ -42,7 +42,7 @@ const Header = () => {
           <img
             src="/logo.png"
             alt="ЗАП ОПТОМ"
-            className="h-10 w-10 object-contain"
+            className="h-10 w-10 object-contain rounded-lg"
           />
           <span className="font-head font-bold uppercase tracking-[0.18em] text-sm sm:text-base">
             ЗАП&nbsp;Оптом
