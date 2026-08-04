@@ -21,7 +21,7 @@ import { useSubmitLead } from '@/hooks/use-submit-lead';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 type Ctx = {
-  open: (vin?: string) => void;
+  open: (vin?: string, photo?: File | null) => void;
 };
 
 const RequestContext = createContext<Ctx>({ open: () => {} });
@@ -48,6 +48,14 @@ const loadDraft = () => {
   }
 };
 
+const fileToBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
 export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
@@ -55,6 +63,8 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const [form, setForm] = useState(emptyForm);
   const [messenger, setMessenger] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   useEffect(() => {
     const draft = loadDraft();
@@ -73,11 +83,26 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [form, messenger]);
 
-  const open = (vin?: string) => {
+  const open = (vin?: string, incomingPhoto?: File | null) => {
     setSent(false);
     setErrors({});
     setForm((f) => ({ ...f, vin: vin ?? f.vin }));
+    if (incomingPhoto) {
+      setPhoto(incomingPhoto);
+      setPhotoPreview(URL.createObjectURL(incomingPhoto));
+    }
     setIsOpen(true);
+  };
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setPhoto(file);
+    setPhotoPreview(file ? URL.createObjectURL(file) : null);
+  };
+
+  const removePhoto = () => {
+    setPhoto(null);
+    setPhotoPreview(null);
   };
 
   const validate = () => {
@@ -107,13 +132,15 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     setSent(true);
     setForm(emptyForm);
     setMessenger(null);
+    removePhoto();
     localStorage.removeItem(STORAGE_KEY);
   });
 
-  const submit = (ev: React.FormEvent) => {
+  const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
-    submitLead({ ...form, messenger });
+    const photoBase64 = photo ? await fileToBase64(photo) : null;
+    submitLead({ ...form, messenger, photo: photoBase64 });
   };
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -233,6 +260,41 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
         />
         {errors.parts && (
           <p className="text-primary text-xs mt-1">{errors.parts}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+          Фото СТС (необязательно)
+        </label>
+        {photoPreview ? (
+          <div className="mt-1.5 relative w-fit">
+            <img
+              src={photoPreview}
+              alt="Фото СТС"
+              className="h-20 w-20 object-cover rounded-sm border border-steel"
+            />
+            <button
+              type="button"
+              onClick={removePhoto}
+              aria-label="Удалить фото"
+              className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
+            >
+              <Icon name="X" size={12} className="text-primary-foreground" />
+            </button>
+          </div>
+        ) : (
+          <label className="mt-1.5 flex items-center gap-2 h-11 px-4 w-fit rounded-sm border border-steel text-muted-foreground text-sm cursor-pointer hover:border-primary/60 transition-colors">
+            <Icon name="Camera" size={16} />
+            Прикрепить фото
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handlePhotoSelect}
+              className="hidden"
+            />
+          </label>
         )}
       </div>
 

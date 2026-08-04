@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
 import InstallGuide from './InstallGuide';
@@ -44,7 +45,7 @@ const Header = () => {
           </span>
         </a>
 
-        <div className="flex items-center gap-3 ml-4">
+        <div className="flex items-center gap-1 ml-4">
           <button
             onClick={() => openGuide('ios')}
             aria-label="Установить на iPhone"
@@ -85,6 +86,13 @@ const Header = () => {
               {l.label}
             </button>
           ))}
+          <Link
+            to="/garage"
+            className="flex items-center gap-1.5 font-head font-medium uppercase tracking-[0.14em] text-xs text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Icon name="Warehouse" size={14} />
+            Гараж
+          </Link>
         </nav>
 
         <button
@@ -108,6 +116,14 @@ const Header = () => {
                 {l.label}
               </button>
             ))}
+            <Link
+              to="/garage"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 text-left font-head font-medium uppercase tracking-[0.14em] text-sm text-muted-foreground hover:text-foreground py-3 border-b border-border/50"
+            >
+              <Icon name="Warehouse" size={16} />
+              Гараж
+            </Link>
             {canInstall && (
               <button
                 onClick={() => {

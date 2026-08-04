@@ -1,11 +1,39 @@
+import base64
 import json
 import os
 import re
+import uuid
 import psycopg2
+import boto3
+
+
+def upload_photo(photo_base64: str) -> str:
+    """Декодирует base64-фото и загружает его в S3, возвращает CDN-ссылку"""
+    header, _, data = photo_base64.partition(',')
+    if data == '':
+        data = header
+        ext = 'jpg'
+    else:
+        ext = 'jpg'
+        if 'png' in header:
+            ext = 'png'
+        elif 'webp' in header:
+            ext = 'webp'
+    file_bytes = base64.b64decode(data)
+
+    s3 = boto3.client(
+        's3',
+        endpoint_url='https://bucket.poehali.dev',
+        aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+        aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
+    )
+    key = f"leads-photos/{uuid.uuid4()}.{ext}"
+    s3.put_object(Bucket='files', Key=key, Body=file_bytes, ContentType=f'image/{ext}')
+    return f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
 
 
 def handler(event: dict, context) -> dict:
-    """Принимает заявку с сайта (VIN, имя, телефон, запчасти, мессенджер) и сохраняет в БД"""
+    """Принимает заявку с сайта (VIN, имя, телефон, запчасти, мессенджер, фото СТС) и сохраняет в БД"""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -31,6 +59,7 @@ def handler(event: dict, context) -> dict:
     phone = (body.get('phone') or '').strip()
     parts = (body.get('parts') or '').strip()
     messenger = (body.get('messenger') or '').strip() or None
+    photo_base64 = body.get('photo') or None
 
     if len(vin) < 11 or len(vin) > 17:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный VIN'})}
@@ -44,15 +73,19 @@ def handler(event: dict, context) -> dict:
     if len(parts) < 2:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите интересующие запчасти'})}
 
+    photo_url = None
+    if photo_base64:
+        photo_url = upload_photo(photo_base64)
+
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor()
         cur.execute(
-            f"INSERT INTO {schema}.leads (vin, name, phone, parts, messenger) "
-            f"VALUES (%s, %s, %s, %s, %s) RETURNING id",
-            (vin, name, phone, parts, messenger),
+            f"INSERT INTO {schema}.leads (vin, name, phone, parts, messenger, photo_url) "
+            f"VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+            (vin, name, phone, parts, messenger, photo_url),
         )
         new_id = cur.fetchone()[0]
         conn.commit()

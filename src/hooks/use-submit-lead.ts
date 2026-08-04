@@ -9,6 +9,7 @@ type LeadPayload = {
   phone: string;
   parts: string;
   messenger: string | null;
+  photo?: string | null;
 };
 
 export const useSubmitLead = (onSuccess: () => void) => {

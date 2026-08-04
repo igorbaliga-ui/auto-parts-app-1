@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "No password rejected",
+      "method": "POST",
+      "path": "/",
+      "body": {"id": 1, "order_amount": 1000, "cashback": 50},
+      "expectedStatus": 401
+    }
+  ]
+}

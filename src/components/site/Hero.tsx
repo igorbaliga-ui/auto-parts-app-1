@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import Icon from '@/components/ui/icon';
 import { useRequest } from './RequestDialog';
 import heroBg from '@/assets/hero-bg.webp';
 
 const Hero = () => {
   const { open } = useRequest();
   const [vin, setVin] = useState('');
+  const [photoName, setPhotoName] = useState('');
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setPhotoName(file ? file.name : '');
+    open(vin, file);
+  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,10 +49,32 @@ const Hero = () => {
               деталь
             </h1>
 
-            <p className="max-w-[30ch] text-muted-foreground leading-relaxed text-base sm:text-lg mb-8 text-center">
-              Напишите VIN или Frame-номер автомобиля, и мы подберём для вас
-              оригинал и аналоги интересующих запчастей.
+            <p className="max-w-[34ch] text-muted-foreground leading-relaxed text-base sm:text-lg mb-4 flex items-center gap-2 flex-wrap">
+              Напишите VIN или Frame-номер автомобиля, или отправьте фото СТС
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                aria-label="Прикрепить фото СТС"
+                title="Прикрепить фото СТС"
+                className="inline-flex items-center justify-center w-9 h-9 shrink-0 rounded-sm bg-primary/15 text-primary hover:bg-primary/25 transition-colors"
+              >
+                <Icon name="Camera" size={18} />
+              </button>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
             </p>
+            {photoName && (
+              <p className="text-primary text-xs mb-4 flex items-center gap-1.5">
+                <Icon name="Check" size={14} />
+                Фото прикреплено: {photoName}
+              </p>
+            )}
 
             <form
               onSubmit={submit}
@@ -73,7 +104,7 @@ const Hero = () => {
               <span className="flex items-center gap-2"></span>
               <span className="flex items-center gap-2">
                 <i className="w-1.5 h-1.5 bg-primary inline-block rotate-45" />
-                Проверенные автозапчасти
+                Все запчасти проверенны на подлинность
               </span>
             </div>
           </div>

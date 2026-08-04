@@ -12,6 +12,7 @@ import {
 import Icon from '@/components/ui/icon';
 
 const LEADS_ADMIN_URL = 'https://functions.poehali.dev/68ca5544-c377-4c79-ba1f-57ba286b33a9';
+const LEADS_UPDATE_URL = 'https://functions.poehali.dev/1612bdca-502b-46a9-b0ea-8d6d93876dc6';
 
 type Lead = {
   id: number;
@@ -20,6 +21,9 @@ type Lead = {
   phone: string;
   parts: string | null;
   messenger: string | null;
+  photo_url: string | null;
+  order_amount: number | null;
+  cashback: number | null;
   created_at: string;
 };
 
@@ -46,6 +50,8 @@ const Admin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [drafts, setDrafts] = useState<Record<number, { amount: string; cashback: string }>>({});
+  const [savingId, setSavingId] = useState<number | null>(null);
 
   const load = async (pwd: string) => {
     setLoading(true);
@@ -61,7 +67,19 @@ const Admin = () => {
       }
       if (!res.ok) throw new Error('request failed');
       const data = await res.json();
-      setLeads(data.leads || []);
+      const list: Lead[] = data.leads || [];
+      setLeads(list);
+      setDrafts(
+        Object.fromEntries(
+          list.map((l) => [
+            l.id,
+            {
+              amount: l.order_amount != null ? String(l.order_amount) : '',
+              cashback: l.cashback != null ? String(l.cashback) : '',
+            },
+          ]),
+        ),
+      );
       setAuthed(true);
       sessionStorage.setItem('admin_password', pwd);
     } catch {
@@ -83,6 +101,43 @@ const Admin = () => {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     load(password);
+  };
+
+  const setDraft = (id: number, key: 'amount' | 'cashback', value: string) => {
+    setDrafts((d) => ({ ...d, [id]: { ...d[id], [key]: value } }));
+  };
+
+  const saveLead = async (id: number) => {
+    const draft = drafts[id];
+    if (!draft) return;
+    setSavingId(id);
+    try {
+      const res = await fetch(LEADS_UPDATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
+        body: JSON.stringify({
+          id,
+          order_amount: draft.amount ? Number(draft.amount) : null,
+          cashback: draft.cashback ? Number(draft.cashback) : null,
+        }),
+      });
+      if (!res.ok) throw new Error('request failed');
+      setLeads((ls) =>
+        ls.map((l) =>
+          l.id === id
+            ? {
+                ...l,
+                order_amount: draft.amount ? Number(draft.amount) : null,
+                cashback: draft.cashback ? Number(draft.cashback) : null,
+              }
+            : l,
+        ),
+      );
+    } catch {
+      setError('Не удалось сохранить. Попробуйте ещё раз.');
+    } finally {
+      setSavingId(null);
+    }
   };
 
   if (!authed) {
@@ -132,7 +187,7 @@ const Admin = () => {
         {leads.length === 0 ? (
           <p className="text-muted-foreground">Пока нет заявок.</p>
         ) : (
-          <div className="bg-card border border-steel rounded-sm overflow-hidden">
+          <div className="bg-card border border-steel rounded-sm overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -142,6 +197,10 @@ const Admin = () => {
                   <TableHead>Телефон</TableHead>
                   <TableHead>Мессенджер</TableHead>
                   <TableHead>Запчасти</TableHead>
+                  <TableHead>Фото СТС</TableHead>
+                  <TableHead>Сумма заказа</TableHead>
+                  <TableHead>Кэшбэк</TableHead>
+                  <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -160,8 +219,49 @@ const Admin = () => {
                     <TableCell>
                       {l.messenger ? messengerLabel[l.messenger] ?? l.messenger : '—'}
                     </TableCell>
-                    <TableCell className="max-w-[320px] text-muted-foreground">
+                    <TableCell className="max-w-[240px] text-muted-foreground">
                       {l.parts || '—'}
+                    </TableCell>
+                    <TableCell>
+                      {l.photo_url ? (
+                        <a href={l.photo_url} target="_blank" rel="noreferrer">
+                          <img
+                            src={l.photo_url}
+                            alt="Фото СТС"
+                            className="h-12 w-12 object-cover rounded-sm border border-steel hover:border-primary transition-colors"
+                          />
+                        </a>
+                      ) : (
+                        '—'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        value={drafts[l.id]?.amount ?? ''}
+                        onChange={(e) => setDraft(l.id, 'amount', e.target.value)}
+                        placeholder="0"
+                        className="w-28 h-9"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        value={drafts[l.id]?.cashback ?? ''}
+                        onChange={(e) => setDraft(l.id, 'cashback', e.target.value)}
+                        placeholder="0"
+                        className="w-24 h-9"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        onClick={() => saveLead(l.id)}
+                        disabled={savingId === l.id}
+                        className="font-head uppercase tracking-wide text-xs h-9"
+                      >
+                        {savingId === l.id ? '…' : 'Сохранить'}
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

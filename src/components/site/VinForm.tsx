@@ -11,11 +11,32 @@ const messengers = [
   { id: 'whatsapp', label: 'WhatsApp', icon: 'MessageCircle' },
 ] as const;
 
+const fileToBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
 const VinForm = () => {
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState({ vin: '', name: '', phone: '', parts: '' });
   const [messenger, setMessenger] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setPhoto(file);
+    setPhotoPreview(file ? URL.createObjectURL(file) : null);
+  };
+
+  const removePhoto = () => {
+    setPhoto(null);
+    setPhotoPreview(null);
+  };
 
   const set =
     (k: keyof typeof form) =>
@@ -38,12 +59,14 @@ const VinForm = () => {
     setSent(true);
     setForm({ vin: '', name: '', phone: '', parts: '' });
     setMessenger(null);
+    removePhoto();
   });
 
-  const submit = (ev: React.FormEvent) => {
+  const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
-    submitLead({ ...form, messenger });
+    const photoBase64 = photo ? await fileToBase64(photo) : null;
+    submitLead({ ...form, messenger, photo: photoBase64 });
   };
 
   return (
@@ -182,6 +205,40 @@ const VinForm = () => {
                   className="mt-1.5 min-h-[90px]"
                 />
                 {errors.parts && <p className="text-primary text-xs mt-1">{errors.parts}</p>}
+              </div>
+              <div>
+                <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+                  Фото СТС (необязательно)
+                </label>
+                {photoPreview ? (
+                  <div className="mt-1.5 relative w-fit">
+                    <img
+                      src={photoPreview}
+                      alt="Фото СТС"
+                      className="h-20 w-20 object-cover rounded-sm border border-steel"
+                    />
+                    <button
+                      type="button"
+                      onClick={removePhoto}
+                      aria-label="Удалить фото"
+                      className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
+                    >
+                      <Icon name="X" size={12} className="text-primary-foreground" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="mt-1.5 flex items-center gap-2 h-11 px-4 w-fit rounded-sm border border-steel text-muted-foreground text-sm cursor-pointer hover:border-primary/60 transition-colors">
+                    <Icon name="Camera" size={16} />
+                    Прикрепить фото
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handlePhotoSelect}
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
               <Button
                 type="submit"
