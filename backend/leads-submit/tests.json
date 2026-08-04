@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Invalid VIN rejected",
+      "method": "POST",
+      "path": "/",
+      "body": {"vin": "123", "name": "Ivan", "phone": "+79000000000", "parts": "brakes"},
+      "expectedStatus": 400
+    }
+  ]
+}

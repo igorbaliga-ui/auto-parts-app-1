@@ -1,0 +1,177 @@
+import { useEffect, useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
+import Icon from '@/components/ui/icon';
+
+const LEADS_ADMIN_URL = 'https://functions.poehali.dev/68ca5544-c377-4c79-ba1f-57ba286b33a9';
+
+type Lead = {
+  id: number;
+  vin: string;
+  name: string;
+  phone: string;
+  parts: string | null;
+  messenger: string | null;
+  created_at: string;
+};
+
+const messengerLabel: Record<string, string> = {
+  telegram: 'Telegram',
+  max: 'MAX',
+  whatsapp: 'WhatsApp',
+};
+
+const formatDate = (iso: string) => {
+  const d = new Date(iso);
+  return d.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const Admin = () => {
+  const [password, setPassword] = useState('');
+  const [authed, setAuthed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [leads, setLeads] = useState<Lead[]>([]);
+
+  const load = async (pwd: string) => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(LEADS_ADMIN_URL, {
+        headers: { 'X-Admin-Password': pwd },
+      });
+      if (res.status === 401) {
+        setError('Неверный пароль');
+        setAuthed(false);
+        return;
+      }
+      if (!res.ok) throw new Error('request failed');
+      const data = await res.json();
+      setLeads(data.leads || []);
+      setAuthed(true);
+      sessionStorage.setItem('admin_password', pwd);
+    } catch {
+      setError('Не удалось загрузить заявки');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem('admin_password');
+    if (saved) {
+      setPassword(saved);
+      load(saved);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    load(password);
+  };
+
+  if (!authed) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-5">
+        <form
+          onSubmit={submit}
+          className="w-full max-w-[360px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4"
+        >
+          <h1 className="font-head uppercase tracking-wide text-xl text-center">
+            Заявки — вход
+          </h1>
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Пароль"
+            autoFocus
+          />
+          {error && <p className="text-primary text-sm text-center">{error}</p>}
+          <Button type="submit" disabled={loading} className="font-head uppercase tracking-wide h-11">
+            {loading ? 'Входим…' : 'Войти'}
+          </Button>
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground px-5 sm:px-8 lg:px-12 py-10">
+      <div className="max-w-[1400px] mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="font-head uppercase tracking-wide text-2xl">
+            Заявки ({leads.length})
+          </h1>
+          <Button
+            variant="secondary"
+            onClick={() => load(password)}
+            disabled={loading}
+            className="font-head uppercase tracking-wide"
+          >
+            <Icon name="RefreshCw" size={16} className="mr-2" />
+            Обновить
+          </Button>
+        </div>
+
+        {leads.length === 0 ? (
+          <p className="text-muted-foreground">Пока нет заявок.</p>
+        ) : (
+          <div className="bg-card border border-steel rounded-sm overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Дата</TableHead>
+                  <TableHead>VIN</TableHead>
+                  <TableHead>Имя</TableHead>
+                  <TableHead>Телефон</TableHead>
+                  <TableHead>Мессенджер</TableHead>
+                  <TableHead>Запчасти</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {leads.map((l) => (
+                  <TableRow key={l.id}>
+                    <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
+                      {formatDate(l.created_at)}
+                    </TableCell>
+                    <TableCell className="font-head tracking-[0.1em]">{l.vin}</TableCell>
+                    <TableCell>{l.name}</TableCell>
+                    <TableCell>
+                      <a href={`tel:${l.phone}`} className="hover:text-primary">
+                        {l.phone}
+                      </a>
+                    </TableCell>
+                    <TableCell>
+                      {l.messenger ? messengerLabel[l.messenger] ?? l.messenger : '—'}
+                    </TableCell>
+                    <TableCell className="max-w-[320px] text-muted-foreground">
+                      {l.parts || '—'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Admin;

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
+import { useSubmitLead } from '@/hooks/use-submit-lead';
 
 const messengers = [
   { id: 'telegram', label: 'Telegram', icon: 'Send' },
@@ -32,16 +32,16 @@ const VinForm = () => {
     return Object.keys(e).length === 0;
   };
 
+  const { submitLead, submitting } = useSubmitLead(() => {
+    setSent(true);
+    setForm({ vin: '', name: '', phone: '', parts: '' });
+    setMessenger(null);
+  });
+
   const submit = (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
-    setSent(true);
-    toast({
-      title: 'Заявка принята',
-      description: 'Менеджер свяжется с вами в течение 15 минут.',
-    });
-    setForm({ vin: '', name: '', phone: '', parts: '' });
-    setMessenger(null);
+    submitLead({ ...form, messenger });
   };
 
   return (
@@ -179,9 +179,10 @@ const VinForm = () => {
               </div>
               <Button
                 type="submit"
+                disabled={submitting}
                 className="font-head uppercase tracking-wide font-bold h-12 mt-1"
               >
-                Подобрать запчасти
+                {submitting ? 'Отправляем…' : 'Подобрать запчасти'}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
                 Нажимая кнопку, вы соглашаетесь на обработку данных.

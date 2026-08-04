@@ -9,8 +9,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
+import { useSubmitLead } from '@/hooks/use-submit-lead';
 
 type Ctx = {
   open: (vin?: string) => void;
@@ -63,17 +63,16 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     return Object.keys(e).length === 0;
   };
 
+  const { submitLead, submitting } = useSubmitLead(() => {
+    setSent(true);
+    setForm({ vin: '', name: '', phone: '', parts: '' });
+    setMessenger(null);
+  });
+
   const submit = (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
-    // v1: backend отправка подключается позже
-    setSent(true);
-    toast({
-      title: 'Заявка принята',
-      description: 'Менеджер свяжется с вами в течение 15 минут.',
-    });
-    setForm({ vin: '', name: '', phone: '', parts: '' });
-    setMessenger(null);
+    submitLead({ ...form, messenger });
   };
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -205,9 +204,10 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
 
                 <Button
                   type="submit"
+                  disabled={submitting}
                   className="font-head uppercase tracking-wide font-bold h-12"
                 >
-                  Отправить заявку
+                  {submitting ? 'Отправляем…' : 'Отправить заявку'}
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">
                   Нажимая кнопку, вы соглашаетесь на обработку данных.
