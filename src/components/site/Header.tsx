@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Icon from '@/components/ui/icon';
+import { usePwaInstall } from '@/hooks/use-pwa-install';
 
 const links = [
   { label: 'Подбор по VIN', href: '#vin' },
@@ -10,6 +11,7 @@ const links = [
 
 const Header = () => {
   const [open, setOpen] = useState(false);
+  const { canInstall, promptInstall } = usePwaInstall();
 
   const scrollTo = (href: string) => {
     setOpen(false);
@@ -48,6 +50,15 @@ const Header = () => {
               {l.label}
             </button>
           ))}
+          {canInstall && (
+            <button
+              onClick={promptInstall}
+              className="flex items-center gap-2 font-head font-medium uppercase tracking-[0.14em] text-xs text-primary hover:text-primary/80 transition-colors border border-primary/60 rounded-sm px-3 py-2"
+            >
+              <Icon name="Download" size={14} />
+              Установить
+            </button>
+          )}
         </nav>
 
         <button
@@ -71,6 +82,18 @@ const Header = () => {
                 {l.label}
               </button>
             ))}
+            {canInstall && (
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  promptInstall();
+                }}
+                className="flex items-center gap-2 text-left font-head font-medium uppercase tracking-[0.14em] text-sm text-primary py-3"
+              >
+                <Icon name="Download" size={16} />
+                Установить приложение
+              </button>
+            )}
           </nav>
         </div>
       )}
