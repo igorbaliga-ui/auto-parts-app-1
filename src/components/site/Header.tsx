@@ -21,7 +21,7 @@ const Header = () => {
 
   return (
     <header className="absolute top-0 left-0 right-0 z-30">
-      <div className="max-w-[1400px] mx-auto flex items-center justify-between px-5 sm:px-8 lg:px-12 py-6">
+      <div className="max-w-[1400px] mx-auto flex items-center px-5 sm:px-8 lg:px-12 py-6">
         <a
           href="#top"
           onClick={(e) => {
@@ -40,7 +40,18 @@ const Header = () => {
           </span>
         </a>
 
-        <nav className="hidden md:flex items-center gap-8">
+        {canInstall && (
+          <button
+            onClick={promptInstall}
+            aria-label="Установить приложение"
+            title="Установить приложение"
+            className="flex items-center justify-center w-9 h-9 rounded-sm border border-primary/60 text-primary hover:bg-primary/10 transition-colors -ml-2"
+          >
+            <Icon name="Download" size={16} />
+          </button>
+        )}
+
+        <nav className="hidden md:flex items-center gap-8 ml-auto">
           {links.map((l) => (
             <button
               key={l.href}
@@ -50,19 +61,10 @@ const Header = () => {
               {l.label}
             </button>
           ))}
-          {canInstall && (
-            <button
-              onClick={promptInstall}
-              className="flex items-center gap-2 font-head font-medium uppercase tracking-[0.14em] text-xs text-primary hover:text-primary/80 transition-colors border border-primary/60 rounded-sm px-3 py-2"
-            >
-              <Icon name="Download" size={14} />
-              Установить
-            </button>
-          )}
         </nav>
 
         <button
-          className="md:hidden text-foreground"
+          className="md:hidden text-foreground ml-auto"
           onClick={() => setOpen((v) => !v)}
           aria-label="Меню"
         >
