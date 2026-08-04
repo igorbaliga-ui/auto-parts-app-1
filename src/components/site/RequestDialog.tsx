@@ -21,7 +21,7 @@ import { useSubmitLead } from '@/hooks/use-submit-lead';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 type Ctx = {
-  open: (vin?: string, photo?: File | null) => void;
+  open: (vin?: string, photo?: File | null, phone?: string) => void;
 };
 
 const RequestContext = createContext<Ctx>({ open: () => {} });
@@ -83,10 +83,10 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [form, messenger]);
 
-  const open = (vin?: string, incomingPhoto?: File | null) => {
+  const open = (vin?: string, incomingPhoto?: File | null, phone?: string) => {
     setSent(false);
     setErrors({});
-    setForm((f) => ({ ...f, vin: vin ?? f.vin }));
+    setForm((f) => ({ ...f, vin: vin ?? f.vin, phone: phone ?? f.phone }));
     if (incomingPhoto) {
       setPhoto(incomingPhoto);
       setPhotoPreview(URL.createObjectURL(incomingPhoto));
@@ -255,6 +255,12 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
         <Textarea
           value={form.parts}
           onChange={set('parts')}
+          onFocus={(e) => {
+            const target = e.currentTarget;
+            setTimeout(() => {
+              target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+          }}
           placeholder="Например: передние тормозные колодки, масляный фильтр"
           className="mt-1.5 bg-background min-h-[84px]"
         />
@@ -315,7 +321,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     return (
       <RequestContext.Provider value={{ open }}>
         {children}
-        <Drawer open={isOpen} onOpenChange={setIsOpen}>
+        <Drawer open={isOpen} onOpenChange={setIsOpen} repositionInputs={false}>
           <DrawerContent className="bg-card border-border max-h-[85vh]">
             <div className="overflow-y-auto px-4 pb-6">
               {sent ? (

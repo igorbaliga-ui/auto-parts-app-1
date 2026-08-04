@@ -201,6 +201,12 @@ const VinForm = () => {
                 <Textarea
                   value={form.parts}
                   onChange={set('parts')}
+                  onFocus={(e) => {
+                    const target = e.currentTarget;
+                    setTimeout(() => {
+                      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                  }}
                   placeholder="Например: передние тормозные колодки, масляный фильтр"
                   className="mt-1.5 min-h-[90px]"
                 />

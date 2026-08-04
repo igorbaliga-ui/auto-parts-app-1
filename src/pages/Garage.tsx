@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
+import { RequestProvider, useRequest } from '@/components/site/RequestDialog';
 
 const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
 const STORAGE_KEY = 'zapoptom_garage_phone';
@@ -38,7 +39,8 @@ const formatDate = (iso: string) => {
 const formatMoney = (n: number) =>
   new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n) + ' ₽';
 
-const Garage = () => {
+const GarageContent = () => {
+  const { open } = useRequest();
   const [phone, setPhone] = useState('');
   const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -136,10 +138,15 @@ const Garage = () => {
             </span>
             <h1 className="font-head uppercase tracking-wide text-2xl">Мой гараж</h1>
           </div>
-          <Button variant="secondary" onClick={logout} className="font-head uppercase tracking-wide">
-            <Icon name="LogOut" size={16} className="mr-2" />
-            Выйти
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => open(undefined, undefined, phone)} className="font-head uppercase tracking-wide">
+              <Icon name="Plus" size={16} className="mr-2" />
+              Новая заявка
+            </Button>
+            <Button variant="secondary" onClick={logout} className="font-head uppercase tracking-wide">
+              <Icon name="LogOut" size={16} />
+            </Button>
+          </div>
         </div>
 
         {orders.length > 0 && (
@@ -162,9 +169,15 @@ const Garage = () => {
         )}
 
         {orders.length === 0 ? (
-          <p className="text-muted-foreground mt-8">
-            По этому телефону заказов пока нет.
-          </p>
+          <div className="mt-8 flex flex-col items-start gap-4">
+            <p className="text-muted-foreground">
+              По этому телефону заказов пока нет.
+            </p>
+            <Button onClick={() => open(undefined, undefined, phone)} className="font-head uppercase tracking-wide">
+              <Icon name="Plus" size={16} className="mr-2" />
+              Оставить заявку
+            </Button>
+          </div>
         ) : (
           <div className="flex flex-col gap-4 mt-2">
             {orders.map((o) => (
@@ -209,5 +222,11 @@ const Garage = () => {
     </div>
   );
 };
+
+const Garage = () => (
+  <RequestProvider>
+    <GarageContent />
+  </RequestProvider>
+);
 
 export default Garage;
