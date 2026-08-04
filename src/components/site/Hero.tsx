@@ -27,7 +27,7 @@ const Hero = () => {
             <h1 className="font-head font-bold uppercase leading-[0.92] tracking-[-0.03em] text-[15vw] sm:text-6xl lg:text-[5.1rem] mb-6">
               Введи&nbsp;VIN&nbsp;—<br />
               <span className="text-primary">получи</span>{' '}
-              <span className="font-medium text-muted-foreground">точную</span>
+              <span className="font-medium text-muted-foreground">нужную</span>
               <br />
               деталь
             </h1>
