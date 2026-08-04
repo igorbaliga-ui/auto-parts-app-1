@@ -4,20 +4,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { useSubmitLead } from '@/hooks/use-submit-lead';
+import { compressImageToBase64 } from '@/lib/image';
 
 const messengers = [
   { id: 'telegram', label: 'Telegram', icon: 'Send' },
   { id: 'max', label: 'MAX', icon: 'MessageSquare' },
   { id: 'whatsapp', label: 'WhatsApp', icon: 'MessageCircle' },
 ] as const;
-
-const fileToBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 
 const VinForm = () => {
   const [sent, setSent] = useState(false);
@@ -65,7 +58,7 @@ const VinForm = () => {
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
-    const photoBase64 = photo ? await fileToBase64(photo) : null;
+    const photoBase64 = photo ? await compressImageToBase64(photo) : null;
     submitLead({ ...form, messenger, photo: photoBase64 });
   };
 

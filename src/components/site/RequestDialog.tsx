@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { useSubmitLead } from '@/hooks/use-submit-lead';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { compressImageToBase64 } from '@/lib/image';
 
 type Ctx = {
   open: (vin?: string, photo?: File | null, phone?: string) => void;
@@ -47,14 +48,6 @@ const loadDraft = () => {
     return null;
   }
 };
-
-const fileToBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 
 export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const isMobile = useIsMobile();
@@ -139,7 +132,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
-    const photoBase64 = photo ? await fileToBase64(photo) : null;
+    const photoBase64 = photo ? await compressImageToBase64(photo) : null;
     submitLead({ ...form, messenger, photo: photoBase64 });
   };
 

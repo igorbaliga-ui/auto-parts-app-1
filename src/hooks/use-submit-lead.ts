@@ -23,13 +23,18 @@ export const useSubmitLead = (onSuccess: () => void) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error('request failed');
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        console.error('leads-submit failed', res.status, errText);
+        throw new Error(`request failed: ${res.status}`);
+      }
       toast({
         title: 'Заявка принята',
         description: 'Менеджер свяжется с вами в течение 15 минут.',
       });
       onSuccess();
-    } catch {
+    } catch (err) {
+      console.error('leads-submit error', err);
       toast({
         title: 'Не удалось отправить заявку',
         description: 'Попробуйте ещё раз или позвоните нам.',
