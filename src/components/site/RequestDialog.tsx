@@ -59,6 +59,12 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     if (phoneDigits.length < 10) {
       e.phone = 'Укажите корректный телефон';
     }
+    if (!messenger) {
+      e.messenger = 'Выберите мессенджер';
+    }
+    if (form.parts.trim().length < 2) {
+      e.parts = 'Укажите интересующие запчасти';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -188,6 +194,9 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
                       </button>
                     ))}
                   </div>
+                  {errors.messenger && (
+                    <p className="text-primary text-xs mt-1">{errors.messenger}</p>
+                  )}
                 </div>
 
                 <div>
@@ -200,6 +209,9 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
                     placeholder="Например: передние тормозные колодки, масляный фильтр"
                     className="mt-1.5 bg-background min-h-[84px]"
                   />
+                  {errors.parts && (
+                    <p className="text-primary text-xs mt-1">{errors.parts}</p>
+                  )}
                 </div>
 
                 <Button

@@ -28,6 +28,8 @@ const VinForm = () => {
     if (vin.length < 11 || vin.length > 17) e.vin = 'VIN содержит от 11 до 17 символов';
     if (form.name.trim().length < 2) e.name = 'Укажите имя';
     if (form.phone.replace(/\D/g, '').length < 10) e.phone = 'Укажите корректный телефон';
+    if (!messenger) e.messenger = 'Выберите мессенджер';
+    if (form.parts.trim().length < 2) e.parts = 'Укажите интересующие запчасти';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -165,6 +167,9 @@ const VinForm = () => {
                     </button>
                   ))}
                 </div>
+                {errors.messenger && (
+                  <p className="text-primary text-xs mt-1">{errors.messenger}</p>
+                )}
               </div>
               <div>
                 <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
@@ -176,6 +181,7 @@ const VinForm = () => {
                   placeholder="Например: передние тормозные колодки, масляный фильтр"
                   className="mt-1.5 min-h-[90px]"
                 />
+                {errors.parts && <p className="text-primary text-xs mt-1">{errors.parts}</p>}
               </div>
               <Button
                 type="submit"

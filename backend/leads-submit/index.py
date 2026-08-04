@@ -39,8 +39,10 @@ def handler(event: dict, context) -> dict:
     phone_digits = re.sub(r'\D', '', phone)
     if len(phone_digits) < 10:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный телефон'})}
-    if messenger not in (None, 'telegram', 'max', 'whatsapp'):
-        messenger = None
+    if messenger not in ('telegram', 'max', 'whatsapp'):
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Выберите мессенджер'})}
+    if len(parts) < 2:
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите интересующие запчасти'})}
 
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']
