@@ -75,7 +75,10 @@ def handler(event: dict, context) -> dict:
 
     photo_url = None
     if photo_base64:
-        photo_url = upload_photo(photo_base64)
+        try:
+            photo_url = upload_photo(photo_base64)
+        except Exception:
+            photo_url = None
 
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']

@@ -41,7 +41,7 @@ const Hero = () => {
               Подбор по VIN
             </span>
 
-            <h1 className="font-head font-bold uppercase leading-[0.92] tracking-[-0.03em] text-[15vw] sm:text-6xl lg:text-[5.1rem] mb-6">
+            <h1 className="font-head font-bold uppercase leading-[0.92] tracking-[-0.03em] text-[12vw] xs:text-[11vw] sm:text-6xl lg:text-[5.1rem] mb-6 break-words">
               Введи&nbsp;VIN&nbsp;—<br />
               <span className="text-primary">получи</span>{' '}
               <span className="font-medium text-muted-foreground">нужную</span>
@@ -77,9 +77,9 @@ const Hero = () => {
 
             <form
               onSubmit={submit}
-              className="flex items-stretch max-w-[440px] border-[1.5px] border-steel rounded-sm bg-card overflow-hidden"
+              className="flex items-stretch w-full max-w-[440px] border-[1.5px] border-steel rounded-sm bg-card overflow-hidden"
             >
-              <span className="flex items-center px-4 font-head font-bold tracking-[0.12em] text-sm text-muted-foreground border-r-[1.5px] border-steel bg-steel-dark">
+              <span className="hidden sm:flex items-center px-4 font-head font-bold tracking-[0.12em] text-sm text-muted-foreground border-r-[1.5px] border-steel bg-steel-dark shrink-0">
                 VIN
               </span>
               <input
@@ -87,13 +87,13 @@ const Hero = () => {
                 onChange={(e) => setVin(e.target.value)}
                 maxLength={17}
                 type="text"
-                placeholder="XW8ZZZ • • • • • • •"
+                placeholder="XW8ZZZ • • • •"
                 aria-label="VIN-код автомобиля"
-                className="flex-1 min-w-0 bg-transparent text-foreground text-sm tracking-[0.16em] px-4 outline-none placeholder:text-steel"
+                className="flex-1 min-w-0 bg-transparent text-foreground text-sm tracking-[0.1em] sm:tracking-[0.16em] px-3 sm:px-4 outline-none placeholder:text-steel"
               />
               <button
                 type="submit"
-                className="bg-primary text-primary-foreground font-head font-bold uppercase tracking-[0.1em] text-sm px-5 hover:brightness-110 transition"
+                className="shrink-0 bg-primary text-primary-foreground font-head font-bold uppercase tracking-[0.1em] text-xs sm:text-sm px-3 sm:px-5 hover:brightness-110 transition"
               >
                 Подобрать
               </button>

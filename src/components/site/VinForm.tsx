@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { useSubmitLead } from '@/hooks/use-submit-lead';
-import { compressImageToBase64 } from '@/lib/image';
+import { preparePhotoForUpload } from '@/lib/image';
 
 const messengers = [
   { id: 'telegram', label: 'Telegram', icon: 'Send' },
@@ -58,7 +58,7 @@ const VinForm = () => {
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
-    const photoBase64 = photo ? await compressImageToBase64(photo) : null;
+    const photoBase64 = photo ? await preparePhotoForUpload(photo) : null;
     submitLead({ ...form, messenger, photo: photoBase64 });
   };
 
