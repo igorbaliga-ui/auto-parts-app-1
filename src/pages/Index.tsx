@@ -1,16 +1,27 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { RequestProvider } from '@/components/site/RequestDialog';
+import Header from '@/components/site/Header';
+import Hero from '@/components/site/Hero';
+import VinForm from '@/components/site/VinForm';
+import HowToOrder from '@/components/site/HowToOrder';
+import Advantages from '@/components/site/Advantages';
+import Contacts from '@/components/site/Contacts';
+import Footer from '@/components/site/Footer';
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4 color-black text-black">Добро пожаловать!</h1>
-        <p className="text-xl text-gray-600">тут будет отображаться ваш проект</p>
+    <RequestProvider>
+      <div className="min-h-screen bg-background text-foreground font-body">
+        <Header />
+        <main>
+          <Hero />
+          <VinForm />
+          <HowToOrder />
+          <Advantages />
+          <Contacts />
+        </main>
+        <Footer />
       </div>
-      <span className="absolute bottom-8 left-1/2 -translate-x-1/2 inline-block bg-[#FF6637] text-white text-sm px-4 py-2 rounded-full whitespace-nowrap">
-        Подождите 5 минут, Юра создает первую версию проекта с нуля
-      </span>
-    </div>
+    </RequestProvider>
   );
 };
 
