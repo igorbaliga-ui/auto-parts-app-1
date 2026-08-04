@@ -61,8 +61,22 @@ def handler(event: dict, context) -> dict:
     messenger = (body.get('messenger') or '').strip() or None
     photo_base64 = body.get('photo') or None
 
-    if len(vin) < 11 or len(vin) > 17:
-        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный VIN'})}
+    # Фото грузим первым: если оно успешно загрузится, VIN становится необязательным.
+    # Если фото не прислали или его не удалось загрузить — VIN обязателен, как раньше.
+    photo_url = None
+    if photo_base64:
+        try:
+            photo_url = upload_photo(photo_base64)
+        except Exception:
+            photo_url = None
+
+    vin_valid = 11 <= len(vin) <= 17
+    if not photo_url and not vin_valid:
+        return {
+            'statusCode': 400,
+            'headers': headers,
+            'body': json.dumps({'error': 'Укажите VIN — фото не приложено или не удалось загрузить'}),
+        }
     if len(name) < 2:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите имя'})}
     phone_digits = re.sub(r'\D', '', phone)
@@ -73,12 +87,7 @@ def handler(event: dict, context) -> dict:
     if len(parts) < 2:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите интересующие запчасти'})}
 
-    photo_url = None
-    if photo_base64:
-        try:
-            photo_url = upload_photo(photo_base64)
-        except Exception:
-            photo_url = None
+    vin_to_save = vin if vin_valid else None
 
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']
@@ -88,7 +97,7 @@ def handler(event: dict, context) -> dict:
         cur.execute(
             f"INSERT INTO {schema}.leads (vin, name, phone, parts, messenger, photo_url) "
             f"VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
-            (vin, name, phone, parts, messenger, photo_url),
+            (vin_to_save, name, phone, parts, messenger, photo_url),
         )
         new_id = cur.fetchone()[0]
         conn.commit()

@@ -26,7 +26,15 @@ export const useSubmitLead = (onSuccess: () => void) => {
       if (!res.ok) {
         const errText = await res.text().catch(() => '');
         console.error('leads-submit failed', res.status, errText);
-        throw new Error(`request failed: ${res.status}`);
+        let serverMessage = '';
+        try {
+          serverMessage = JSON.parse(errText)?.error || '';
+        } catch {
+          // ignore parse errors, fall back to generic message
+        }
+        const err = new Error(`request failed: ${res.status}`) as Error & { serverMessage?: string };
+        err.serverMessage = serverMessage;
+        throw err;
       }
       toast({
         title: 'Заявка принята',
@@ -35,9 +43,10 @@ export const useSubmitLead = (onSuccess: () => void) => {
       onSuccess();
     } catch (err) {
       console.error('leads-submit error', err);
+      const serverMessage = (err as Error & { serverMessage?: string })?.serverMessage;
       toast({
         title: 'Не удалось отправить заявку',
-        description: 'Попробуйте ещё раз или позвоните нам.',
+        description: serverMessage || 'Попробуйте ещё раз или позвоните нам.',
         variant: 'destructive',
       });
     } finally {

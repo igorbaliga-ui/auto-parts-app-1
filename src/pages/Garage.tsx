@@ -9,7 +9,7 @@ const STORAGE_KEY = 'zapoptom_garage_phone';
 
 type Order = {
   id: number;
-  vin: string;
+  vin: string | null;
   name: string;
   phone: string;
   parts: string | null;
@@ -183,7 +183,7 @@ const GarageContent = () => {
             {orders.map((o) => (
               <div key={o.id} className="bg-card border border-steel rounded-sm p-6">
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                  <span className="font-head tracking-[0.1em] text-lg">{o.vin}</span>
+                  <span className="font-head tracking-[0.1em] text-lg">{o.vin || 'VIN не указан (по фото)'}</span>
                   <span className="text-muted-foreground text-xs">{formatDate(o.created_at)}</span>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">

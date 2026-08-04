@@ -16,7 +16,7 @@ const LEADS_UPDATE_URL = 'https://functions.poehali.dev/1612bdca-502b-46a9-b0ea-
 
 type Lead = {
   id: number;
-  vin: string;
+  vin: string | null;
   name: string;
   phone: string;
   parts: string | null;
@@ -209,7 +209,7 @@ const Admin = () => {
                     <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
                       {formatDate(l.created_at)}
                     </TableCell>
-                    <TableCell className="font-head tracking-[0.1em]">{l.vin}</TableCell>
+                    <TableCell className="font-head tracking-[0.1em]">{l.vin || '—'}</TableCell>
                     <TableCell>{l.name}</TableCell>
                     <TableCell>
                       <a href={`tel:${l.phone}`} className="hover:text-primary">

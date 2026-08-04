@@ -101,8 +101,9 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const validate = () => {
     const e: Record<string, string> = {};
     const vin = form.vin.trim();
-    if (vin.length < 11 || vin.length > 17) {
-      e.vin = 'VIN содержит от 11 до 17 символов';
+    const vinValid = vin.length >= 11 && vin.length <= 17;
+    if (!vinValid && !photo) {
+      e.vin = 'Укажите VIN или прикрепите фото СТС';
     }
     if (form.name.trim().length < 2) {
       e.name = 'Укажите имя';
@@ -165,7 +166,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     <form onSubmit={submit} className="flex flex-col gap-4 mt-2">
       <div>
         <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-          VIN-код
+          VIN-код {photo && <span className="normal-case text-muted-foreground/70">(необязательно, есть фото)</span>}
         </label>
         <Input
           value={form.vin}
