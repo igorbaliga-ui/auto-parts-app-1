@@ -37,34 +37,29 @@ const Header = () => {
             e.preventDefault();
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="flex items-center gap-3"
+          className="flex items-center"
         >
-          <img
-            src="/logo.png"
-            alt="ЗАП ОПТОМ"
-            className="h-10 w-10 object-contain rounded-lg"
-          />
-          <span className="font-head font-bold uppercase tracking-[0.18em] text-sm sm:text-base">
+          <span className="font-head font-bold uppercase tracking-[0.18em] text-lg sm:text-xl text-concrete-carved">
             ЗАП&nbsp;Оптом
           </span>
         </a>
 
-        <div className="flex items-center gap-2 -ml-1">
+        <div className="flex items-center gap-3 ml-4">
           <button
             onClick={() => openGuide('ios')}
             aria-label="Установить на iPhone"
             title="Установить на iPhone"
-            className="flex items-center justify-center w-9 h-9 rounded-sm border border-steel text-foreground/80 hover:border-primary/60 hover:text-primary transition-colors"
+            className="flex items-center justify-center w-9 h-9 text-slate-200 hover:text-white hover:scale-110 transition-all"
           >
-            <Icon name="Apple" size={18} />
+            <Icon name="Apple" size={20} />
           </button>
           <button
             onClick={() => openGuide('android')}
             aria-label="Установить на Android"
             title="Установить на Android"
-            className="flex items-center justify-center w-9 h-9 rounded-sm border border-steel text-foreground/80 hover:border-primary/60 hover:text-primary transition-colors"
+            className="flex items-center justify-center w-9 h-9 text-[#3DDC84] hover:brightness-125 hover:scale-110 transition-all"
           >
-            <Icon name="Smartphone" size={18} />
+            <Icon name="Smartphone" size={20} />
           </button>
         </div>
 

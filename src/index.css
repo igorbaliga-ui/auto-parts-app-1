@@ -120,6 +120,13 @@
   .font-body {
     font-family: "Rubik", sans-serif;
   }
+  /* Carved-into-concrete text effect */
+  .text-concrete-carved {
+    color: hsl(var(--muted-foreground));
+    text-shadow:
+      -1px -1px 1px rgba(0, 0, 0, 0.75),
+      1px 1px 1px rgba(255, 255, 255, 0.08);
+  }
   /* Cut-paper vignette on dark hero */
   .hero-vignette::after {
     content: "";
