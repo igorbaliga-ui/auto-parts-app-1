@@ -239,7 +239,6 @@ const VinForm = () => {
                     <input
                       type="file"
                       accept="image/*"
-                      capture="environment"
                       onChange={handlePhotoSelect}
                       className="hidden"
                     />

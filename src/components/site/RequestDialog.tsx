@@ -296,7 +296,6 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               onChange={handlePhotoSelect}
               className="hidden"
             />
