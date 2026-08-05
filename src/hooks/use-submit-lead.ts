@@ -10,6 +10,8 @@ type LeadPayload = {
   parts: string;
   messenger: string | null;
   photo?: string | null;
+  car_name?: string;
+  city?: string;
 };
 
 export const useSubmitLead = (onSuccess: () => void) => {

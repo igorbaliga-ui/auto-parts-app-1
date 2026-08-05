@@ -18,6 +18,8 @@ type Order = {
   order_amount: number | null;
   cashback: number | null;
   created_at: string;
+  car_name: string | null;
+  city: string | null;
 };
 
 const messengerLabel: Record<string, string> = {
@@ -92,6 +94,7 @@ const GarageContent = () => {
 
   const totalCashback = orders.reduce((sum, o) => sum + (o.cashback || 0), 0);
   const knownName = orders[0]?.name;
+  const vinHistory = Array.from(new Set(orders.map((o) => o.vin).filter((v): v is string => !!v)));
 
   if (!authed) {
     return (
@@ -153,7 +156,7 @@ const GarageContent = () => {
               <Icon name="ArrowLeft" size={16} className="mr-2" />
               На главную
             </Link>
-            <Button onClick={() => open(undefined, undefined, phone, knownName)} className="font-head uppercase tracking-wide">
+            <Button onClick={() => open(undefined, undefined, phone, knownName, vinHistory)} className="font-head uppercase tracking-wide">
               <Icon name="Plus" size={16} className="mr-2" />
               Новая заявка
             </Button>
@@ -187,7 +190,7 @@ const GarageContent = () => {
             <p className="text-muted-foreground">
               По этому телефону заказов пока нет.
             </p>
-            <Button onClick={() => open(undefined, undefined, phone, knownName)} className="font-head uppercase tracking-wide">
+            <Button onClick={() => open(undefined, undefined, phone, knownName, vinHistory)} className="font-head uppercase tracking-wide">
               <Icon name="Plus" size={16} className="mr-2" />
               Оставить заявку
             </Button>
@@ -197,7 +200,10 @@ const GarageContent = () => {
             {orders.map((o) => (
               <div key={o.id} className="bg-card border border-steel rounded-sm p-6">
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                  <span className="font-head tracking-[0.1em] text-lg">{o.vin || 'VIN не указан (по фото)'}</span>
+                  <span className="font-head tracking-[0.1em] text-lg">
+                    {o.vin || 'VIN не указан (по фото)'}
+                    {o.car_name && <span className="text-muted-foreground font-body normal-case tracking-normal text-sm ml-2">({o.car_name})</span>}
+                  </span>
                   <span className="text-muted-foreground text-xs">{formatDate(o.created_at)}</span>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
@@ -208,6 +214,10 @@ const GarageContent = () => {
                   <div className="flex justify-between sm:block">
                     <span className="text-muted-foreground">Телефон: </span>
                     <span>{o.phone}</span>
+                  </div>
+                  <div className="flex justify-between sm:block">
+                    <span className="text-muted-foreground">Город: </span>
+                    <span>{o.city || '—'}</span>
                   </div>
                   <div className="flex justify-between sm:block">
                     <span className="text-muted-foreground">Мессенджер: </span>

@@ -45,22 +45,25 @@ const Header = () => {
           </span>
         </a>
 
-        <div className="flex items-center gap-0.5 ml-4 px-1 rounded-sm border border-border/60 bg-card/40">
+        <div
+          className="flex items-center gap-0.5 ml-4 px-1.5 py-1 rounded-full border border-border/60 bg-card/40"
+          style={{ boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.55), inset 0 -1px 0 rgba(255,255,255,0.04)' }}
+        >
           <button
             onClick={() => openGuide('ios')}
             aria-label="Установить на iPhone"
             title="Установить на iPhone"
-            className="flex items-center justify-center w-9 h-9 text-slate-200 hover:text-white hover:scale-110 transition-all"
+            className="flex items-center justify-center w-8 h-8 text-slate-200 hover:text-white hover:scale-110 transition-all"
           >
-            <Icon name="Apple" size={20} />
+            <Icon name="Apple" size={17} />
           </button>
           <button
             onClick={() => openGuide('android')}
             aria-label="Установить на Android"
             title="Установить на Android"
-            className="flex items-center justify-center w-9 h-9 text-[#3DDC84] hover:brightness-125 hover:scale-110 transition-all"
+            className="flex items-center justify-center w-8 h-8 text-[#3DDC84] hover:brightness-125 hover:scale-110 transition-all"
           >
-            <Icon name="Smartphone" size={20} />
+            <Icon name="Smartphone" size={17} />
           </button>
         </div>
 
@@ -95,13 +98,23 @@ const Header = () => {
           </Link>
         </nav>
 
-        <button
-          className="md:hidden text-foreground ml-auto"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="Меню"
-        >
-          <Icon name={open ? 'X' : 'Menu'} size={26} />
-        </button>
+        <div className="md:hidden flex items-center gap-3 ml-auto">
+          <Link
+            to="/garage"
+            aria-label="Гараж"
+            title="Гараж"
+            className="flex items-center justify-center w-9 h-9 text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Icon name="Warehouse" size={22} />
+          </Link>
+          <button
+            className="text-foreground"
+            onClick={() => setOpen((v) => !v)}
+            aria-label="Меню"
+          >
+            <Icon name={open ? 'X' : 'Menu'} size={26} />
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -116,14 +129,6 @@ const Header = () => {
                 {l.label}
               </button>
             ))}
-            <Link
-              to="/garage"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2 text-left font-head font-medium uppercase tracking-[0.14em] text-sm text-muted-foreground hover:text-foreground py-3 border-b border-border/50"
-            >
-              <Icon name="Warehouse" size={16} />
-              Гараж
-            </Link>
             {canInstall && (
               <button
                 onClick={() => {

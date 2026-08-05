@@ -60,6 +60,8 @@ def handler(event: dict, context) -> dict:
     parts = (body.get('parts') or '').strip()
     messenger = (body.get('messenger') or '').strip() or None
     photo_base64 = body.get('photo') or None
+    car_name = (body.get('car_name') or '').strip() or None
+    city = (body.get('city') or '').strip() or None
 
     # Фото грузим первым: если оно успешно загрузится, VIN становится необязательным.
     # Если фото не прислали или его не удалось загрузить — VIN обязателен, как раньше.
@@ -98,9 +100,9 @@ def handler(event: dict, context) -> dict:
     try:
         cur = conn.cursor()
         cur.execute(
-            f"INSERT INTO {schema}.leads (vin, name, phone, parts, messenger, photo_url) "
-            f"VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
-            (vin_to_save, name, phone, parts, messenger, photo_url),
+            f"INSERT INTO {schema}.leads (vin, name, phone, parts, messenger, photo_url, car_name, city) "
+            f"VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+            (vin_to_save, name, phone, parts, messenger, photo_url, car_name, city),
         )
         new_id = cur.fetchone()[0]
         conn.commit()

@@ -34,10 +34,12 @@ def handler(event: dict, context) -> dict:
     body = json.loads(event.get('body') or '{}')
     lead_id = body.get('id')
     order_amount = body.get('order_amount')
-    cashback = body.get('cashback')
 
     if not isinstance(lead_id, int):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный id заявки'})}
+
+    # Кэшбэк считаем автоматически — 3% от суммы заказа
+    cashback = round(float(order_amount) * 0.03, 2) if order_amount is not None else None
 
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']

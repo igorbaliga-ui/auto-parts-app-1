@@ -106,7 +106,7 @@ const Hero = () => {
               </span>
               <span className="flex items-center gap-2">
                 <i className="w-1.5 h-1.5 bg-primary inline-block rotate-45" />
-                Оптовые цены. Кэшбэк 3%
+                Оптовые цены. <span className="text-primary">Кэшбэк 3%</span>
               </span>
             </div>
           </div>

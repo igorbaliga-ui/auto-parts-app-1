@@ -22,8 +22,15 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { preparePhotoForUpload } from '@/lib/image';
 
 type Ctx = {
-  open: (vin?: string, photo?: File | null, phone?: string, name?: string) => void;
+  open: (vin?: string, photo?: File | null, phone?: string, name?: string, vinHistory?: string[]) => void;
 };
+
+const cities = [
+  'Москва', 'Санкт-Петербург', 'Новосибирск', 'Екатеринбург', 'Казань',
+  'Нижний Новгород', 'Челябинск', 'Красноярск', 'Самара', 'Уфа',
+  'Ростов-на-Дону', 'Краснодар', 'Омск', 'Воронеж', 'Пермь',
+  'Волгоград', 'Саратов', 'Тюмень', 'Тольятти', 'Ижевск',
+];
 
 const isValidName = (name?: string) => !!name && name.trim().length >= 2;
 const isValidPhone = (phone?: string) => !!phone && phone.replace(/\D/g, '').length >= 10;
@@ -40,7 +47,7 @@ const messengers = [
 
 const STORAGE_KEY = 'zapoptom_request_draft';
 
-const emptyForm = { vin: '', name: '', phone: '', parts: '' };
+const emptyForm = { vin: '', name: '', phone: '', parts: '', carName: '', city: '' };
 
 const loadDraft = () => {
   try {
@@ -62,6 +69,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [knownContact, setKnownContact] = useState(false);
+  const [vinHistory, setVinHistory] = useState<string[]>([]);
 
   useEffect(() => {
     const draft = loadDraft();
@@ -80,7 +88,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [form, messenger]);
 
-  const open = (vin?: string, incomingPhoto?: File | null, phone?: string, name?: string) => {
+  const open = (vin?: string, incomingPhoto?: File | null, phone?: string, name?: string, history?: string[]) => {
     setSent(false);
     setErrors({});
     setForm((f) => ({
@@ -90,6 +98,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       name: name ?? f.name,
     }));
     setKnownContact(isValidName(name) && isValidPhone(phone));
+    setVinHistory(history ?? []);
     if (incomingPhoto) {
       setPhoto(incomingPhoto);
       setPhotoPreview(URL.createObjectURL(incomingPhoto));
@@ -145,7 +154,16 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     ev.preventDefault();
     if (!validate()) return;
     const photoBase64 = photo ? await preparePhotoForUpload(photo) : null;
-    submitLead({ ...form, messenger, photo: photoBase64 });
+    submitLead({
+      vin: form.vin,
+      name: form.name,
+      phone: form.phone,
+      parts: form.parts,
+      car_name: form.carName,
+      city: form.city,
+      messenger,
+      photo: photoBase64,
+    });
   };
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -185,10 +203,49 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
           maxLength={17}
           placeholder="XW8ZZZ• • • • • • •"
           className="mt-1.5 tracking-[0.14em] uppercase bg-background"
+          list="vin-history-list"
         />
+        {vinHistory.length > 0 && (
+          <datalist id="vin-history-list">
+            {vinHistory.map((v) => (
+              <option key={v} value={v} />
+            ))}
+          </datalist>
+        )}
         {errors.vin && (
           <p className="text-primary text-xs mt-1">{errors.vin}</p>
         )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+            Название автомобиля (необязательно)
+          </label>
+          <Input
+            value={form.carName}
+            onChange={set('carName')}
+            placeholder="Например: Toyota Camry"
+            className="mt-1.5 bg-background"
+          />
+        </div>
+        <div>
+          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+            Город (необязательно)
+          </label>
+          <Input
+            value={form.city}
+            onChange={set('city')}
+            placeholder="Например: Москва"
+            list="city-list"
+            className="mt-1.5 bg-background"
+          />
+          <datalist id="city-list">
+            {cities.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </div>
       </div>
 
       {!knownContact && (

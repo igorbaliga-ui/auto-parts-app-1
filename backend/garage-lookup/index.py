@@ -42,7 +42,7 @@ def handler(event: dict, context) -> dict:
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
-            f"SELECT id, vin, name, phone, parts, messenger, order_amount, cashback, created_at "
+            f"SELECT id, vin, name, phone, parts, messenger, order_amount, cashback, created_at, car_name, city "
             f"FROM {schema}.leads WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s "
             f"ORDER BY created_at DESC LIMIT 100",
             (phone_last10,),
@@ -64,6 +64,8 @@ def handler(event: dict, context) -> dict:
             'order_amount': float(r['order_amount']) if r['order_amount'] is not None else None,
             'cashback': float(r['cashback']) if r['cashback'] is not None else None,
             'created_at': r['created_at'].isoformat() if r['created_at'] else None,
+            'car_name': r['car_name'],
+            'city': r['city'],
         })
 
     return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'orders': orders})}

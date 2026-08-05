@@ -25,6 +25,8 @@ type Lead = {
   order_amount: number | null;
   cashback: number | null;
   created_at: string;
+  car_name: string | null;
+  city: string | null;
 };
 
 const messengerLabel: Record<string, string> = {
@@ -50,7 +52,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [drafts, setDrafts] = useState<Record<number, { amount: string; cashback: string }>>({});
+  const [drafts, setDrafts] = useState<Record<number, { amount: string }>>({});
   const [savingId, setSavingId] = useState<number | null>(null);
 
   const load = async (pwd: string) => {
@@ -73,10 +75,7 @@ const Admin = () => {
         Object.fromEntries(
           list.map((l) => [
             l.id,
-            {
-              amount: l.order_amount != null ? String(l.order_amount) : '',
-              cashback: l.cashback != null ? String(l.cashback) : '',
-            },
+            { amount: l.order_amount != null ? String(l.order_amount) : '' },
           ]),
         ),
       );
@@ -103,8 +102,8 @@ const Admin = () => {
     load(password);
   };
 
-  const setDraft = (id: number, key: 'amount' | 'cashback', value: string) => {
-    setDrafts((d) => ({ ...d, [id]: { ...d[id], [key]: value } }));
+  const setDraft = (id: number, value: string) => {
+    setDrafts((d) => ({ ...d, [id]: { amount: value } }));
   };
 
   const saveLead = async (id: number) => {
@@ -112,26 +111,16 @@ const Admin = () => {
     if (!draft) return;
     setSavingId(id);
     try {
+      const amount = draft.amount ? Number(draft.amount) : null;
       const res = await fetch(LEADS_UPDATE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
-        body: JSON.stringify({
-          id,
-          order_amount: draft.amount ? Number(draft.amount) : null,
-          cashback: draft.cashback ? Number(draft.cashback) : null,
-        }),
+        body: JSON.stringify({ id, order_amount: amount }),
       });
       if (!res.ok) throw new Error('request failed');
+      const cashback = amount != null ? Math.round(amount * 0.03 * 100) / 100 : null;
       setLeads((ls) =>
-        ls.map((l) =>
-          l.id === id
-            ? {
-                ...l,
-                order_amount: draft.amount ? Number(draft.amount) : null,
-                cashback: draft.cashback ? Number(draft.cashback) : null,
-              }
-            : l,
-        ),
+        ls.map((l) => (l.id === id ? { ...l, order_amount: amount, cashback } : l)),
       );
     } catch {
       setError('Не удалось сохранить. Попробуйте ещё раз.');
@@ -193,13 +182,15 @@ const Admin = () => {
                 <TableRow>
                   <TableHead>Дата</TableHead>
                   <TableHead>VIN</TableHead>
+                  <TableHead>Авто</TableHead>
                   <TableHead>Имя</TableHead>
                   <TableHead>Телефон</TableHead>
+                  <TableHead>Город</TableHead>
                   <TableHead>Мессенджер</TableHead>
                   <TableHead>Запчасти</TableHead>
                   <TableHead>Фото СТС</TableHead>
                   <TableHead>Сумма заказа</TableHead>
-                  <TableHead>Кэшбэк</TableHead>
+                  <TableHead>Кэшбэк 3%</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -210,12 +201,14 @@ const Admin = () => {
                       {formatDate(l.created_at)}
                     </TableCell>
                     <TableCell className="font-head tracking-[0.1em]">{l.vin || '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">{l.car_name || '—'}</TableCell>
                     <TableCell>{l.name}</TableCell>
                     <TableCell>
                       <a href={`tel:${l.phone}`} className="hover:text-primary">
                         {l.phone}
                       </a>
                     </TableCell>
+                    <TableCell className="text-muted-foreground">{l.city || '—'}</TableCell>
                     <TableCell>
                       {l.messenger ? messengerLabel[l.messenger] ?? l.messenger : '—'}
                     </TableCell>
@@ -239,19 +232,13 @@ const Admin = () => {
                       <Input
                         type="number"
                         value={drafts[l.id]?.amount ?? ''}
-                        onChange={(e) => setDraft(l.id, 'amount', e.target.value)}
+                        onChange={(e) => setDraft(l.id, e.target.value)}
                         placeholder="0"
                         className="w-28 h-9"
                       />
                     </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        value={drafts[l.id]?.cashback ?? ''}
-                        onChange={(e) => setDraft(l.id, 'cashback', e.target.value)}
-                        placeholder="0"
-                        className="w-24 h-9"
-                      />
+                    <TableCell className="text-primary whitespace-nowrap">
+                      {l.cashback != null ? `${l.cashback} ₽` : '—'}
                     </TableCell>
                     <TableCell>
                       <Button
