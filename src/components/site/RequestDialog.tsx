@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +16,7 @@ import {
 } from '@/components/ui/drawer';
 import { useSubmitLead } from '@/hooks/use-submit-lead';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useGarageAuth } from '@/hooks/use-garage-auth';
+import { useGarageAuth, GARAGE_PHONE_KEY, notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
 import { preparePhotoForUpload } from '@/lib/image';
 import { getStoredCity } from '@/lib/garage-city';
 import {
@@ -35,6 +36,7 @@ export { useRequest } from './request-dialog/RequestContext';
 
 export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const { authed: garageAuthed, phone: garagePhone } = useGarageAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [sent, setSent] = useState(false);
@@ -181,6 +183,13 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
 
   const { submitLead, submitting } = useSubmitLead(() => {
     setSent(true);
+    // Неавторизованный в «Гараже» клиент после успешной заявки сразу попадает в свой личный кабинет
+    if (!garageAuthed && form.phone) {
+      localStorage.setItem(GARAGE_PHONE_KEY, form.phone);
+      notifyGarageAuthChanged();
+      setIsOpen(false);
+      navigate('/garage');
+    }
     setForm(emptyForm);
     setMessenger(null);
     setKnownContact(false);

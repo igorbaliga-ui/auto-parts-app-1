@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { useSubmitLead } from '@/hooks/use-submit-lead';
 import { preparePhotoForUpload } from '@/lib/image';
+import { GARAGE_PHONE_KEY, notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
 
 const messengers = [
   { id: 'telegram', label: 'Telegram', icon: 'Send' },
@@ -13,6 +15,7 @@ const messengers = [
 ] as const;
 
 const VinForm = () => {
+  const navigate = useNavigate();
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState({ vin: '', name: '', phone: '', parts: '' });
   const [messenger, setMessenger] = useState<string | null>(null);
@@ -51,6 +54,11 @@ const VinForm = () => {
 
   const { submitLead, submitting } = useSubmitLead(() => {
     setSent(true);
+    if (form.phone) {
+      localStorage.setItem(GARAGE_PHONE_KEY, form.phone);
+      notifyGarageAuthChanged();
+      navigate('/garage');
+    }
     setForm({ vin: '', name: '', phone: '', parts: '' });
     setMessenger(null);
     removePhoto();
