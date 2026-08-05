@@ -1,8 +1,14 @@
+import { useNav, Tab } from '@/components/site/NavContext';
+
+const footerLinks: { label: string; tab: Tab }[] = [
+  { label: 'Подбор по VIN', tab: 'vin' },
+  { label: 'Как заказать', tab: 'how' },
+  { label: 'Преимущества', tab: 'advantages' },
+  { label: 'Контакты', tab: 'contacts' },
+];
+
 const Footer = () => {
-  const scrollTo = (href: string) => {
-    const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-  };
+  const { goTo } = useNav();
 
   return (
     <footer className="bg-card border-t border-border">
@@ -24,15 +30,10 @@ const Footer = () => {
         </div>
 
         <nav className="flex flex-wrap gap-x-7 gap-y-2">
-          {[
-            { label: 'Подбор по VIN', href: '#vin' },
-            { label: 'Как заказать', href: '#how' },
-            { label: 'Преимущества', href: '#advantages' },
-            { label: 'Контакты', href: '#contacts' },
-          ].map((l) => (
+          {footerLinks.map((l) => (
             <button
-              key={l.href}
-              onClick={() => scrollTo(l.href)}
+              key={l.tab}
+              onClick={() => goTo(l.tab)}
               className="font-head font-medium uppercase tracking-[0.14em] text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               {l.label}

@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
+import { useNav, Tab } from '@/components/site/NavContext';
 import InstallGuide from './InstallGuide';
 
-const links = [
-  { label: 'Подбор по VIN', href: '#vin' },
-  { label: 'Как заказать', href: '#how' },
-  { label: 'Преимущества', href: '#advantages' },
-  { label: 'Контакты', href: '#contacts' },
+const links: { label: string; tab: Tab }[] = [
+  { label: 'Подбор по VIN', tab: 'vin' },
+  { label: 'Как заказать', tab: 'how' },
+  { label: 'Преимущества', tab: 'advantages' },
+  { label: 'Контакты', tab: 'contacts' },
 ];
 
 const Header = () => {
@@ -16,6 +17,7 @@ const Header = () => {
   const { canInstall, promptInstall } = usePwaInstall();
   const [guideOpen, setGuideOpen] = useState(false);
   const [guideTab, setGuideTab] = useState<'ios' | 'android'>('ios');
+  const { goTo } = useNav();
 
   const openGuide = (tab: 'ios' | 'android') => {
     setOpen(false);
@@ -23,27 +25,22 @@ const Header = () => {
     setGuideOpen(true);
   };
 
-  const scrollTo = (href: string) => {
+  const navigate = (tab: Tab) => {
     setOpen(false);
-    const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    goTo(tab);
   };
 
   return (
     <header className="absolute top-0 left-0 right-0 z-30">
       <div className="max-w-[1400px] mx-auto flex items-center px-5 sm:px-8 lg:px-12 py-6">
-        <a
-          href="#top"
-          onClick={(e) => {
-            e.preventDefault();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+        <button
+          onClick={() => navigate('home')}
           className="flex items-center"
         >
           <span className="font-head font-bold uppercase tracking-[0.18em] text-lg sm:text-xl text-concrete-carved">
             ЗАП&nbsp;Оптом
           </span>
-        </a>
+        </button>
 
         <div
           className="flex items-center gap-0.5 ml-4 px-1.5 py-1 rounded-full border border-border/60 bg-card/40"
@@ -82,8 +79,8 @@ const Header = () => {
         <nav className="hidden md:flex items-center gap-8 ml-auto">
           {links.map((l) => (
             <button
-              key={l.href}
-              onClick={() => scrollTo(l.href)}
+              key={l.tab}
+              onClick={() => navigate(l.tab)}
               className="font-head font-medium uppercase tracking-[0.14em] text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               {l.label}
@@ -122,8 +119,8 @@ const Header = () => {
           <nav className="flex flex-col px-5 py-4">
             {links.map((l) => (
               <button
-                key={l.href}
-                onClick={() => scrollTo(l.href)}
+                key={l.tab}
+                onClick={() => navigate(l.tab)}
                 className="text-left font-head font-medium uppercase tracking-[0.14em] text-sm text-muted-foreground hover:text-foreground py-3 border-b border-border/50 last:border-0"
               >
                 {l.label}
