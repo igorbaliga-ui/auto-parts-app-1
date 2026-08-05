@@ -17,8 +17,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useSubmitLead } from '@/hooks/use-submit-lead';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useGarageAuth } from '@/hooks/use-garage-auth';
 import { preparePhotoForUpload } from '@/lib/image';
 
 type Ctx = {
@@ -54,8 +62,11 @@ const loadDraft = () => {
   }
 };
 
+type GarageCar = { vin: string; car_name: string };
+
 export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const isMobile = useIsMobile();
+  const { authed: garageAuthed, phone: garagePhone } = useGarageAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -65,8 +76,37 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [knownContact, setKnownContact] = useState(false);
   const [vinHistory, setVinHistory] = useState<string[]>([]);
+  const [garageCars, setGarageCars] = useState<GarageCar[]>([]);
   const nameLookupTimer = useRef<ReturnType<typeof setTimeout>>();
   const lastLookupPhone = useRef<string>('');
+
+  // Клиент вошёл в «Гараж» — подгружаем список его автомобилей с названиями (привязаны к VIN)
+  useEffect(() => {
+    if (!garageAuthed || !garagePhone) {
+      setGarageCars([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(garagePhone)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        const orders: { vin: string | null; car_name: string | null }[] = data.orders || [];
+        const seen = new Set<string>();
+        const cars: GarageCar[] = [];
+        orders.forEach((o) => {
+          if (o.vin && o.car_name && !seen.has(o.vin)) {
+            seen.add(o.vin);
+            cars.push({ vin: o.vin, car_name: o.car_name });
+          }
+        });
+        setGarageCars(cars);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [garageAuthed, garagePhone]);
 
   useEffect(() => {
     const draft = loadDraft();
@@ -216,6 +256,29 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
 
   const formContent = (
     <form onSubmit={submit} className="flex flex-col gap-4 mt-2">
+      {garageCars.length > 0 && (
+        <div>
+          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+            Ваш автомобиль
+          </label>
+          <Select
+            value={garageCars.some((c) => c.vin === form.vin) ? form.vin : undefined}
+            onValueChange={(vin) => setForm((f) => ({ ...f, vin }))}
+          >
+            <SelectTrigger className="mt-1.5 bg-background">
+              <SelectValue placeholder="Выберите из гаража или введите VIN ниже" />
+            </SelectTrigger>
+            <SelectContent>
+              {garageCars.map((c) => (
+                <SelectItem key={c.vin} value={c.vin}>
+                  {c.car_name} — {c.vin}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div>
         <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
           VIN-код {photo && <span className="normal-case text-muted-foreground/70">(необязательно, есть фото)</span>}

@@ -21,5 +21,5 @@ export const useGarageAuth = () => {
     };
   }, []);
 
-  return { authed: !!phone };
+  return { authed: !!phone, phone };
 };
