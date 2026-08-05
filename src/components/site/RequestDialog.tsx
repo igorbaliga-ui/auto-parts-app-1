@@ -264,37 +264,41 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
           <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
             Ваш автомобиль
           </label>
-          <Select
-            value={vinSource === 'garage' && garageCars.some((c) => c.vin === form.vin) ? form.vin : undefined}
-            onValueChange={(vin) => {
-              setForm((f) => ({ ...f, vin }));
-              setVinSource('garage');
-            }}
-            disabled={vinSource === 'manual'}
-          >
-            <SelectTrigger className="mt-1.5 bg-background">
-              <SelectValue placeholder="Выберите из гаража или введите VIN ниже" />
-            </SelectTrigger>
-            <SelectContent>
-              {garageCars.map((c) => (
-                <SelectItem key={c.vin} value={c.vin}>
-                  {c.car_name} — {c.vin}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {vinSource === 'manual' && (
-            <button
-              type="button"
-              onClick={() => {
-                setForm((f) => ({ ...f, vin: '' }));
-                setVinSource(null);
+          <div className="relative mt-1.5">
+            <Select
+              value={vinSource === 'garage' && garageCars.some((c) => c.vin === form.vin) ? form.vin : ''}
+              onValueChange={(vin) => {
+                setForm((f) => ({ ...f, vin }));
+                setVinSource('garage');
               }}
-              className="mt-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+              disabled={vinSource === 'manual'}
             >
-              Очистить VIN, чтобы выбрать автомобиль из гаража
-            </button>
-          )}
+              <SelectTrigger className={`bg-background ${vinSource === 'garage' ? 'pr-9' : ''}`}>
+                <SelectValue placeholder="Выберите из гаража или введите VIN ниже" />
+              </SelectTrigger>
+              <SelectContent>
+                {garageCars.map((c) => (
+                  <SelectItem key={c.vin} value={c.vin}>
+                    {c.car_name} — {c.vin}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {vinSource === 'garage' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setForm((f) => ({ ...f, vin: '' }));
+                  setVinSource(null);
+                }}
+                aria-label="Сбросить выбор автомобиля"
+                title="Сбросить выбор"
+                className="absolute right-8 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 rounded-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Icon name="X" size={14} />
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -302,36 +306,40 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
         <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
           VIN-код {photo && <span className="normal-case text-muted-foreground/70">(необязательно, есть фото)</span>}
         </label>
-        <Input
-          value={form.vin}
-          onChange={(e) => {
-            set('vin')(e);
-            setVinSource(e.target.value ? 'manual' : null);
-          }}
-          maxLength={17}
-          placeholder="XW8ZZZ• • • • • • •"
-          className="mt-1.5 tracking-[0.14em] uppercase bg-background"
-          list="vin-history-list"
-          disabled={vinSource === 'garage'}
-        />
+        <div className="relative mt-1.5">
+          <Input
+            value={form.vin}
+            onChange={(e) => {
+              set('vin')(e);
+              setVinSource(e.target.value ? 'manual' : null);
+            }}
+            maxLength={17}
+            placeholder="XW8ZZZ• • • • • • •"
+            className={`tracking-[0.14em] uppercase bg-background ${form.vin ? 'pr-9' : ''}`}
+            list="vin-history-list"
+            disabled={vinSource === 'garage'}
+          />
+          {form.vin && (
+            <button
+              type="button"
+              onClick={() => {
+                setForm((f) => ({ ...f, vin: '' }));
+                setVinSource(null);
+              }}
+              aria-label="Очистить VIN"
+              title="Очистить"
+              className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 rounded-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Icon name="X" size={14} />
+            </button>
+          )}
+        </div>
         {vinHistory.length > 0 && (
           <datalist id="vin-history-list">
             {vinHistory.map((v) => (
               <option key={v} value={v} />
             ))}
           </datalist>
-        )}
-        {vinSource === 'garage' && (
-          <button
-            type="button"
-            onClick={() => {
-              setForm((f) => ({ ...f, vin: '' }));
-              setVinSource(null);
-            }}
-            className="mt-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
-          >
-            Сбросить выбор и ввести VIN вручную
-          </button>
         )}
         {errors.vin && (
           <p className="text-primary text-xs mt-1">{errors.vin}</p>
