@@ -1,10 +1,13 @@
 import { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { useRequest } from './RequestDialog';
+import { useGarageAuth } from '@/hooks/use-garage-auth';
 import heroBg from '@/assets/hero-bg.webp';
 
 const Hero = () => {
   const { open } = useRequest();
+  const { authed: garageAuthed } = useGarageAuth();
   const [vin, setVin] = useState('');
   const [photoName, setPhotoName] = useState('');
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -49,55 +52,77 @@ const Hero = () => {
               деталь
             </h1>
 
-            <p className="max-w-[34ch] text-muted-foreground leading-relaxed text-base sm:text-lg mb-4 flex items-center gap-2 flex-wrap">
-              Напишите VIN или Frame-номер автомобиля, или отправьте фото СТС
-              <button
-                type="button"
-                onClick={() => photoInputRef.current?.click()}
-                aria-label="Прикрепить фото СТС"
-                title="Прикрепить фото СТС"
-                className="inline-flex items-center justify-center w-9 h-9 shrink-0 rounded-sm bg-primary/15 text-primary hover:bg-primary/25 transition-colors"
+            {garageAuthed ? (
+              <Link
+                to="/garage"
+                className="flex items-center gap-4 w-full max-w-[440px] border-[1.5px] border-primary rounded-sm bg-primary/10 hover:bg-primary/15 transition-colors p-5 mb-4"
               >
-                <Icon name="Camera" size={18} />
-              </button>
-              <input
-                ref={photoInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                className="hidden"
-              />
-            </p>
-            {photoName && (
-              <p className="text-primary text-xs mb-4 flex items-center gap-1.5">
-                <Icon name="Check" size={14} />
-                Фото прикреплено: {photoName}
-              </p>
-            )}
+                <span className="w-14 h-14 shrink-0 rounded-sm bg-primary/20 flex items-center justify-center">
+                  <Icon name="Warehouse" className="text-primary" size={30} />
+                </span>
+                <span className="flex flex-col">
+                  <span className="font-head font-bold uppercase tracking-[0.1em] text-lg text-foreground">
+                    В гараж
+                  </span>
+                  <span className="text-muted-foreground text-sm">
+                    Заявки оформляются через личный кабинет
+                  </span>
+                </span>
+                <Icon name="ChevronRight" className="text-primary ml-auto" size={22} />
+              </Link>
+            ) : (
+              <>
+                <p className="max-w-[34ch] text-muted-foreground leading-relaxed text-base sm:text-lg mb-4 flex items-center gap-2 flex-wrap">
+                  Напишите VIN или Frame-номер автомобиля, или отправьте фото СТС
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    aria-label="Прикрепить фото СТС"
+                    title="Прикрепить фото СТС"
+                    className="inline-flex items-center justify-center w-9 h-9 shrink-0 rounded-sm bg-primary/15 text-primary hover:bg-primary/25 transition-colors"
+                  >
+                    <Icon name="Camera" size={18} />
+                  </button>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="hidden"
+                  />
+                </p>
+                {photoName && (
+                  <p className="text-primary text-xs mb-4 flex items-center gap-1.5">
+                    <Icon name="Check" size={14} />
+                    Фото прикреплено: {photoName}
+                  </p>
+                )}
 
-            <form
-              onSubmit={submit}
-              className="flex items-stretch w-full max-w-[440px] border-[1.5px] border-steel rounded-sm bg-card overflow-hidden"
-            >
-              <span className="hidden sm:flex items-center px-4 font-head font-bold tracking-[0.12em] text-sm text-muted-foreground border-r-[1.5px] border-steel bg-steel-dark shrink-0">
-                VIN
-              </span>
-              <input
-                value={vin}
-                onChange={(e) => setVin(e.target.value)}
-                maxLength={17}
-                type="text"
-                placeholder="XW8ZZZ • • • •"
-                aria-label="VIN-код автомобиля"
-                className="flex-1 min-w-0 bg-transparent text-foreground text-sm tracking-[0.1em] sm:tracking-[0.16em] px-3 sm:px-4 outline-none placeholder:text-steel"
-              />
-              <button
-                type="submit"
-                className="shrink-0 bg-primary text-primary-foreground font-head font-bold uppercase tracking-[0.1em] text-xs sm:text-sm px-3 sm:px-5 hover:brightness-110 transition"
-              >
-                Подобрать
-              </button>
-            </form>
+                <form
+                  onSubmit={submit}
+                  className="flex items-stretch w-full max-w-[440px] border-[1.5px] border-steel rounded-sm bg-card overflow-hidden"
+                >
+                  <span className="hidden sm:flex items-center px-4 font-head font-bold tracking-[0.12em] text-sm text-muted-foreground border-r-[1.5px] border-steel bg-steel-dark shrink-0">
+                    VIN
+                  </span>
+                  <input
+                    value={vin}
+                    onChange={(e) => setVin(e.target.value)}
+                    maxLength={17}
+                    type="text"
+                    placeholder="XW8ZZZ • • • •"
+                    aria-label="VIN-код автомобиля"
+                    className="flex-1 min-w-0 bg-transparent text-foreground text-sm tracking-[0.1em] sm:tracking-[0.16em] px-3 sm:px-4 outline-none placeholder:text-steel"
+                  />
+                  <button
+                    type="submit"
+                    className="shrink-0 bg-primary text-primary-foreground font-head font-bold uppercase tracking-[0.1em] text-xs sm:text-sm px-3 sm:px-5 hover:brightness-110 transition"
+                  >
+                    Подобрать
+                  </button>
+                </form>
+              </>
+            )}
 
             <div className="mt-4 flex flex-col items-start gap-2 text-muted-foreground text-sm">
               <span className="flex items-center gap-2">
