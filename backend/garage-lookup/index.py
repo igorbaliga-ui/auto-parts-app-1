@@ -62,7 +62,8 @@ def handler(event: dict, context) -> dict:
             'parts': r['parts'],
             'messenger': r['messenger'],
             'order_amount': float(r['order_amount']) if r['order_amount'] is not None else None,
-            'cashback': float(r['cashback']) if r['cashback'] is not None else None,
+            # Кэшбэк начисляется только после того, как заказ переведён в статус «Выполнен»
+            'cashback': float(r['cashback']) if r['cashback'] is not None and r['status'] == 'done' else None,
             'created_at': r['created_at'].isoformat() if r['created_at'] else None,
             'car_name': r['car_name'],
             'city': r['city'],
