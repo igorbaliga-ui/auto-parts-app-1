@@ -435,7 +435,7 @@ const GarageContent = () => {
           На главную
         </Link>
 
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
           <div className="flex items-center gap-3">
             <Link
               to="/"
@@ -447,7 +447,7 @@ const GarageContent = () => {
             </Link>
             <h1 className="font-head uppercase tracking-wide text-2xl">Мой гараж</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Link
               to="/"
               className="hidden sm:flex items-center justify-center h-10 px-4 rounded-sm border border-steel text-muted-foreground text-sm font-head uppercase tracking-wide hover:border-primary/60 hover:text-foreground transition-colors"
@@ -456,8 +456,8 @@ const GarageContent = () => {
               На главную
             </Link>
             <Button onClick={() => open(undefined, undefined, phone, knownName, vinHistory, city)} className="font-head uppercase tracking-wide">
-              <Icon name="Plus" size={16} className="mr-2" />
-              Новая заявка
+              <Icon name="Plus" size={16} className="sm:mr-2" />
+              <span className="hidden sm:inline">Новая заявка</span>
             </Button>
             <Button
               variant="secondary"
@@ -471,6 +471,7 @@ const GarageContent = () => {
               variant="secondary"
               onClick={() => setLogoutConfirmOpen(true)}
               className="font-head uppercase tracking-wide"
+              title="Выйти"
             >
               <Icon name="LogOut" size={16} />
             </Button>
