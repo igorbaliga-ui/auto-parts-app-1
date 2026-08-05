@@ -19,6 +19,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { RequestProvider, useRequest } from '@/components/site/RequestDialog';
 import PageBackground from '@/components/site/PageBackground';
 import ExpandableText from '@/components/shared/ExpandableText';
@@ -27,6 +34,7 @@ import { cities, getStoredCity, setStoredCity } from '@/lib/garage-city';
 
 const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
 const GARAGE_CAR_NAME_URL = 'https://functions.poehali.dev/22aa943f-f262-4beb-b2e2-c713d1684c82';
+const GARAGE_AUTH_URL = 'https://functions.poehali.dev/d92ac11d-c6d2-4430-b948-a767c0048442';
 const STORAGE_KEY = 'zapoptom_garage_phone';
 
 type Order = {
@@ -79,6 +87,27 @@ const GarageContent = () => {
   const [city, setCity] = useState(() => getStoredCity());
   const [statusTab, setStatusTab] = useState<'in_progress' | 'done'>('in_progress');
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [passwordRequired, setPasswordRequired] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [checkingPassword, setCheckingPassword] = useState(false);
+  const [passwordSettingsOpen, setPasswordSettingsOpen] = useState(false);
+  const [hasPassword, setHasPassword] = useState(false);
+  const [oldPasswordInput, setOldPasswordInput] = useState('');
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [passwordSettingsError, setPasswordSettingsError] = useState('');
+  const [passwordSettingsLoading, setPasswordSettingsLoading] = useState(false);
+  const [passwordSettingsSuccess, setPasswordSettingsSuccess] = useState('');
+
+  const checkHasPassword = async (ph: string) => {
+    try {
+      const res = await fetch(`${GARAGE_AUTH_URL}?phone=${encodeURIComponent(ph)}`);
+      if (!res.ok) return false;
+      const data = await res.json();
+      return !!data.has_password;
+    } catch {
+      return false;
+    }
+  };
 
   const load = async (ph: string) => {
     setLoading(true);
@@ -107,20 +136,61 @@ const GarageContent = () => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       setPhone(saved);
-      load(saved);
+      (async () => {
+        const needsPassword = await checkHasPassword(saved);
+        if (needsPassword) {
+          setPasswordRequired(true);
+          setCheckingSaved(false);
+        } else {
+          load(saved);
+        }
+      })();
     } else {
       setCheckingSaved(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (phone.replace(/\D/g, '').length < 10) {
       setError('Укажите корректный телефон');
       return;
     }
+    setCheckingPassword(true);
+    const needsPassword = await checkHasPassword(phone);
+    setCheckingPassword(false);
+    if (needsPassword) {
+      setPasswordRequired(true);
+      setError('');
+      return;
+    }
     load(phone);
+  };
+
+  const submitPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(GARAGE_AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login', phone, password: passwordInput }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || 'Неверный пароль');
+        setLoading(false);
+        return;
+      }
+      setPasswordInput('');
+      setPasswordRequired(false);
+      await load(phone);
+    } catch {
+      setError('Не удалось войти. Попробуйте ещё раз.');
+      setLoading(false);
+    }
   };
 
   const logout = () => {
@@ -128,7 +198,80 @@ const GarageContent = () => {
     setAuthed(false);
     setOrders([]);
     setPhone('');
+    setPasswordRequired(false);
     notifyGarageAuthChanged();
+  };
+
+  const openPasswordSettings = async () => {
+    setPasswordSettingsError('');
+    setPasswordSettingsSuccess('');
+    setOldPasswordInput('');
+    setNewPasswordInput('');
+    const has = await checkHasPassword(phone);
+    setHasPassword(has);
+    setPasswordSettingsOpen(true);
+  };
+
+  const savePasswordSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordSettingsError('');
+    setPasswordSettingsSuccess('');
+    if (newPasswordInput.trim().length < 4) {
+      setPasswordSettingsError('Пароль — не менее 4 символов');
+      return;
+    }
+    setPasswordSettingsLoading(true);
+    try {
+      const res = await fetch(GARAGE_AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'set_password',
+          phone,
+          password: newPasswordInput.trim(),
+          old_password: oldPasswordInput,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPasswordSettingsError(data.error || 'Не удалось сохранить пароль');
+        return;
+      }
+      setHasPassword(true);
+      setOldPasswordInput('');
+      setNewPasswordInput('');
+      setPasswordSettingsSuccess('Пароль сохранён');
+    } catch {
+      setPasswordSettingsError('Не удалось сохранить пароль');
+    } finally {
+      setPasswordSettingsLoading(false);
+    }
+  };
+
+  const removePasswordSettings = async () => {
+    setPasswordSettingsError('');
+    setPasswordSettingsSuccess('');
+    setPasswordSettingsLoading(true);
+    try {
+      const res = await fetch(GARAGE_AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'remove_password', phone, old_password: oldPasswordInput }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPasswordSettingsError(data.error || 'Не удалось удалить пароль');
+        return;
+      }
+      setHasPassword(false);
+      setOldPasswordInput('');
+      setNewPasswordInput('');
+      setPasswordSettingsSuccess('Пароль удалён');
+    } catch {
+      setPasswordSettingsError('Не удалось удалить пароль');
+    } finally {
+      setPasswordSettingsLoading(false);
+    }
   };
 
   const totalCashback = orders.reduce((sum, o) => sum + (o.cashback || 0), 0);
@@ -185,6 +328,53 @@ const GarageContent = () => {
     );
   }
 
+  if (!authed && passwordRequired) {
+    return (
+      <PageBackground>
+        <div className="min-h-screen flex items-center justify-center px-5">
+          <form
+            onSubmit={submitPassword}
+            className="w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4"
+          >
+            <div className="flex justify-center mb-2">
+              <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center">
+                <Icon name="Lock" className="text-primary" size={28} />
+              </span>
+            </div>
+            <h1 className="font-head uppercase tracking-wide text-2xl text-center">
+              Введите пароль
+            </h1>
+            <p className="text-muted-foreground text-sm text-center">
+              Для номера {phone} задан пароль. Введите его, чтобы войти в гараж.
+            </p>
+            <Input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              placeholder="Пароль"
+              autoFocus
+            />
+            {error && <p className="text-primary text-sm text-center">{error}</p>}
+            <Button type="submit" disabled={loading} className="font-head uppercase tracking-wide h-11">
+              {loading ? 'Входим…' : 'Войти'}
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                setPasswordRequired(false);
+                setPasswordInput('');
+                setError('');
+              }}
+              className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Ввести другой номер
+            </button>
+          </form>
+        </div>
+      </PageBackground>
+    );
+  }
+
   if (!authed) {
     return (
       <PageBackground>
@@ -213,8 +403,8 @@ const GarageContent = () => {
               autoFocus
             />
             {error && <p className="text-primary text-sm text-center">{error}</p>}
-            <Button type="submit" disabled={loading} className="font-head uppercase tracking-wide h-11">
-              {loading ? 'Загружаем…' : 'Войти'}
+            <Button type="submit" disabled={loading || checkingPassword} className="font-head uppercase tracking-wide h-11">
+              {loading || checkingPassword ? 'Загружаем…' : 'Войти'}
             </Button>
             <a href="/" className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors">
               На главную
@@ -263,6 +453,14 @@ const GarageContent = () => {
             </Button>
             <Button
               variant="secondary"
+              onClick={openPasswordSettings}
+              className="font-head uppercase tracking-wide"
+              title="Пароль для входа"
+            >
+              <Icon name="Lock" size={16} />
+            </Button>
+            <Button
+              variant="secondary"
               onClick={() => setLogoutConfirmOpen(true)}
               className="font-head uppercase tracking-wide"
             >
@@ -270,6 +468,75 @@ const GarageContent = () => {
             </Button>
           </div>
         </div>
+
+        <Dialog open={passwordSettingsOpen} onOpenChange={setPasswordSettingsOpen}>
+          <DialogContent className="bg-card border-border sm:max-w-[420px]">
+            <DialogHeader>
+              <DialogTitle className="font-head uppercase tracking-wide text-xl">
+                {hasPassword ? 'Пароль для входа' : 'Задать пароль'}
+              </DialogTitle>
+              <DialogDescription>
+                {hasPassword
+                  ? 'Пароль защищает доступ к вашим заказам по этому номеру телефона.'
+                  : 'Необязательно: задайте пароль, чтобы дополнительно защитить доступ к заказам.'}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={savePasswordSettings} className="flex flex-col gap-3 mt-1">
+              {hasPassword && (
+                <div>
+                  <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+                    Текущий пароль
+                  </label>
+                  <Input
+                    type="password"
+                    value={oldPasswordInput}
+                    onChange={(e) => setOldPasswordInput(e.target.value)}
+                    placeholder="Текущий пароль"
+                    className="mt-1.5 bg-background"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+                  {hasPassword ? 'Новый пароль' : 'Пароль'}
+                </label>
+                <Input
+                  type="password"
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  placeholder="Не менее 4 символов"
+                  className="mt-1.5 bg-background"
+                />
+              </div>
+              {passwordSettingsError && (
+                <p className="text-primary text-sm">{passwordSettingsError}</p>
+              )}
+              {passwordSettingsSuccess && (
+                <p className="text-primary text-sm">{passwordSettingsSuccess}</p>
+              )}
+              <div className="flex items-center gap-2 mt-1">
+                <Button
+                  type="submit"
+                  disabled={passwordSettingsLoading}
+                  className="font-head uppercase tracking-wide flex-1"
+                >
+                  {passwordSettingsLoading ? 'Сохраняем…' : hasPassword ? 'Сменить пароль' : 'Сохранить'}
+                </Button>
+                {hasPassword && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={passwordSettingsLoading}
+                    onClick={removePasswordSettings}
+                    className="font-head uppercase tracking-wide"
+                  >
+                    Убрать пароль
+                  </Button>
+                )}
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <AlertDialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
           <AlertDialogContent className="bg-card border-border">

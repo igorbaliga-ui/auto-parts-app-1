@@ -1,0 +1,23 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Invalid phone rejected on GET",
+      "method": "GET",
+      "path": "/?phone=123",
+      "expectedStatus": 400
+    },
+    {
+      "name": "Invalid phone rejected on POST",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "login", "phone": "123"},
+      "expectedStatus": 400
+    }
+  ]
+}
