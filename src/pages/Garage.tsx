@@ -371,6 +371,7 @@ const GarageContent = () => {
                         const value = e.target.value;
                         setCarNameDrafts((d) => ({ ...d, [o.id]: value }));
                       }}
+                      maxLength={25}
                       placeholder="Название автомобиля, например Toyota Camry"
                       className="h-9 text-sm bg-background max-w-xs"
                     />

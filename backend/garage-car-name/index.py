@@ -35,6 +35,8 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите корректный телефон'})}
     if not vin:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Не указан VIN'})}
+    if len(car_name) > 25:
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Название автомобиля — не более 25 символов'})}
 
     phone_last10 = phone_digits[-10:]
 
