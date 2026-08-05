@@ -99,6 +99,16 @@ def handler(event: dict, context) -> dict:
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor()
+        # К номеру телефона закрепляется только одно имя — то, что было указано в самой первой заявке
+        cur.execute(
+            f"SELECT name FROM {schema}.leads "
+            f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s "
+            f"ORDER BY created_at ASC LIMIT 1",
+            (phone_last10,),
+        )
+        row = cur.fetchone()
+        if row:
+            name = row[0]
         # Если название авто не передали явно — подтягиваем его из другой заявки с тем же VIN
         if not car_name and vin_to_save:
             cur.execute(
