@@ -99,6 +99,16 @@ def handler(event: dict, context) -> dict:
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor()
+        # Если название авто не передали явно — подтягиваем его из другой заявки с тем же VIN
+        if not car_name and vin_to_save:
+            cur.execute(
+                f"SELECT car_name FROM {schema}.leads "
+                f"WHERE vin = %s AND car_name IS NOT NULL LIMIT 1",
+                (vin_to_save,),
+            )
+            row = cur.fetchone()
+            if row:
+                car_name = row[0]
         cur.execute(
             f"INSERT INTO {schema}.leads (vin, name, phone, parts, messenger, photo_url, car_name, city) "
             f"VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
