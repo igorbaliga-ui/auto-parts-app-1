@@ -289,7 +289,7 @@ const RequestFormFields = ({
                 <Icon name="ChevronDown" size={14} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
+            <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
               {cities.map((c) => (
                 <DropdownMenuItem
                   key={c}
