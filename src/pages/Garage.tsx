@@ -435,8 +435,26 @@ const GarageContent = () => {
           На главную
         </Link>
 
-        <div className="flex items-start justify-between mb-6 gap-2 flex-wrap">
+        <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/"
+              aria-label="На главную"
+              title="На главную"
+              className="w-9 h-9 sm:w-11 sm:h-11 shrink-0 rounded-sm bg-primary/15 flex items-center justify-center hover:bg-primary/25 transition-colors"
+            >
+              <Icon name="Warehouse" className="text-primary" size={18} />
+            </Link>
+            <h1 className="font-head uppercase tracking-wide text-lg sm:text-2xl whitespace-nowrap">Мой гараж</h1>
+          </div>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <Link
+              to="/"
+              className="hidden sm:flex items-center justify-center h-10 px-4 rounded-sm border border-steel text-muted-foreground text-sm font-head uppercase tracking-wide hover:border-primary/60 hover:text-foreground transition-colors"
+            >
+              <Icon name="ArrowLeft" size={16} className="mr-2" />
+              На главную
+            </Link>
             <Button
               onClick={() => open(undefined, undefined, phone, knownName, vinHistory, city)}
               size="sm"
@@ -463,43 +481,6 @@ const GarageContent = () => {
             >
               <Icon name="LogOut" size={16} />
             </Button>
-          </div>
-          <div className="flex flex-col items-end gap-1.5">
-            <Link
-              to="/"
-              className="hidden sm:flex items-center justify-center h-10 px-4 rounded-sm border border-steel text-muted-foreground text-sm font-head uppercase tracking-wide hover:border-primary/60 hover:text-foreground transition-colors"
-            >
-              <Icon name="ArrowLeft" size={16} className="mr-2" />
-              На главную
-            </Link>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <h1 className="font-head uppercase tracking-wide text-lg sm:text-2xl whitespace-nowrap">Мой гараж</h1>
-              <span className="w-9 h-9 sm:w-11 sm:h-11 shrink-0 rounded-sm bg-primary/15 flex items-center justify-center">
-                <Icon name="Warehouse" className="text-primary" size={18} />
-              </span>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1.5 text-muted-foreground text-sm hover:text-primary transition-colors">
-                  <Icon name="MapPin" size={14} />
-                  {city}
-                  <Icon name="ChevronDown" size={14} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {cities.map((c) => (
-                  <DropdownMenuItem
-                    key={c}
-                    onClick={() => {
-                      setCity(c);
-                      setStoredCity(c);
-                    }}
-                  >
-                    {c}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
 
@@ -593,8 +574,31 @@ const GarageContent = () => {
           </AlertDialogContent>
         </AlertDialog>
 
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-1.5 text-muted-foreground text-sm hover:text-primary transition-colors mb-6">
+              <Icon name="MapPin" size={14} />
+              {city}
+              <Icon name="ChevronDown" size={14} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {cities.map((c) => (
+              <DropdownMenuItem
+                key={c}
+                onClick={() => {
+                  setCity(c);
+                  setStoredCity(c);
+                }}
+              >
+                {c}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {orders.length > 0 && (
-          <div className="mb-8">
+          <div className="mb-8 mt-6">
             <div className="bg-card border border-primary/40 rounded-sm p-6">
               <span className="text-muted-foreground text-xs uppercase tracking-[0.12em]">
                 Накопленный кэшбэк
