@@ -126,9 +126,42 @@ const VinForm = () => {
           ) : (
             <form onSubmit={submit} className="flex flex-col gap-4">
               <div>
-                <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-                  VIN-код {photo && <span className="normal-case text-muted-foreground/70">(необязательно, есть фото)</span>}
-                </label>
+                <div className="flex items-center justify-between gap-3">
+                  <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+                    VIN-код {photo && <span className="normal-case text-muted-foreground/70">(необязательно, есть фото)</span>}
+                  </label>
+                  {photoPreview ? (
+                    <div className="relative shrink-0">
+                      <img
+                        src={photoPreview}
+                        alt="Фото СТС"
+                        className="h-9 w-9 object-cover rounded-full border-2 border-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={removePhoto}
+                        aria-label="Удалить фото"
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center"
+                      >
+                        <Icon name="X" size={10} className="text-primary-foreground" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      aria-label="Прикрепить фото СТС"
+                      title="Прикрепить фото СТС"
+                      className="shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground cursor-pointer hover:brightness-110 transition-all shadow-sm"
+                    >
+                      <Icon name="Camera" size={16} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoSelect}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
                 <Input
                   value={form.vin}
                   onChange={set('vin')}
@@ -219,39 +252,6 @@ const VinForm = () => {
                   {form.parts.length}/1000
                 </p>
                 {errors.parts && <p className="text-primary text-xs mt-1">{errors.parts}</p>}
-              </div>
-              <div>
-                <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-                  Фото СТС (необязательно)
-                </label>
-                {photoPreview ? (
-                  <div className="mt-1.5 relative w-fit">
-                    <img
-                      src={photoPreview}
-                      alt="Фото СТС"
-                      className="h-20 w-20 object-cover rounded-sm border border-steel"
-                    />
-                    <button
-                      type="button"
-                      onClick={removePhoto}
-                      aria-label="Удалить фото"
-                      className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
-                    >
-                      <Icon name="X" size={12} className="text-primary-foreground" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="mt-1.5 flex items-center gap-2 h-11 px-4 w-fit rounded-sm border border-steel text-muted-foreground text-sm cursor-pointer hover:border-primary/60 transition-colors">
-                    <Icon name="Camera" size={16} />
-                    Прикрепить фото
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoSelect}
-                      className="hidden"
-                    />
-                  </label>
-                )}
               </div>
               <Button
                 type="submit"
