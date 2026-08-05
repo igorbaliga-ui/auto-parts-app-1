@@ -70,9 +70,7 @@ const HowToOrder = () => {
           >
             Оставить заявку
           </Button>
-          <span className="text-muted-foreground text-sm">
-            Ответ и расчёт — в течение 15 минут в рабочее время.
-          </span>
+          <span className="text-muted-foreground text-sm"></span>
         </div>
       </div>
     </section>
