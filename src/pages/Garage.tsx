@@ -435,19 +435,19 @@ const GarageContent = () => {
           На главную
         </Link>
 
-        <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-          <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto order-1 sm:order-2">
             <Link
               to="/"
               aria-label="На главную"
               title="На главную"
-              className="w-9 h-9 sm:w-11 sm:h-11 shrink-0 rounded-sm bg-primary/15 flex items-center justify-center hover:bg-primary/25 transition-colors"
+              className="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-sm bg-primary/15 flex items-center justify-center hover:bg-primary/25 transition-colors"
             >
-              <Icon name="Warehouse" className="text-primary" size={18} />
+              <Icon name="Warehouse" className="text-primary" size={20} />
             </Link>
-            <h1 className="font-head uppercase tracking-wide text-lg sm:text-2xl whitespace-nowrap">Мой гараж</h1>
+            <h1 className="font-head uppercase tracking-wide text-xl sm:text-2xl whitespace-nowrap">Мой гараж</h1>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap order-2 sm:order-1">
             <Link
               to="/"
               className="hidden sm:flex items-center justify-center h-10 px-4 rounded-sm border border-steel text-muted-foreground text-sm font-head uppercase tracking-wide hover:border-primary/60 hover:text-foreground transition-colors"
