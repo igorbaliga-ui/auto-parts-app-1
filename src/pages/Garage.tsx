@@ -11,19 +11,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { RequestProvider, useRequest } from '@/components/site/RequestDialog';
 import { notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
+import { cities, getStoredCity, setStoredCity } from '@/lib/garage-city';
 
 const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
 const GARAGE_CAR_NAME_URL = 'https://functions.poehali.dev/22aa943f-f262-4beb-b2e2-c713d1684c82';
 const STORAGE_KEY = 'zapoptom_garage_phone';
-const CITY_STORAGE_KEY = 'zapoptom_garage_city';
-const DEFAULT_CITY = 'Сургут';
-
-const cities = [
-  'Сургут', 'Москва', 'Санкт-Петербург', 'Новосибирск', 'Екатеринбург', 'Казань',
-  'Нижний Новгород', 'Челябинск', 'Красноярск', 'Самара', 'Уфа',
-  'Ростов-на-Дону', 'Краснодар', 'Омск', 'Воронеж', 'Пермь',
-  'Волгоград', 'Саратов', 'Тюмень', 'Тольятти', 'Ижевск',
-];
 
 type Order = {
   id: number;
@@ -69,7 +61,7 @@ const GarageContent = () => {
   const [carNameDrafts, setCarNameDrafts] = useState<Record<number, string>>({});
   const [savedCarNames, setSavedCarNames] = useState<Record<number, string>>({});
   const [savingCarId, setSavingCarId] = useState<number | null>(null);
-  const [city, setCity] = useState(() => localStorage.getItem(CITY_STORAGE_KEY) || DEFAULT_CITY);
+  const [city, setCity] = useState(() => getStoredCity());
 
   const load = async (ph: string) => {
     setLoading(true);
@@ -250,7 +242,7 @@ const GarageContent = () => {
                 key={c}
                 onClick={() => {
                   setCity(c);
-                  localStorage.setItem(CITY_STORAGE_KEY, c);
+                  setStoredCity(c);
                 }}
               >
                 {c}

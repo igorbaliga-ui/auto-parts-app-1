@@ -24,10 +24,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useSubmitLead } from '@/hooks/use-submit-lead';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useGarageAuth } from '@/hooks/use-garage-auth';
 import { preparePhotoForUpload } from '@/lib/image';
+import { cities, getStoredCity, setStoredCity } from '@/lib/garage-city';
 
 type Ctx = {
   open: (vin?: string, photo?: File | null, phone?: string, name?: string, vinHistory?: string[], city?: string) => void;
@@ -160,7 +167,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       vin: vin ?? f.vin,
       phone: phone ?? f.phone,
       name: name ?? f.name,
-      city: city ?? f.city,
+      city: city ?? (f.city || getStoredCity()),
     }));
     setKnownContact(isValidName(name) && isValidPhone(phone));
     setVinHistory(history ?? []);
@@ -199,6 +206,9 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     }
     if (!messenger) {
       e.messenger = 'Выберите мессенджер';
+    }
+    if (!form.city) {
+      e.city = 'Выберите город';
     }
     if (form.parts.trim().length < 2) {
       e.parts = 'Укажите интересующие запчасти';
@@ -429,38 +439,76 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
         )}
       </div>
 
-      <div>
-        <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-          Фото СТС (необязательно)
-        </label>
-        {photoPreview ? (
-          <div className="mt-1.5 relative w-fit">
-            <img
-              src={photoPreview}
-              alt="Фото СТС"
-              className="h-20 w-20 object-cover rounded-sm border border-steel"
-            />
-            <button
-              type="button"
-              onClick={removePhoto}
-              aria-label="Удалить фото"
-              className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
-            >
-              <Icon name="X" size={12} className="text-primary-foreground" />
-            </button>
-          </div>
-        ) : (
-          <label className="mt-1.5 flex items-center gap-2 h-11 px-4 w-fit rounded-sm border border-steel text-muted-foreground text-sm cursor-pointer hover:border-primary/60 transition-colors">
-            <Icon name="Camera" size={16} />
-            Прикрепить фото
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoSelect}
-              className="hidden"
-            />
+      <div className="flex flex-wrap items-end gap-4">
+        <div>
+          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+            Фото СТС (необязательно)
           </label>
-        )}
+          {photoPreview ? (
+            <div className="mt-1.5 relative w-fit">
+              <img
+                src={photoPreview}
+                alt="Фото СТС"
+                className="h-20 w-20 object-cover rounded-sm border border-steel"
+              />
+              <button
+                type="button"
+                onClick={removePhoto}
+                aria-label="Удалить фото"
+                className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
+              >
+                <Icon name="X" size={12} className="text-primary-foreground" />
+              </button>
+            </div>
+          ) : (
+            <label className="mt-1.5 flex items-center gap-2 h-11 px-4 w-fit rounded-sm border border-steel text-muted-foreground text-sm cursor-pointer hover:border-primary/60 transition-colors">
+              <Icon name="Camera" size={16} />
+              Прикрепить фото
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoSelect}
+                className="hidden"
+              />
+            </label>
+          )}
+        </div>
+
+        <div>
+          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+            Город
+          </label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={`mt-1.5 flex items-center gap-2 h-11 px-4 rounded-sm border text-sm transition-colors ${
+                  errors.city ? 'border-primary text-primary' : 'border-steel text-muted-foreground hover:border-primary/60'
+                }`}
+              >
+                <Icon name="MapPin" size={16} />
+                {form.city || 'Выбрать город'}
+                <Icon name="ChevronDown" size={14} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {cities.map((c) => (
+                <DropdownMenuItem
+                  key={c}
+                  onClick={() => {
+                    setForm((f) => ({ ...f, city: c }));
+                    setStoredCity(c);
+                  }}
+                >
+                  {c}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {errors.city && (
+            <p className="text-primary text-xs mt-1">{errors.city}</p>
+          )}
+        </div>
       </div>
 
       <Button
