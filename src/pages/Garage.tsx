@@ -190,6 +190,7 @@ const GarageContent = () => {
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              maxLength={12}
               placeholder="+7 900 000-00-00"
               autoFocus
             />

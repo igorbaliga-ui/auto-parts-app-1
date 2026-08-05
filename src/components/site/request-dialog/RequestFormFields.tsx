@@ -155,6 +155,7 @@ const RequestFormFields = ({
             <Input
               value={form.phone}
               onChange={set('phone')}
+              maxLength={12}
               placeholder="+7 900 000-00-00"
               className="mt-1.5 bg-background"
             />
@@ -169,6 +170,7 @@ const RequestFormFields = ({
             <Input
               value={form.name}
               onChange={set('name')}
+              maxLength={30}
               placeholder="Как к вам обращаться"
               className="mt-1.5 bg-background"
             />
@@ -223,9 +225,13 @@ const RequestFormFields = ({
               target.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 300);
           }}
+          maxLength={1000}
           placeholder="Например: передние тормозные колодки, масляный фильтр"
           className="mt-1.5 bg-background min-h-[84px]"
         />
+        <p className="text-muted-foreground text-xs mt-1 text-right">
+          {form.parts.length}/1000
+        </p>
         {errors.parts && (
           <p className="text-primary text-xs mt-1">{errors.parts}</p>
         )}
