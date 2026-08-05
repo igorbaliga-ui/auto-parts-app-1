@@ -9,13 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { cities, setStoredCity } from '@/lib/garage-city';
+import CityInput from '@/components/shared/CityInput';
+import { setStoredCity } from '@/lib/garage-city';
 import { messengers, GarageCar } from './RequestContext';
 
 type FormState = { vin: string; name: string; phone: string; parts: string; city: string };
@@ -276,33 +271,19 @@ const RequestFormFields = ({
           <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
             Город
           </label>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={`mt-1.5 flex items-center gap-2 h-11 px-4 rounded-sm border text-sm transition-colors ${
-                  errors.city ? 'border-primary text-primary' : 'border-steel text-muted-foreground hover:border-primary/60'
-                }`}
-              >
-                <Icon name="MapPin" size={16} />
-                {form.city || 'Выбрать город'}
-                <Icon name="ChevronDown" size={14} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
-              {cities.map((c) => (
-                <DropdownMenuItem
-                  key={c}
-                  onClick={() => {
-                    setForm((f) => ({ ...f, city: c }));
-                    setStoredCity(c);
-                  }}
-                >
-                  {c}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="mt-1.5 w-[220px]">
+            <CityInput
+              value={form.city}
+              onChange={(v) => {
+                setForm((f) => ({ ...f, city: v }));
+                setStoredCity(v);
+              }}
+              placeholder="Выбрать город"
+              className={`h-11 px-4 rounded-sm border text-sm bg-background ${
+                errors.city ? 'border-primary text-primary' : 'border-steel text-foreground'
+              }`}
+            />
+          </div>
           {errors.city && (
             <p className="text-primary text-xs mt-1">{errors.city}</p>
           )}

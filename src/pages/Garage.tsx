@@ -4,12 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -29,8 +23,9 @@ import {
 import { RequestProvider, useRequest } from '@/components/site/RequestDialog';
 import PageBackground from '@/components/site/PageBackground';
 import ExpandableText from '@/components/shared/ExpandableText';
+import CityInput from '@/components/shared/CityInput';
 import { notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
-import { cities, getStoredCity, setStoredCity } from '@/lib/garage-city';
+import { getStoredCity, setStoredCity } from '@/lib/garage-city';
 
 const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
 const GARAGE_CAR_NAME_URL = 'https://functions.poehali.dev/22aa943f-f262-4beb-b2e2-c713d1684c82';
@@ -448,28 +443,16 @@ const GarageContent = () => {
           </div>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-1.5 text-muted-foreground text-sm hover:text-primary transition-colors mb-4 sm:mb-6">
-              <Icon name="MapPin" size={14} />
-              {city}
-              <Icon name="ChevronDown" size={14} />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
-            {cities.map((c) => (
-              <DropdownMenuItem
-                key={c}
-                onClick={() => {
-                  setCity(c);
-                  setStoredCity(c);
-                }}
-              >
-                {c}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="mb-4 sm:mb-6 w-full max-w-[220px]">
+          <CityInput
+            value={city}
+            onChange={(v) => {
+              setCity(v);
+              setStoredCity(v);
+            }}
+            className="h-9 text-sm bg-transparent border-0 border-b border-steel rounded-none px-0 text-muted-foreground focus-visible:ring-0 focus-visible:border-primary"
+          />
+        </div>
 
         <div className="flex items-center justify-end mb-6 sm:mb-2 gap-2">
           <Link
