@@ -3,11 +3,26 @@ import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { RequestProvider, useRequest } from '@/components/site/RequestDialog';
 
 const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
 const GARAGE_CAR_NAME_URL = 'https://functions.poehali.dev/22aa943f-f262-4beb-b2e2-c713d1684c82';
 const STORAGE_KEY = 'zapoptom_garage_phone';
+const CITY_STORAGE_KEY = 'zapoptom_garage_city';
+const DEFAULT_CITY = 'Сургут';
+
+const cities = [
+  'Сургут', 'Москва', 'Санкт-Петербург', 'Новосибирск', 'Екатеринбург', 'Казань',
+  'Нижний Новгород', 'Челябинск', 'Красноярск', 'Самара', 'Уфа',
+  'Ростов-на-Дону', 'Краснодар', 'Омск', 'Воронеж', 'Пермь',
+  'Волгоград', 'Саратов', 'Тюмень', 'Тольятти', 'Ижевск',
+];
 
 type Order = {
   id: number;
@@ -52,6 +67,8 @@ const GarageContent = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [carNameDrafts, setCarNameDrafts] = useState<Record<number, string>>({});
   const [savingCarId, setSavingCarId] = useState<number | null>(null);
+  const [savedCarIds, setSavedCarIds] = useState<Set<number>>(new Set());
+  const [city, setCity] = useState(() => localStorage.getItem(CITY_STORAGE_KEY) || DEFAULT_CITY);
 
   const load = async (ph: string) => {
     setLoading(true);
@@ -115,6 +132,7 @@ const GarageContent = () => {
       setOrders((list) =>
         list.map((o) => (o.vin === order.vin ? { ...o, car_name: carName || null } : o)),
       );
+      setSavedCarIds((s) => new Set(s).add(order.id));
     } catch {
       setError('Не удалось сохранить название автомобиля');
     } finally {
@@ -167,7 +185,7 @@ const GarageContent = () => {
           className="sm:hidden flex items-center gap-2 mb-5 text-muted-foreground text-sm font-head uppercase tracking-wide hover:text-primary transition-colors w-fit"
         >
           <Icon name="ArrowLeft" size={16} />
-          Назад в меню
+          На главную
         </Link>
 
         <div className="flex items-center justify-between mb-2">
@@ -199,6 +217,29 @@ const GarageContent = () => {
             </Button>
           </div>
         </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-1.5 text-muted-foreground text-sm hover:text-primary transition-colors mb-6">
+              <Icon name="MapPin" size={14} />
+              {city}
+              <Icon name="ChevronDown" size={14} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {cities.map((c) => (
+              <DropdownMenuItem
+                key={c}
+                onClick={() => {
+                  setCity(c);
+                  localStorage.setItem(CITY_STORAGE_KEY, c);
+                }}
+              >
+                {c}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {orders.length > 0 && (
           <div className="mb-8 mt-6 grid sm:grid-cols-2 gap-4">
@@ -243,21 +284,36 @@ const GarageContent = () => {
                   <div className="flex items-center gap-2 mb-4">
                     <Input
                       value={carNameDrafts[o.id] ?? ''}
-                      onChange={(e) =>
-                        setCarNameDrafts((d) => ({ ...d, [o.id]: e.target.value }))
-                      }
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setCarNameDrafts((d) => ({ ...d, [o.id]: value }));
+                        setSavedCarIds((s) => {
+                          if (!s.has(o.id)) return s;
+                          const next = new Set(s);
+                          next.delete(o.id);
+                          return next;
+                        });
+                      }}
                       placeholder="Название автомобиля, например Toyota Camry"
                       className="h-9 text-sm bg-background max-w-xs"
                     />
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      disabled={savingCarId === o.id}
-                      onClick={() => saveCarName(o)}
-                      className="h-9 font-head uppercase tracking-wide text-xs"
-                    >
-                      {savingCarId === o.id ? '…' : 'Сохранить'}
-                    </Button>
+                    {!savedCarIds.has(o.id) && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={savingCarId === o.id}
+                        onClick={() => saveCarName(o)}
+                        className="h-9 font-head uppercase tracking-wide text-xs"
+                      >
+                        {savingCarId === o.id ? '…' : 'Сохранить'}
+                      </Button>
+                    )}
+                    {savedCarIds.has(o.id) && (
+                      <span className="flex items-center gap-1 text-primary text-xs font-head uppercase tracking-wide">
+                        <Icon name="Check" size={14} />
+                        Сохранено
+                      </span>
+                    )}
                   </div>
                 )}
                 <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">

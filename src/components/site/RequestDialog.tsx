@@ -25,13 +25,6 @@ type Ctx = {
   open: (vin?: string, photo?: File | null, phone?: string, name?: string, vinHistory?: string[]) => void;
 };
 
-const cities = [
-  'Москва', 'Санкт-Петербург', 'Новосибирск', 'Екатеринбург', 'Казань',
-  'Нижний Новгород', 'Челябинск', 'Красноярск', 'Самара', 'Уфа',
-  'Ростов-на-Дону', 'Краснодар', 'Омск', 'Воронеж', 'Пермь',
-  'Волгоград', 'Саратов', 'Тюмень', 'Тольятти', 'Ижевск',
-];
-
 const isValidName = (name?: string) => !!name && name.trim().length >= 2;
 const isValidPhone = (phone?: string) => !!phone && phone.replace(/\D/g, '').length >= 10;
 
@@ -214,24 +207,6 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
         {errors.vin && (
           <p className="text-primary text-xs mt-1">{errors.vin}</p>
         )}
-      </div>
-
-      <div>
-        <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-          Город (необязательно)
-        </label>
-        <Input
-          value={form.city}
-          onChange={set('city')}
-          placeholder="Например: Москва"
-          list="city-list"
-          className="mt-1.5 bg-background"
-        />
-        <datalist id="city-list">
-          {cities.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
       </div>
 
       {!knownContact && (
