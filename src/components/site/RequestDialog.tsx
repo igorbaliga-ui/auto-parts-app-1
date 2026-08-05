@@ -47,7 +47,7 @@ const messengers = [
 
 const STORAGE_KEY = 'zapoptom_request_draft';
 
-const emptyForm = { vin: '', name: '', phone: '', parts: '', carName: '', city: '' };
+const emptyForm = { vin: '', name: '', phone: '', parts: '', city: '' };
 
 const loadDraft = () => {
   try {
@@ -159,7 +159,6 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       name: form.name,
       phone: form.phone,
       parts: form.parts,
-      car_name: form.carName,
       city: form.city,
       messenger,
       photo: photoBase64,
@@ -217,35 +216,22 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-            Название автомобиля (необязательно)
-          </label>
-          <Input
-            value={form.carName}
-            onChange={set('carName')}
-            placeholder="Например: Toyota Camry"
-            className="mt-1.5 bg-background"
-          />
-        </div>
-        <div>
-          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-            Город (необязательно)
-          </label>
-          <Input
-            value={form.city}
-            onChange={set('city')}
-            placeholder="Например: Москва"
-            list="city-list"
-            className="mt-1.5 bg-background"
-          />
-          <datalist id="city-list">
-            {cities.map((c) => (
-              <option key={c} value={c} />
-            ))}
-          </datalist>
-        </div>
+      <div>
+        <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+          Город (необязательно)
+        </label>
+        <Input
+          value={form.city}
+          onChange={set('city')}
+          placeholder="Например: Москва"
+          list="city-list"
+          className="mt-1.5 bg-background"
+        />
+        <datalist id="city-list">
+          {cities.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
       </div>
 
       {!knownContact && (

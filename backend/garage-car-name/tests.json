@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Missing vin rejected",
+      "method": "POST",
+      "path": "/",
+      "body": {"phone": "+79001234567", "vin": "", "car_name": "Toyota Camry"},
+      "expectedStatus": 400
+    }
+  ]
+}

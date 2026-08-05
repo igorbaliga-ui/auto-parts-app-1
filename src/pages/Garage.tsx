@@ -6,6 +6,7 @@ import Icon from '@/components/ui/icon';
 import { RequestProvider, useRequest } from '@/components/site/RequestDialog';
 
 const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
+const GARAGE_CAR_NAME_URL = 'https://functions.poehali.dev/22aa943f-f262-4beb-b2e2-c713d1684c82';
 const STORAGE_KEY = 'zapoptom_garage_phone';
 
 type Order = {
@@ -49,6 +50,8 @@ const GarageContent = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
+  const [carNameDrafts, setCarNameDrafts] = useState<Record<number, string>>({});
+  const [savingCarId, setSavingCarId] = useState<number | null>(null);
 
   const load = async (ph: string) => {
     setLoading(true);
@@ -57,7 +60,9 @@ const GarageContent = () => {
       const res = await fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(ph)}`);
       if (!res.ok) throw new Error('request failed');
       const data = await res.json();
-      setOrders(data.orders || []);
+      const list: Order[] = data.orders || [];
+      setOrders(list);
+      setCarNameDrafts(Object.fromEntries(list.map((o) => [o.id, o.car_name || ''])));
       setAuthed(true);
       localStorage.setItem(STORAGE_KEY, ph);
     } catch {
@@ -95,6 +100,27 @@ const GarageContent = () => {
   const totalCashback = orders.reduce((sum, o) => sum + (o.cashback || 0), 0);
   const knownName = orders[0]?.name;
   const vinHistory = Array.from(new Set(orders.map((o) => o.vin).filter((v): v is string => !!v)));
+
+  const saveCarName = async (order: Order) => {
+    if (!order.vin) return;
+    const carName = (carNameDrafts[order.id] || '').trim();
+    setSavingCarId(order.id);
+    try {
+      const res = await fetch(GARAGE_CAR_NAME_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, vin: order.vin, car_name: carName }),
+      });
+      if (!res.ok) throw new Error('request failed');
+      setOrders((list) =>
+        list.map((o) => (o.vin === order.vin ? { ...o, car_name: carName || null } : o)),
+      );
+    } catch {
+      setError('Не удалось сохранить название автомобиля');
+    } finally {
+      setSavingCarId(null);
+    }
+  };
 
   if (!authed) {
     return (
@@ -210,10 +236,30 @@ const GarageContent = () => {
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <span className="font-head tracking-[0.1em] text-lg">
                     {o.vin || 'VIN не указан (по фото)'}
-                    {o.car_name && <span className="text-muted-foreground font-body normal-case tracking-normal text-sm ml-2">({o.car_name})</span>}
                   </span>
                   <span className="text-muted-foreground text-xs">{formatDate(o.created_at)}</span>
                 </div>
+                {o.vin && (
+                  <div className="flex items-center gap-2 mb-4">
+                    <Input
+                      value={carNameDrafts[o.id] ?? ''}
+                      onChange={(e) =>
+                        setCarNameDrafts((d) => ({ ...d, [o.id]: e.target.value }))
+                      }
+                      placeholder="Название автомобиля, например Toyota Camry"
+                      className="h-9 text-sm bg-background max-w-xs"
+                    />
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={savingCarId === o.id}
+                      onClick={() => saveCarName(o)}
+                      className="h-9 font-head uppercase tracking-wide text-xs"
+                    >
+                      {savingCarId === o.id ? '…' : 'Сохранить'}
+                    </Button>
+                  </div>
+                )}
                 <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
                   <div className="flex justify-between sm:block">
                     <span className="text-muted-foreground">Имя: </span>
