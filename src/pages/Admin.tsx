@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,6 +9,14 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import Icon from '@/components/ui/icon';
 import PageBackground from '@/components/site/PageBackground';
 
@@ -37,6 +45,11 @@ const messengerLabel: Record<string, string> = {
   whatsapp: 'WhatsApp',
 };
 
+const statusLabel: Record<Lead['status'], string> = {
+  in_progress: 'В работе',
+  done: 'Выполнен',
+};
+
 const formatDate = (iso: string) => {
   const d = new Date(iso);
   return d.toLocaleString('ru-RU', {
@@ -48,6 +61,52 @@ const formatDate = (iso: string) => {
   });
 };
 
+type ColumnKey =
+  | 'date'
+  | 'vin'
+  | 'car'
+  | 'name'
+  | 'phone'
+  | 'city'
+  | 'messenger'
+  | 'parts'
+  | 'photo'
+  | 'amount'
+  | 'cashback'
+  | 'status';
+
+type ColumnDef = {
+  key: ColumnKey;
+  label: string;
+  searchable: boolean;
+  getSearchValue?: (l: Lead) => string;
+};
+
+const columns: ColumnDef[] = [
+  { key: 'date', label: 'Дата', searchable: true, getSearchValue: (l) => formatDate(l.created_at) },
+  { key: 'vin', label: 'VIN', searchable: true, getSearchValue: (l) => l.vin || '' },
+  { key: 'car', label: 'Авто', searchable: true, getSearchValue: (l) => l.car_name || '' },
+  { key: 'name', label: 'Имя', searchable: true, getSearchValue: (l) => l.name || '' },
+  { key: 'phone', label: 'Телефон', searchable: true, getSearchValue: (l) => l.phone || '' },
+  { key: 'city', label: 'Город', searchable: true, getSearchValue: (l) => l.city || '' },
+  {
+    key: 'messenger',
+    label: 'Мессенджер',
+    searchable: true,
+    getSearchValue: (l) => (l.messenger ? messengerLabel[l.messenger] ?? l.messenger : ''),
+  },
+  { key: 'parts', label: 'Запчасти', searchable: true, getSearchValue: (l) => l.parts || '' },
+  { key: 'photo', label: 'Фото СТС', searchable: false },
+  { key: 'amount', label: 'Сумма заказа', searchable: false },
+  { key: 'cashback', label: 'Кэшбэк 3%', searchable: false },
+  {
+    key: 'status',
+    label: 'Статус',
+    searchable: true,
+    getSearchValue: (l) => statusLabel[l.status],
+  },
+];
+
 const Admin = () => {
   const [password, setPassword] = useState('');
   const [authed, setAuthed] = useState(false);
@@ -56,6 +115,8 @@ const Admin = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [drafts, setDrafts] = useState<Record<number, { amount: string }>>({});
   const [savingId, setSavingId] = useState<number | null>(null);
+  const [hiddenColumns, setHiddenColumns] = useState<Set<ColumnKey>>(new Set());
+  const [columnFilters, setColumnFilters] = useState<Partial<Record<ColumnKey, string>>>({});
 
   const load = async (pwd: string) => {
     setLoading(true);
@@ -153,6 +214,52 @@ const Admin = () => {
     }
   };
 
+  const isColumnVisible = (key: ColumnKey) => !hiddenColumns.has(key);
+
+  const toggleColumn = (key: ColumnKey) => {
+    setHiddenColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const setColumnFilter = (key: ColumnKey, value: string) => {
+    setColumnFilters((f) => ({ ...f, [key]: value }));
+  };
+
+  // Уникальные значения по каждому столбцу — подсказки для datalist по мере ввода
+  const suggestionsByColumn = useMemo(() => {
+    const map = {} as Record<ColumnKey, string[]>;
+    columns.forEach((col) => {
+      if (!col.searchable || !col.getSearchValue) return;
+      const values = new Set<string>();
+      leads.forEach((l) => {
+        const v = col.getSearchValue!(l);
+        if (v) values.add(v);
+      });
+      map[col.key] = Array.from(values).sort();
+    });
+    return map;
+  }, [leads]);
+
+  const filteredLeads = useMemo(() => {
+    const activeFilters = Object.entries(columnFilters).filter(([, v]) => v && v.trim());
+    if (activeFilters.length === 0) return leads;
+    return leads.filter((l) =>
+      activeFilters.every(([key, value]) => {
+        const col = columns.find((c) => c.key === key);
+        if (!col?.getSearchValue) return true;
+        return col.getSearchValue(l).toLowerCase().includes(value.trim().toLowerCase());
+      }),
+    );
+  }, [leads, columnFilters]);
+
+  const hasActiveFilters = Object.values(columnFilters).some((v) => v && v.trim());
+
+  const clearFilters = () => setColumnFilters({});
+
   if (!authed) {
     return (
       <PageBackground>
@@ -185,19 +292,53 @@ const Admin = () => {
     <PageBackground>
     <div className="min-h-screen text-foreground px-5 sm:px-8 lg:px-12 py-10">
       <div className="max-w-[1400px] mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h1 className="font-head uppercase tracking-wide text-2xl">
-            Заявки ({leads.length})
+            Заявки ({filteredLeads.length}{filteredLeads.length !== leads.length ? ` из ${leads.length}` : ''})
           </h1>
-          <Button
-            variant="secondary"
-            onClick={() => load(password)}
-            disabled={loading}
-            className="font-head uppercase tracking-wide"
-          >
-            <Icon name="RefreshCw" size={16} className="mr-2" />
-            Обновить
-          </Button>
+          <div className="flex items-center gap-2">
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                onClick={clearFilters}
+                className="font-head uppercase tracking-wide text-muted-foreground"
+              >
+                <Icon name="X" size={16} className="mr-2" />
+                Сбросить фильтры
+              </Button>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" className="font-head uppercase tracking-wide">
+                  <Icon name="Columns3" size={16} className="mr-2" />
+                  Столбцы
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Показывать столбцы</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {columns.map((col) => (
+                  <DropdownMenuCheckboxItem
+                    key={col.key}
+                    checked={isColumnVisible(col.key)}
+                    onCheckedChange={() => toggleColumn(col.key)}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    {col.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="secondary"
+              onClick={() => load(password)}
+              disabled={loading}
+              className="font-head uppercase tracking-wide"
+            >
+              <Icon name="RefreshCw" size={16} className="mr-2" />
+              Обновить
+            </Button>
+          </div>
         </div>
 
         {leads.length === 0 ? (
@@ -207,80 +348,118 @@ const Admin = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Дата</TableHead>
-                  <TableHead>VIN</TableHead>
-                  <TableHead>Авто</TableHead>
-                  <TableHead>Имя</TableHead>
-                  <TableHead>Телефон</TableHead>
-                  <TableHead>Город</TableHead>
-                  <TableHead>Мессенджер</TableHead>
-                  <TableHead>Запчасти</TableHead>
-                  <TableHead>Фото СТС</TableHead>
-                  <TableHead>Сумма заказа</TableHead>
-                  <TableHead>Кэшбэк 3%</TableHead>
-                  <TableHead>Статус</TableHead>
+                  {columns.map(
+                    (col) =>
+                      isColumnVisible(col.key) && <TableHead key={col.key}>{col.label}</TableHead>,
+                  )}
+                  <TableHead />
+                </TableRow>
+                <TableRow>
+                  {columns.map((col) => {
+                    if (!isColumnVisible(col.key)) return null;
+                    if (!col.searchable) return <TableHead key={col.key} />;
+                    const listId = `admin-suggest-${col.key}`;
+                    return (
+                      <TableHead key={col.key} className="py-2">
+                        <Input
+                          value={columnFilters[col.key] ?? ''}
+                          onChange={(e) => setColumnFilter(col.key, e.target.value)}
+                          placeholder="Поиск…"
+                          list={listId}
+                          className="h-8 text-xs font-normal normal-case tracking-normal bg-background"
+                        />
+                        <datalist id={listId}>
+                          {(suggestionsByColumn[col.key] || []).map((v) => (
+                            <option key={v} value={v} />
+                          ))}
+                        </datalist>
+                      </TableHead>
+                    );
+                  })}
                   <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {leads.map((l) => (
+                {filteredLeads.map((l) => (
                   <TableRow key={l.id}>
-                    <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
-                      {formatDate(l.created_at)}
-                    </TableCell>
-                    <TableCell className="font-head tracking-[0.1em]">{l.vin || '—'}</TableCell>
-                    <TableCell className="text-muted-foreground">{l.car_name || '—'}</TableCell>
-                    <TableCell>{l.name}</TableCell>
-                    <TableCell>
-                      <a href={`tel:${l.phone}`} className="hover:text-primary">
-                        {l.phone}
-                      </a>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{l.city || '—'}</TableCell>
-                    <TableCell>
-                      {l.messenger ? messengerLabel[l.messenger] ?? l.messenger : '—'}
-                    </TableCell>
-                    <TableCell className="max-w-[240px] text-muted-foreground">
-                      {l.parts || '—'}
-                    </TableCell>
-                    <TableCell>
-                      {l.photo_url ? (
-                        <a href={l.photo_url} target="_blank" rel="noreferrer">
-                          <img
-                            src={l.photo_url}
-                            alt="Фото СТС"
-                            className="h-12 w-12 object-cover rounded-sm border border-steel hover:border-primary transition-colors"
-                          />
+                    {isColumnVisible('date') && (
+                      <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
+                        {formatDate(l.created_at)}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('vin') && (
+                      <TableCell className="font-head tracking-[0.1em]">{l.vin || '—'}</TableCell>
+                    )}
+                    {isColumnVisible('car') && (
+                      <TableCell className="text-muted-foreground">{l.car_name || '—'}</TableCell>
+                    )}
+                    {isColumnVisible('name') && <TableCell>{l.name}</TableCell>}
+                    {isColumnVisible('phone') && (
+                      <TableCell>
+                        <a href={`tel:${l.phone}`} className="hover:text-primary">
+                          {l.phone}
                         </a>
-                      ) : (
-                        '—'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        value={drafts[l.id]?.amount ?? ''}
-                        onChange={(e) => setDraft(l.id, e.target.value)}
-                        placeholder="0"
-                        className="w-28 h-9"
-                      />
-                    </TableCell>
-                    <TableCell className="text-primary whitespace-nowrap">
-                      {l.cashback != null ? `${l.cashback} ₽` : '—'}
-                    </TableCell>
-                    <TableCell>
-                      <button
-                        onClick={() => toggleStatus(l.id)}
-                        disabled={savingId === l.id}
-                        className={`whitespace-nowrap text-[0.65rem] font-head uppercase tracking-wide px-2 py-1.5 rounded-sm transition-colors ${
-                          l.status === 'done'
-                            ? 'bg-primary/15 text-primary hover:bg-primary/25'
-                            : 'bg-muted text-muted-foreground hover:bg-muted/70'
-                        }`}
-                      >
-                        {l.status === 'done' ? 'Выполнен' : 'В работе'}
-                      </button>
-                    </TableCell>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('city') && (
+                      <TableCell className="text-muted-foreground">{l.city || '—'}</TableCell>
+                    )}
+                    {isColumnVisible('messenger') && (
+                      <TableCell>
+                        {l.messenger ? messengerLabel[l.messenger] ?? l.messenger : '—'}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('parts') && (
+                      <TableCell className="max-w-[240px] text-muted-foreground">
+                        {l.parts || '—'}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('photo') && (
+                      <TableCell>
+                        {l.photo_url ? (
+                          <a href={l.photo_url} target="_blank" rel="noreferrer">
+                            <img
+                              src={l.photo_url}
+                              alt="Фото СТС"
+                              className="h-12 w-12 object-cover rounded-sm border border-steel hover:border-primary transition-colors"
+                            />
+                          </a>
+                        ) : (
+                          '—'
+                        )}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('amount') && (
+                      <TableCell>
+                        <Input
+                          type="number"
+                          value={drafts[l.id]?.amount ?? ''}
+                          onChange={(e) => setDraft(l.id, e.target.value)}
+                          placeholder="0"
+                          className="w-28 h-9"
+                        />
+                      </TableCell>
+                    )}
+                    {isColumnVisible('cashback') && (
+                      <TableCell className="text-primary whitespace-nowrap">
+                        {l.cashback != null ? `${l.cashback} ₽` : '—'}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('status') && (
+                      <TableCell>
+                        <button
+                          onClick={() => toggleStatus(l.id)}
+                          disabled={savingId === l.id}
+                          className={`whitespace-nowrap text-[0.65rem] font-head uppercase tracking-wide px-2 py-1.5 rounded-sm transition-colors ${
+                            l.status === 'done'
+                              ? 'bg-primary/15 text-primary hover:bg-primary/25'
+                              : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                          }`}
+                        >
+                          {statusLabel[l.status]}
+                        </button>
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Button
                         size="sm"
@@ -293,6 +472,13 @@ const Admin = () => {
                     </TableCell>
                   </TableRow>
                 ))}
+                {filteredLeads.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={columns.length + 1} className="text-center text-muted-foreground py-8">
+                      Ничего не найдено по заданным фильтрам.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
