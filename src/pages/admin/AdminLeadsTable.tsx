@@ -39,6 +39,10 @@ type AdminLeadsTableProps = {
   saveLead: (id: number) => void;
   toggleStatus: (id: number) => void;
   onRefresh: () => void;
+  statusTab: 'in_progress' | 'done' | 'all';
+  setStatusTab: (tab: 'in_progress' | 'done' | 'all') => void;
+  inProgressCount: number;
+  doneCount: number;
 };
 
 const AdminLeadsTable = ({
@@ -59,6 +63,10 @@ const AdminLeadsTable = ({
   saveLead,
   toggleStatus,
   onRefresh,
+  statusTab,
+  setStatusTab,
+  inProgressCount,
+  doneCount,
 }: AdminLeadsTableProps) => {
   return (
     <div className="min-h-screen text-foreground px-5 sm:px-8 lg:px-12 py-10">
@@ -110,6 +118,39 @@ const AdminLeadsTable = ({
               Обновить
             </Button>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2 mb-6">
+          <button
+            onClick={() => setStatusTab('in_progress')}
+            className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
+              statusTab === 'in_progress'
+                ? 'border-primary bg-primary/10 text-foreground'
+                : 'border-steel text-muted-foreground hover:border-primary/60'
+            }`}
+          >
+            В работе ({inProgressCount})
+          </button>
+          <button
+            onClick={() => setStatusTab('done')}
+            className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
+              statusTab === 'done'
+                ? 'border-primary bg-primary/10 text-foreground'
+                : 'border-steel text-muted-foreground hover:border-primary/60'
+            }`}
+          >
+            Выполненные ({doneCount})
+          </button>
+          <button
+            onClick={() => setStatusTab('all')}
+            className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
+              statusTab === 'all'
+                ? 'border-primary bg-primary/10 text-foreground'
+                : 'border-steel text-muted-foreground hover:border-primary/60'
+            }`}
+          >
+            Все ({inProgressCount + doneCount})
+          </button>
         </div>
 
         {leads.length === 0 ? (

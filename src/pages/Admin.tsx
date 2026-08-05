@@ -17,6 +17,7 @@ const Admin = () => {
   const [savingId, setSavingId] = useState<number | null>(null);
   const [hiddenColumns, setHiddenColumns] = useState<Set<ColumnKey>>(new Set());
   const [columnFilters, setColumnFilters] = useState<Partial<Record<ColumnKey, string>>>({});
+  const [statusTab, setStatusTab] = useState<'in_progress' | 'done' | 'all'>('in_progress');
 
   const load = async (pwd: string) => {
     setLoading(true);
@@ -149,17 +150,25 @@ const Admin = () => {
     return map;
   }, [leads]);
 
+  const statusFilteredLeads = useMemo(() => {
+    if (statusTab === 'all') return leads;
+    return leads.filter((l) => l.status === statusTab);
+  }, [leads, statusTab]);
+
+  const inProgressCount = useMemo(() => leads.filter((l) => l.status === 'in_progress').length, [leads]);
+  const doneCount = useMemo(() => leads.filter((l) => l.status === 'done').length, [leads]);
+
   const filteredLeads = useMemo(() => {
     const activeFilters = Object.entries(columnFilters).filter(([, v]) => v && v.trim());
-    if (activeFilters.length === 0) return leads;
-    return leads.filter((l) =>
+    if (activeFilters.length === 0) return statusFilteredLeads;
+    return statusFilteredLeads.filter((l) =>
       activeFilters.every(([key, value]) => {
         const col = columns.find((c) => c.key === key);
         if (!col?.getSearchValue) return true;
         return col.getSearchValue(l).toLowerCase().includes(value.trim().toLowerCase());
       }),
     );
-  }, [leads, columnFilters]);
+  }, [statusFilteredLeads, columnFilters]);
 
   const hasActiveFilters = Object.values(columnFilters).some((v) => v && v.trim());
 
@@ -197,6 +206,10 @@ const Admin = () => {
         saveLead={saveLead}
         toggleStatus={toggleStatus}
         onRefresh={() => load(password)}
+        statusTab={statusTab}
+        setStatusTab={setStatusTab}
+        inProgressCount={inProgressCount}
+        doneCount={doneCount}
       />
     </PageBackground>
   );
