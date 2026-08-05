@@ -1,6 +1,7 @@
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { useRequest } from './RequestDialog';
+import { useGarageAuth } from '@/hooks/use-garage-auth';
 
 const steps = [
   {
@@ -31,6 +32,7 @@ const steps = [
 
 const HowToOrder = () => {
   const { open } = useRequest();
+  const { authed: garageAuthed } = useGarageAuth();
   return (
     <section id="how" className="bg-background py-20 sm:py-28">
       <div className="max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-12">
@@ -63,15 +65,17 @@ const HowToOrder = () => {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col sm:flex-row items-center gap-4">
-          <Button
-            onClick={() => open()}
-            className="font-head uppercase tracking-wide font-bold h-12 px-8"
-          >
-            Оставить заявку
-          </Button>
-          <span className="text-muted-foreground text-sm"></span>
-        </div>
+        {!garageAuthed && (
+          <div className="mt-12 flex flex-col sm:flex-row items-center gap-4">
+            <Button
+              onClick={() => open()}
+              className="font-head uppercase tracking-wide font-bold h-12 px-8"
+            >
+              Оставить заявку
+            </Button>
+            <span className="text-muted-foreground text-sm"></span>
+          </div>
+        )}
       </div>
     </section>
   );

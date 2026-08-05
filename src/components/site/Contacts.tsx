@@ -1,6 +1,7 @@
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { useRequest } from './RequestDialog';
+import { useGarageAuth } from '@/hooks/use-garage-auth';
 
 const contacts = [
   { icon: 'Phone', label: 'Телефон', value: '+7 (900) 000-00-00', href: 'tel:+79000000000' },
@@ -11,6 +12,7 @@ const contacts = [
 
 const Contacts = () => {
   const { open } = useRequest();
+  const { authed: garageAuthed } = useGarageAuth();
   return (
     <section id="contacts" className="bg-background py-20 sm:py-28">
       <div className="max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-12 grid lg:grid-cols-2 gap-14">
@@ -24,12 +26,14 @@ const Contacts = () => {
             <span className="text-primary">с нами</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-[42ch] mb-8"></p>
-          <Button
-            onClick={() => open()}
-            className="font-head uppercase tracking-wide font-bold h-12 px-8"
-          >
-            Оставить заявку
-          </Button>
+          {!garageAuthed && (
+            <Button
+              onClick={() => open()}
+              className="font-head uppercase tracking-wide font-bold h-12 px-8"
+            >
+              Оставить заявку
+            </Button>
+          )}
         </div>
 
         <div className="grid sm:grid-cols-2 gap-5">
