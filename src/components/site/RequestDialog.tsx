@@ -22,7 +22,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { preparePhotoForUpload } from '@/lib/image';
 
 type Ctx = {
-  open: (vin?: string, photo?: File | null, phone?: string, name?: string, vinHistory?: string[]) => void;
+  open: (vin?: string, photo?: File | null, phone?: string, name?: string, vinHistory?: string[], city?: string) => void;
 };
 
 const isValidName = (name?: string) => !!name && name.trim().length >= 2;
@@ -81,7 +81,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [form, messenger]);
 
-  const open = (vin?: string, incomingPhoto?: File | null, phone?: string, name?: string, history?: string[]) => {
+  const open = (vin?: string, incomingPhoto?: File | null, phone?: string, name?: string, history?: string[], city?: string) => {
     setSent(false);
     setErrors({});
     setForm((f) => ({
@@ -89,6 +89,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       vin: vin ?? f.vin,
       phone: phone ?? f.phone,
       name: name ?? f.name,
+      city: city ?? f.city,
     }));
     setKnownContact(isValidName(name) && isValidPhone(phone));
     setVinHistory(history ?? []);

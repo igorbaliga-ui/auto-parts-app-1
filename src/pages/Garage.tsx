@@ -66,8 +66,8 @@ const GarageContent = () => {
   const [error, setError] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
   const [carNameDrafts, setCarNameDrafts] = useState<Record<number, string>>({});
+  const [savedCarNames, setSavedCarNames] = useState<Record<number, string>>({});
   const [savingCarId, setSavingCarId] = useState<number | null>(null);
-  const [savedCarIds, setSavedCarIds] = useState<Set<number>>(new Set());
   const [city, setCity] = useState(() => localStorage.getItem(CITY_STORAGE_KEY) || DEFAULT_CITY);
 
   const load = async (ph: string) => {
@@ -79,7 +79,9 @@ const GarageContent = () => {
       const data = await res.json();
       const list: Order[] = data.orders || [];
       setOrders(list);
-      setCarNameDrafts(Object.fromEntries(list.map((o) => [o.id, o.car_name || ''])));
+      const names = Object.fromEntries(list.map((o) => [o.id, o.car_name || '']));
+      setCarNameDrafts(names);
+      setSavedCarNames(names);
       setAuthed(true);
       localStorage.setItem(STORAGE_KEY, ph);
     } catch {
@@ -132,7 +134,20 @@ const GarageContent = () => {
       setOrders((list) =>
         list.map((o) => (o.vin === order.vin ? { ...o, car_name: carName || null } : o)),
       );
-      setSavedCarIds((s) => new Set(s).add(order.id));
+      setCarNameDrafts((d) => {
+        const next = { ...d };
+        orders.forEach((o) => {
+          if (o.vin === order.vin) next[o.id] = carName;
+        });
+        return next;
+      });
+      setSavedCarNames((s) => {
+        const next = { ...s };
+        orders.forEach((o) => {
+          if (o.vin === order.vin) next[o.id] = carName;
+        });
+        return next;
+      });
     } catch {
       setError('Не удалось сохранить название автомобиля');
     } finally {
@@ -208,7 +223,7 @@ const GarageContent = () => {
               <Icon name="ArrowLeft" size={16} className="mr-2" />
               На главную
             </Link>
-            <Button onClick={() => open(undefined, undefined, phone, knownName, vinHistory)} className="font-head uppercase tracking-wide">
+            <Button onClick={() => open(undefined, undefined, phone, knownName, vinHistory, city)} className="font-head uppercase tracking-wide">
               <Icon name="Plus" size={16} className="mr-2" />
               Новая заявка
             </Button>
@@ -265,7 +280,7 @@ const GarageContent = () => {
             <p className="text-muted-foreground">
               По этому телефону заказов пока нет.
             </p>
-            <Button onClick={() => open(undefined, undefined, phone, knownName, vinHistory)} className="font-head uppercase tracking-wide">
+            <Button onClick={() => open(undefined, undefined, phone, knownName, vinHistory, city)} className="font-head uppercase tracking-wide">
               <Icon name="Plus" size={16} className="mr-2" />
               Оставить заявку
             </Button>
@@ -287,17 +302,11 @@ const GarageContent = () => {
                       onChange={(e) => {
                         const value = e.target.value;
                         setCarNameDrafts((d) => ({ ...d, [o.id]: value }));
-                        setSavedCarIds((s) => {
-                          if (!s.has(o.id)) return s;
-                          const next = new Set(s);
-                          next.delete(o.id);
-                          return next;
-                        });
                       }}
                       placeholder="Название автомобиля, например Toyota Camry"
                       className="h-9 text-sm bg-background max-w-xs"
                     />
-                    {!savedCarIds.has(o.id) && (
+                    {(carNameDrafts[o.id] ?? '').trim() !== (savedCarNames[o.id] ?? '').trim() && (
                       <Button
                         size="sm"
                         variant="secondary"
@@ -307,12 +316,6 @@ const GarageContent = () => {
                       >
                         {savingCarId === o.id ? '…' : 'Сохранить'}
                       </Button>
-                    )}
-                    {savedCarIds.has(o.id) && (
-                      <span className="flex items-center gap-1 text-primary text-xs font-head uppercase tracking-wide">
-                        <Icon name="Check" size={14} />
-                        Сохранено
-                      </span>
                     )}
                   </div>
                 )}
