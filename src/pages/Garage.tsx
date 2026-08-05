@@ -31,6 +31,7 @@ type Order = {
   car_name: string | null;
   city: string | null;
   status: 'in_progress' | 'done';
+  completed_at: string | null;
 };
 
 const messengerLabel: Record<string, string> = {
@@ -356,6 +357,11 @@ const GarageContent = () => {
                     <span className="text-muted-foreground text-xs">{formatDate(o.created_at)}</span>
                   </div>
                 </div>
+                {o.status === 'done' && o.completed_at && (
+                  <p className="text-primary/80 text-xs mb-3 -mt-2">
+                    Выполнен: {formatDate(o.completed_at)}
+                  </p>
+                )}
                 {o.vin && (
                   <div className="flex items-center gap-2 mb-4">
                     <Input

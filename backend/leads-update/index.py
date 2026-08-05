@@ -50,20 +50,36 @@ def handler(event: dict, context) -> dict:
     try:
         cur = conn.cursor()
         if status is not None:
-            cur.execute(
-                f"UPDATE {schema}.leads SET order_amount = %s, status = %s WHERE id = %s RETURNING cashback",
-                (order_amount, status, lead_id),
-            )
+            # При переводе в «Выполнен» фиксируем дату/время выполнения.
+            # При возврате в «В работе» — сбрасываем её.
+            if status == 'done':
+                cur.execute(
+                    f"UPDATE {schema}.leads SET order_amount = %s, status = %s, "
+                    f"completed_at = COALESCE(completed_at, now()) WHERE id = %s "
+                    f"RETURNING cashback, completed_at",
+                    (order_amount, status, lead_id),
+                )
+            else:
+                cur.execute(
+                    f"UPDATE {schema}.leads SET order_amount = %s, status = %s, completed_at = NULL "
+                    f"WHERE id = %s RETURNING cashback, completed_at",
+                    (order_amount, status, lead_id),
+                )
         else:
             cur.execute(
-                f"UPDATE {schema}.leads SET order_amount = %s WHERE id = %s RETURNING cashback",
+                f"UPDATE {schema}.leads SET order_amount = %s WHERE id = %s RETURNING cashback, completed_at",
                 (order_amount, lead_id),
             )
         row = cur.fetchone()
         cashback = float(row[0]) if row and row[0] is not None else None
+        completed_at = row[1].isoformat() if row and row[1] else None
         conn.commit()
         cur.close()
     finally:
         conn.close()
 
-    return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True, 'cashback': cashback})}
+    return {
+        'statusCode': 200,
+        'headers': headers,
+        'body': json.dumps({'success': True, 'cashback': cashback, 'completed_at': completed_at}),
+    }

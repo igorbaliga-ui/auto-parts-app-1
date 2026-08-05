@@ -37,6 +37,7 @@ type Lead = {
   car_name: string | null;
   city: string | null;
   status: 'in_progress' | 'done';
+  completed_at: string | null;
 };
 
 const messengerLabel: Record<string, string> = {
@@ -124,7 +125,8 @@ type ColumnKey =
   | 'photo'
   | 'amount'
   | 'cashback'
-  | 'status';
+  | 'status'
+  | 'completed_at';
 
 type ColumnDef = {
   key: ColumnKey;
@@ -155,6 +157,12 @@ const columns: ColumnDef[] = [
     label: 'Статус',
     searchable: true,
     getSearchValue: (l) => statusLabel[l.status],
+  },
+  {
+    key: 'completed_at',
+    label: 'Дата выполнения',
+    searchable: true,
+    getSearchValue: (l) => (l.completed_at ? formatDate(l.completed_at) : ''),
   },
 ];
 
@@ -257,7 +265,12 @@ const Admin = () => {
         body: JSON.stringify({ id, order_amount: amount, status: nextStatus }),
       });
       if (!res.ok) throw new Error('request failed');
-      setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, status: nextStatus } : l)));
+      const data = await res.json();
+      setLeads((ls) =>
+        ls.map((l) =>
+          l.id === id ? { ...l, status: nextStatus, completed_at: data.completed_at ?? null } : l,
+        ),
+      );
     } catch {
       setError('Не удалось изменить статус. Попробуйте ещё раз.');
     } finally {
@@ -501,6 +514,11 @@ const Admin = () => {
                         >
                           {statusLabel[l.status]}
                         </button>
+                      </TableCell>
+                    )}
+                    {isColumnVisible('completed_at') && (
+                      <TableCell className="whitespace-nowrap text-primary/80 text-sm">
+                        {l.completed_at ? formatDate(l.completed_at) : '—'}
                       </TableCell>
                     )}
                     <TableCell>
