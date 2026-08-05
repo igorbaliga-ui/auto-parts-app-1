@@ -9,6 +9,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { RequestProvider, useRequest } from '@/components/site/RequestDialog';
 import PageBackground from '@/components/site/PageBackground';
 import ExpandableText from '@/components/shared/ExpandableText';
@@ -68,6 +78,7 @@ const GarageContent = () => {
   const [savingCarId, setSavingCarId] = useState<number | null>(null);
   const [city, setCity] = useState(() => getStoredCity());
   const [statusTab, setStatusTab] = useState<'in_progress' | 'done'>('in_progress');
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   const load = async (ph: string) => {
     setLoading(true);
@@ -250,11 +261,36 @@ const GarageContent = () => {
               <Icon name="Plus" size={16} className="mr-2" />
               Новая заявка
             </Button>
-            <Button variant="secondary" onClick={logout} className="font-head uppercase tracking-wide">
+            <Button
+              variant="secondary"
+              onClick={() => setLogoutConfirmOpen(true)}
+              className="font-head uppercase tracking-wide"
+            >
               <Icon name="LogOut" size={16} />
             </Button>
           </div>
         </div>
+
+        <AlertDialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
+          <AlertDialogContent className="bg-card border-border">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-head uppercase tracking-wide">
+                Выйти из гаража?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Вам нужно будет заново ввести номер телефона, чтобы снова увидеть свои заказы.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="font-head uppercase tracking-wide">
+                Отмена
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={logout} className="font-head uppercase tracking-wide">
+                Выйти
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
