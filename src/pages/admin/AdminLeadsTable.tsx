@@ -62,7 +62,7 @@ const AdminLeadsTable = ({
 }: AdminLeadsTableProps) => {
   return (
     <div className="min-h-screen text-foreground px-5 sm:px-8 lg:px-12 py-10">
-      <div className="max-w-[1400px] mx-auto">
+      <div className="w-full">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h1 className="font-head uppercase tracking-wide text-2xl">
             Заявки ({filteredLeads.length}{filteredLeads.length !== leads.length ? ` из ${leads.length}` : ''})
