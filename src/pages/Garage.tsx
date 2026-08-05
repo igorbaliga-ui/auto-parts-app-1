@@ -450,7 +450,7 @@ const GarageContent = () => {
               setCity(v);
               setStoredCity(v);
             }}
-            className="h-9 text-sm bg-transparent border-0 border-b border-steel rounded-none px-0 text-muted-foreground focus-visible:ring-0 focus-visible:border-primary"
+            className="h-9 text-sm bg-transparent border-0 rounded-none px-0 shadow-none text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
 
