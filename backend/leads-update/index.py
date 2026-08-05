@@ -38,8 +38,7 @@ def handler(event: dict, context) -> dict:
     if not isinstance(lead_id, int):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный id заявки'})}
 
-    # Кэшбэк считаем автоматически — 3% от суммы заказа
-    cashback = round(float(order_amount) * 0.03, 2) if order_amount is not None else None
+    # Кэшбэк — вычисляемая колонка в БД (3% от order_amount), пересчитывается автоматически
 
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']
@@ -47,12 +46,14 @@ def handler(event: dict, context) -> dict:
     try:
         cur = conn.cursor()
         cur.execute(
-            f"UPDATE {schema}.leads SET order_amount = %s, cashback = %s WHERE id = %s",
-            (order_amount, cashback, lead_id),
+            f"UPDATE {schema}.leads SET order_amount = %s WHERE id = %s RETURNING cashback",
+            (order_amount, lead_id),
         )
+        row = cur.fetchone()
+        cashback = float(row[0]) if row and row[0] is not None else None
         conn.commit()
         cur.close()
     finally:
         conn.close()
 
-    return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+    return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True, 'cashback': cashback})}

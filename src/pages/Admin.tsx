@@ -118,9 +118,9 @@ const Admin = () => {
         body: JSON.stringify({ id, order_amount: amount }),
       });
       if (!res.ok) throw new Error('request failed');
-      const cashback = amount != null ? Math.round(amount * 0.03 * 100) / 100 : null;
+      const data = await res.json();
       setLeads((ls) =>
-        ls.map((l) => (l.id === id ? { ...l, order_amount: amount, cashback } : l)),
+        ls.map((l) => (l.id === id ? { ...l, order_amount: amount, cashback: data.cashback ?? null } : l)),
       );
     } catch {
       setError('Не удалось сохранить. Попробуйте ещё раз.');
