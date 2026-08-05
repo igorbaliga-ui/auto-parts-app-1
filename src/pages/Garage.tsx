@@ -427,16 +427,15 @@ const GarageContent = () => {
     <PageBackground>
     <div className="min-h-screen text-foreground px-5 sm:px-8 lg:px-12 py-10">
       <div className="max-w-[1000px] mx-auto">
-        <Link
-          to="/"
-          className="sm:hidden flex items-center gap-2 mb-5 text-muted-foreground text-sm font-head uppercase tracking-wide hover:text-primary transition-colors w-fit"
-        >
-          <Icon name="ArrowLeft" size={16} />
-          На главную
-        </Link>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
-          <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto order-1 sm:order-2">
+        <div className="flex items-center justify-between mb-5 sm:mb-2 gap-2">
+          <Link
+            to="/"
+            className="sm:hidden flex items-center gap-2 text-muted-foreground text-sm font-head uppercase tracking-wide hover:text-primary transition-colors w-fit"
+          >
+            <Icon name="ArrowLeft" size={16} />
+            На главную
+          </Link>
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link
               to="/"
               aria-label="На главную"
@@ -447,7 +446,10 @@ const GarageContent = () => {
             </Link>
             <h1 className="font-head uppercase tracking-wide text-xl sm:text-2xl whitespace-nowrap">Мой гараж</h1>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap order-2 sm:order-1">
+        </div>
+
+        <div className="flex items-center justify-end mb-2 gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             <Link
               to="/"
               className="hidden sm:flex items-center justify-center h-10 px-4 rounded-sm border border-steel text-muted-foreground text-sm font-head uppercase tracking-wide hover:border-primary/60 hover:text-foreground transition-colors"
