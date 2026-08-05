@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { useState, useEffect, useRef, ReactNode } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,63 +13,25 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from '@/components/ui/drawer';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import Icon from '@/components/ui/icon';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useSubmitLead } from '@/hooks/use-submit-lead';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useGarageAuth } from '@/hooks/use-garage-auth';
 import { preparePhotoForUpload } from '@/lib/image';
-import { cities, getStoredCity, setStoredCity } from '@/lib/garage-city';
+import { getStoredCity } from '@/lib/garage-city';
+import {
+  RequestContext,
+  isValidName,
+  isValidPhone,
+  GARAGE_LOOKUP_URL,
+  STORAGE_KEY,
+  emptyForm,
+  loadDraft,
+  GarageCar,
+} from './request-dialog/RequestContext';
+import RequestSuccessMessage from './request-dialog/RequestSuccessMessage';
+import RequestFormFields from './request-dialog/RequestFormFields';
 
-type Ctx = {
-  open: (vin?: string, photo?: File | null, phone?: string, name?: string, vinHistory?: string[], city?: string) => void;
-};
-
-const isValidName = (name?: string) => !!name && name.trim().length >= 2;
-const isValidPhone = (phone?: string) => !!phone && phone.replace(/\D/g, '').length >= 10;
-
-const RequestContext = createContext<Ctx>({ open: () => {} });
-
-export const useRequest = () => useContext(RequestContext);
-
-const messengers = [
-  { id: 'telegram', label: 'Telegram', icon: 'Send' },
-  { id: 'max', label: 'MAX', icon: 'MessageSquare' },
-  { id: 'whatsapp', label: 'WhatsApp', icon: 'MessageCircle' },
-] as const;
-
-const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
-
-const STORAGE_KEY = 'zapoptom_request_draft';
-
-const emptyForm = { vin: '', name: '', phone: '', parts: '', city: '' };
-
-const loadDraft = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as { form: typeof emptyForm; messenger: string | null };
-  } catch {
-    return null;
-  }
-};
-
-type GarageCar = { vin: string; car_name: string };
+export { useRequest } from './request-dialog/RequestContext';
 
 export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const isMobile = useIsMobile();
@@ -242,286 +204,26 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm((f) => ({ ...f, [k]: e.target.value }));
-  };
-
-  const successContent = (
-    <div className="py-8 text-center flex flex-col items-center gap-4">
-      <div className="w-14 h-14 rounded-full bg-primary/15 flex items-center justify-center">
-        <Icon name="Check" className="text-primary" size={30} />
-      </div>
-      <h3 className="font-head uppercase tracking-wide text-2xl">
-        Заявка отправлена
-      </h3>
-      <p className="text-muted-foreground max-w-[30ch]">
-        Спасибо! Подберём деталь по VIN и перезвоним в течение 15 минут.
-      </p>
-      <Button
-        variant="secondary"
-        className="mt-2 font-head uppercase tracking-wide"
-        onClick={() => setIsOpen(false)}
-      >
-        Закрыть
-      </Button>
-    </div>
-  );
+  const successContent = <RequestSuccessMessage onClose={() => setIsOpen(false)} />;
 
   const formContent = (
-    <form onSubmit={submit} className="flex flex-col gap-4 mt-2">
-      {garageCars.length > 0 && (
-        <div>
-          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-            Ваш автомобиль
-          </label>
-          <div className="relative mt-1.5">
-            <Select
-              value={vinSource === 'garage' && garageCars.some((c) => c.vin === form.vin) ? form.vin : ''}
-              onValueChange={(vin) => {
-                setForm((f) => ({ ...f, vin }));
-                setVinSource('garage');
-              }}
-              disabled={vinSource === 'manual'}
-            >
-              <SelectTrigger className={`bg-background ${vinSource === 'garage' ? 'pr-9' : ''}`}>
-                <SelectValue placeholder="Выберите из гаража или введите VIN ниже" />
-              </SelectTrigger>
-              <SelectContent>
-                {garageCars.map((c) => (
-                  <SelectItem key={c.vin} value={c.vin}>
-                    {c.car_name} — {c.vin}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {vinSource === 'garage' && (
-              <button
-                type="button"
-                onClick={() => {
-                  setForm((f) => ({ ...f, vin: '' }));
-                  setVinSource(null);
-                }}
-                aria-label="Сбросить выбор автомобиля"
-                title="Сбросить выбор"
-                className="absolute right-8 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 rounded-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                <Icon name="X" size={14} />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div>
-        <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">VIN или Frame</label>
-        <div className="relative mt-1.5">
-          <Input
-            value={form.vin}
-            onChange={(e) => {
-              set('vin')(e);
-              setVinSource(e.target.value ? 'manual' : null);
-            }}
-            maxLength={17}
-            placeholder="XW8ZZZ• • • • • • •"
-            className={`tracking-[0.14em] uppercase bg-background ${form.vin ? 'pr-9' : ''}`}
-            list="vin-history-list"
-            disabled={vinSource === 'garage'}
-          />
-          {form.vin && (
-            <button
-              type="button"
-              onClick={() => {
-                setForm((f) => ({ ...f, vin: '' }));
-                setVinSource(null);
-              }}
-              aria-label="Очистить VIN"
-              title="Очистить"
-              className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 rounded-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              <Icon name="X" size={14} />
-            </button>
-          )}
-        </div>
-        {vinHistory.length > 0 && (
-          <datalist id="vin-history-list">
-            {vinHistory.map((v) => (
-              <option key={v} value={v} />
-            ))}
-          </datalist>
-        )}
-        {errors.vin && (
-          <p className="text-primary text-xs mt-1">{errors.vin}</p>
-        )}
-      </div>
-
-      {!knownContact && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-              Телефон
-            </label>
-            <Input
-              value={form.phone}
-              onChange={set('phone')}
-              placeholder="+7 900 000-00-00"
-              className="mt-1.5 bg-background"
-            />
-            {errors.phone && (
-              <p className="text-primary text-xs mt-1">{errors.phone}</p>
-            )}
-          </div>
-          <div>
-            <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-              Имя
-            </label>
-            <Input
-              value={form.name}
-              onChange={set('name')}
-              placeholder="Как к вам обращаться"
-              className="mt-1.5 bg-background"
-            />
-            {errors.name && (
-              <p className="text-primary text-xs mt-1">{errors.name}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div>
-        <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-          Удобный мессенджер
-        </label>
-        <div className="mt-1.5 grid grid-cols-3 gap-2">
-          {messengers.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => setMessenger((cur) => (cur === m.id ? null : m.id))}
-              className={`relative flex items-center justify-center gap-2 h-11 rounded-sm border text-sm transition-colors ${
-                messenger === m.id
-                  ? 'border-primary bg-primary/10 text-foreground'
-                  : 'border-steel text-muted-foreground hover:border-primary/60'
-              }`}
-            >
-              <Icon name={m.icon} size={16} />
-              {m.label}
-              {messenger === m.id && (
-                <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                  <Icon name="Check" size={12} className="text-primary-foreground" />
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-        {errors.messenger && (
-          <p className="text-primary text-xs mt-1">{errors.messenger}</p>
-        )}
-      </div>
-
-      <div>
-        <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-          Интересующие запчасти
-        </label>
-        <Textarea
-          value={form.parts}
-          onChange={set('parts')}
-          onFocus={(e) => {
-            const target = e.currentTarget;
-            setTimeout(() => {
-              target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 300);
-          }}
-          placeholder="Например: передние тормозные колодки, масляный фильтр"
-          className="mt-1.5 bg-background min-h-[84px]"
-        />
-        {errors.parts && (
-          <p className="text-primary text-xs mt-1">{errors.parts}</p>
-        )}
-      </div>
-
-      <div className="flex flex-wrap items-end gap-4">
-        <div>
-          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-            Фото СТС (необязательно)
-          </label>
-          {photoPreview ? (
-            <div className="mt-1.5 relative w-fit">
-              <img
-                src={photoPreview}
-                alt="Фото СТС"
-                className="h-20 w-20 object-cover rounded-sm border border-steel"
-              />
-              <button
-                type="button"
-                onClick={removePhoto}
-                aria-label="Удалить фото"
-                className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
-              >
-                <Icon name="X" size={12} className="text-primary-foreground" />
-              </button>
-            </div>
-          ) : (
-            <label className="mt-1.5 flex items-center gap-2 h-11 px-4 w-fit rounded-sm border border-steel text-muted-foreground text-sm cursor-pointer hover:border-primary/60 transition-colors">
-              <Icon name="Camera" size={16} />
-              Прикрепить фото
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoSelect}
-                className="hidden"
-              />
-            </label>
-          )}
-        </div>
-
-        <div>
-          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-            Город
-          </label>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={`mt-1.5 flex items-center gap-2 h-11 px-4 rounded-sm border text-sm transition-colors ${
-                  errors.city ? 'border-primary text-primary' : 'border-steel text-muted-foreground hover:border-primary/60'
-                }`}
-              >
-                <Icon name="MapPin" size={16} />
-                {form.city || 'Выбрать город'}
-                <Icon name="ChevronDown" size={14} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {cities.map((c) => (
-                <DropdownMenuItem
-                  key={c}
-                  onClick={() => {
-                    setForm((f) => ({ ...f, city: c }));
-                    setStoredCity(c);
-                  }}
-                >
-                  {c}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {errors.city && (
-            <p className="text-primary text-xs mt-1">{errors.city}</p>
-          )}
-        </div>
-      </div>
-
-      <Button
-        type="submit"
-        disabled={submitting}
-        className="font-head uppercase tracking-wide font-bold h-12"
-      >
-        {submitting ? 'Отправляем…' : 'Отправить заявку'}
-      </Button>
-      <p className="text-center text-xs text-muted-foreground">
-        Нажимая кнопку, вы соглашаетесь на обработку данных.
-      </p>
-    </form>
+    <RequestFormFields
+      form={form}
+      setForm={setForm}
+      errors={errors}
+      messenger={messenger}
+      setMessenger={setMessenger}
+      knownContact={knownContact}
+      vinHistory={vinHistory}
+      garageCars={garageCars}
+      vinSource={vinSource}
+      setVinSource={setVinSource}
+      photoPreview={photoPreview}
+      handlePhotoSelect={handlePhotoSelect}
+      removePhoto={removePhoto}
+      submitting={submitting}
+      onSubmit={submit}
+    />
   );
 
   if (isMobile) {
