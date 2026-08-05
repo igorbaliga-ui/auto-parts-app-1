@@ -38,7 +38,7 @@ def handler(event: dict, context) -> dict:
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
-            f"SELECT id, vin, name, phone, parts, messenger, photo_url, order_amount, cashback, created_at, car_name, city "
+            f"SELECT id, vin, name, phone, parts, messenger, photo_url, order_amount, cashback, created_at, car_name, city, status "
             f"FROM {schema}.leads ORDER BY created_at DESC LIMIT 500"
         )
         rows = cur.fetchall()
@@ -61,6 +61,7 @@ def handler(event: dict, context) -> dict:
             'created_at': r['created_at'].isoformat() if r['created_at'] else None,
             'car_name': r['car_name'],
             'city': r['city'],
+            'status': r['status'],
         })
 
     return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'leads': leads})}

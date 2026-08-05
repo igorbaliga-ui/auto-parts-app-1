@@ -30,6 +30,7 @@ type Order = {
   created_at: string;
   car_name: string | null;
   city: string | null;
+  status: 'in_progress' | 'done';
 };
 
 const messengerLabel: Record<string, string> = {
@@ -64,6 +65,7 @@ const GarageContent = () => {
   const [savedCarNames, setSavedCarNames] = useState<Record<number, string>>({});
   const [savingCarId, setSavingCarId] = useState<number | null>(null);
   const [city, setCity] = useState(() => getStoredCity());
+  const [statusTab, setStatusTab] = useState<'in_progress' | 'done'>('in_progress');
 
   const load = async (ph: string) => {
     setLoading(true);
@@ -119,6 +121,9 @@ const GarageContent = () => {
   const totalCashback = orders.reduce((sum, o) => sum + (o.cashback || 0), 0);
   const knownName = orders[0]?.name;
   const vinHistory = Array.from(new Set(orders.map((o) => o.vin).filter((v): v is string => !!v)));
+  const inProgressOrders = orders.filter((o) => o.status !== 'done');
+  const doneOrders = orders.filter((o) => o.status === 'done');
+  const visibleOrders = statusTab === 'in_progress' ? inProgressOrders : doneOrders;
 
   const saveCarName = async (order: Order) => {
     if (!order.vin) return;
@@ -302,14 +307,54 @@ const GarageContent = () => {
             </Button>
           </div>
         ) : (
+          <>
+            <div className="flex items-center gap-2 mb-4">
+              <button
+                onClick={() => setStatusTab('in_progress')}
+                className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
+                  statusTab === 'in_progress'
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-steel text-muted-foreground hover:border-primary/60'
+                }`}
+              >
+                В работе ({inProgressOrders.length})
+              </button>
+              <button
+                onClick={() => setStatusTab('done')}
+                className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
+                  statusTab === 'done'
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-steel text-muted-foreground hover:border-primary/60'
+                }`}
+              >
+                Выполненные ({doneOrders.length})
+              </button>
+            </div>
+
+            {visibleOrders.length === 0 ? (
+              <p className="text-muted-foreground mt-4">
+                {statusTab === 'in_progress' ? 'Нет заказов в работе.' : 'Нет выполненных заказов.'}
+              </p>
+            ) : (
           <div className="flex flex-col gap-4 mt-2">
-            {orders.map((o) => (
+            {visibleOrders.map((o) => (
               <div key={o.id} className="bg-card border border-steel rounded-sm p-6">
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <span className="font-head tracking-[0.1em] text-lg">
                     {o.vin || 'VIN не указан (по фото)'}
                   </span>
-                  <span className="text-muted-foreground text-xs">{formatDate(o.created_at)}</span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[0.65rem] font-head uppercase tracking-wide px-2 py-1 rounded-sm ${
+                        o.status === 'done'
+                          ? 'bg-primary/15 text-primary'
+                          : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {o.status === 'done' ? 'Выполнен' : 'В работе'}
+                    </span>
+                    <span className="text-muted-foreground text-xs">{formatDate(o.created_at)}</span>
+                  </div>
                 </div>
                 {o.vin && (
                   <div className="flex items-center gap-2 mb-4">
@@ -370,6 +415,8 @@ const GarageContent = () => {
               </div>
             ))}
           </div>
+            )}
+          </>
         )}
       </div>
     </div>

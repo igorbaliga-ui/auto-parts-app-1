@@ -28,6 +28,7 @@ type Lead = {
   created_at: string;
   car_name: string | null;
   city: string | null;
+  status: 'in_progress' | 'done';
 };
 
 const messengerLabel: Record<string, string> = {
@@ -113,10 +114,11 @@ const Admin = () => {
     setSavingId(id);
     try {
       const amount = draft.amount ? Number(draft.amount) : null;
+      const lead = leads.find((l) => l.id === id);
       const res = await fetch(LEADS_UPDATE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
-        body: JSON.stringify({ id, order_amount: amount }),
+        body: JSON.stringify({ id, order_amount: amount, status: lead?.status }),
       });
       if (!res.ok) throw new Error('request failed');
       const data = await res.json();
@@ -125,6 +127,27 @@ const Admin = () => {
       );
     } catch {
       setError('Не удалось сохранить. Попробуйте ещё раз.');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const toggleStatus = async (id: number) => {
+    const lead = leads.find((l) => l.id === id);
+    if (!lead) return;
+    const nextStatus = lead.status === 'done' ? 'in_progress' : 'done';
+    setSavingId(id);
+    try {
+      const amount = drafts[id]?.amount ? Number(drafts[id].amount) : lead.order_amount;
+      const res = await fetch(LEADS_UPDATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
+        body: JSON.stringify({ id, order_amount: amount, status: nextStatus }),
+      });
+      if (!res.ok) throw new Error('request failed');
+      setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, status: nextStatus } : l)));
+    } catch {
+      setError('Не удалось изменить статус. Попробуйте ещё раз.');
     } finally {
       setSavingId(null);
     }
@@ -195,6 +218,7 @@ const Admin = () => {
                   <TableHead>Фото СТС</TableHead>
                   <TableHead>Сумма заказа</TableHead>
                   <TableHead>Кэшбэк 3%</TableHead>
+                  <TableHead>Статус</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -243,6 +267,19 @@ const Admin = () => {
                     </TableCell>
                     <TableCell className="text-primary whitespace-nowrap">
                       {l.cashback != null ? `${l.cashback} ₽` : '—'}
+                    </TableCell>
+                    <TableCell>
+                      <button
+                        onClick={() => toggleStatus(l.id)}
+                        disabled={savingId === l.id}
+                        className={`whitespace-nowrap text-[0.65rem] font-head uppercase tracking-wide px-2 py-1.5 rounded-sm transition-colors ${
+                          l.status === 'done'
+                            ? 'bg-primary/15 text-primary hover:bg-primary/25'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                        }`}
+                      >
+                        {l.status === 'done' ? 'Выполнен' : 'В работе'}
+                      </button>
                     </TableCell>
                     <TableCell>
                       <Button

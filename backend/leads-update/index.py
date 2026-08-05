@@ -34,9 +34,13 @@ def handler(event: dict, context) -> dict:
     body = json.loads(event.get('body') or '{}')
     lead_id = body.get('id')
     order_amount = body.get('order_amount')
+    status = body.get('status')
 
     if not isinstance(lead_id, int):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный id заявки'})}
+
+    if status is not None and status not in ('in_progress', 'done'):
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный статус'})}
 
     # Кэшбэк — вычисляемая колонка в БД (3% от order_amount), пересчитывается автоматически
 
@@ -45,10 +49,16 @@ def handler(event: dict, context) -> dict:
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor()
-        cur.execute(
-            f"UPDATE {schema}.leads SET order_amount = %s WHERE id = %s RETURNING cashback",
-            (order_amount, lead_id),
-        )
+        if status is not None:
+            cur.execute(
+                f"UPDATE {schema}.leads SET order_amount = %s, status = %s WHERE id = %s RETURNING cashback",
+                (order_amount, status, lead_id),
+            )
+        else:
+            cur.execute(
+                f"UPDATE {schema}.leads SET order_amount = %s WHERE id = %s RETURNING cashback",
+                (order_amount, lead_id),
+            )
         row = cur.fetchone()
         cashback = float(row[0]) if row and row[0] is not None else None
         conn.commit()
