@@ -23,10 +23,7 @@ const Contacts = () => {
             Свяжитесь<br />
             <span className="text-primary">с нами</span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-[42ch] mb-8">
-            Позвоните, напишите или оставьте заявку с VIN — менеджер поможет
-            подобрать деталь и рассчитает стоимость.
-          </p>
+          <p className="text-muted-foreground text-lg max-w-[42ch] mb-8"></p>
           <Button
             onClick={() => open()}
             className="font-head uppercase tracking-wide font-bold h-12 px-8"
