@@ -93,6 +93,11 @@ const GarageContent = () => {
   const [passwordSettingsError, setPasswordSettingsError] = useState('');
   const [passwordSettingsLoading, setPasswordSettingsLoading] = useState(false);
   const [passwordSettingsSuccess, setPasswordSettingsSuccess] = useState('');
+  const [resetPasswordMode, setResetPasswordMode] = useState(false);
+  const [resetNameInput, setResetNameInput] = useState('');
+  const [resetPasswordInput, setResetPasswordInput] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
 
   const checkHasPassword = async (ph: string) => {
     try {
@@ -195,6 +200,46 @@ const GarageContent = () => {
     }
   };
 
+  const submitResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError('');
+    if (resetPasswordInput.trim().length < 4) {
+      setResetError('Пароль — не менее 4 символов');
+      return;
+    }
+    setResetLoading(true);
+    try {
+      const res = await fetch(GARAGE_AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reset_password',
+          phone,
+          name: resetNameInput,
+          password: resetPasswordInput.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setResetError(data.error || 'Не удалось восстановить пароль');
+        setResetLoading(false);
+        return;
+      }
+      // Пароль сброшен — сразу входим с новым паролем
+      setResetPasswordMode(false);
+      setResetNameInput('');
+      setPasswordInput(resetPasswordInput.trim());
+      setResetPasswordInput('');
+      setPasswordRequired(false);
+      localStorage.setItem(PASSWORD_VERIFIED_KEY, phone);
+      await load(phone);
+    } catch {
+      setResetError('Не удалось восстановить пароль. Попробуйте ещё раз.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(PASSWORD_VERIFIED_KEY);
@@ -202,6 +247,7 @@ const GarageContent = () => {
     setOrders([]);
     setPhone('');
     setPasswordRequired(false);
+    setResetPasswordMode(false);
     notifyGarageAuthChanged();
   };
 
@@ -331,6 +377,60 @@ const GarageContent = () => {
     );
   }
 
+  if (!authed && passwordRequired && resetPasswordMode) {
+    return (
+      <PageBackground>
+        <div className="min-h-screen flex items-center justify-center px-5">
+          <form
+            onSubmit={submitResetPassword}
+            className="w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4"
+          >
+            <div className="flex justify-center mb-2">
+              <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center">
+                <Icon name="KeyRound" className="text-primary" size={28} />
+              </span>
+            </div>
+            <h1 className="font-head uppercase tracking-wide text-2xl text-center">
+              Восстановление пароля
+            </h1>
+            <p className="text-muted-foreground text-sm text-center">
+              Введите имя, которое указывали в самой первой заявке с номера {phone}, и задайте новый пароль.
+            </p>
+            <Input
+              value={resetNameInput}
+              onChange={(e) => setResetNameInput(e.target.value)}
+              maxLength={30}
+              placeholder="Имя из заявки"
+              autoFocus
+            />
+            <Input
+              type="password"
+              value={resetPasswordInput}
+              onChange={(e) => setResetPasswordInput(e.target.value)}
+              placeholder="Новый пароль"
+            />
+            {resetError && <p className="text-primary text-sm text-center">{resetError}</p>}
+            <Button type="submit" disabled={resetLoading} className="font-head uppercase tracking-wide h-11">
+              {resetLoading ? 'Сохраняем…' : 'Сохранить и войти'}
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                setResetPasswordMode(false);
+                setResetNameInput('');
+                setResetPasswordInput('');
+                setResetError('');
+              }}
+              className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Назад к вводу пароля
+            </button>
+          </form>
+        </div>
+      </PageBackground>
+    );
+  }
+
   if (!authed && passwordRequired) {
     return (
       <PageBackground>
@@ -361,6 +461,16 @@ const GarageContent = () => {
             <Button type="submit" disabled={loading} className="font-head uppercase tracking-wide h-11">
               {loading ? 'Входим…' : 'Войти'}
             </Button>
+            <button
+              type="button"
+              onClick={() => {
+                setResetPasswordMode(true);
+                setResetError('');
+              }}
+              className="text-center text-xs text-primary hover:underline"
+            >
+              Забыли пароль?
+            </button>
             <button
               type="button"
               onClick={() => {

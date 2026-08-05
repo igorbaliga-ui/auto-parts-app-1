@@ -98,6 +98,36 @@ def handler(event: dict, context) -> dict:
             conn.commit()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
 
+        if action == 'reset_password':
+            # Восстановление забытого пароля: для подтверждения, что это владелец номера,
+            # просим ввести имя, указанное в самой первой заявке с этим телефоном
+            entered_name = (body.get('name') or '').strip().lower()
+            if not entered_name:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите имя, указанное в заявке'})}
+            cur.execute(
+                f"SELECT name FROM {schema}.leads "
+                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s "
+                f"ORDER BY created_at ASC LIMIT 1",
+                (phone_last10,),
+            )
+            name_row = cur.fetchone()
+            actual_name = (name_row[0] or '').strip().lower() if name_row else ''
+            if not actual_name or actual_name != entered_name:
+                return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Имя не совпадает с указанным в заявке'})}
+
+            new_password = (body.get('password') or '').strip()
+            if len(new_password) < 4:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Пароль — не менее 4 символов'})}
+            new_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+            cur.execute(
+                f"INSERT INTO {schema}.garage_accounts (phone_last10, password_hash, updated_at) "
+                f"VALUES (%s, %s, now()) "
+                f"ON CONFLICT (phone_last10) DO UPDATE SET password_hash = EXCLUDED.password_hash, updated_at = now()",
+                (phone_last10, new_hash),
+            )
+            conn.commit()
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+
         if action == 'remove_password':
             old_password = body.get('old_password') or ''
             if current_hash:
