@@ -83,8 +83,8 @@ def handler(event: dict, context) -> dict:
         if action == 'set_password':
             new_password = (body.get('password') or '').strip()
             old_password = body.get('old_password') or ''
-            if len(new_password) < 4:
-                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Пароль — не менее 4 символов'})}
+            if len(new_password) != 4:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Пароль — ровно 4 символа'})}
             if current_hash:
                 if not old_password or not bcrypt.checkpw(old_password.encode(), current_hash.encode()):
                     return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный текущий пароль'})}
@@ -116,8 +116,8 @@ def handler(event: dict, context) -> dict:
                 return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Имя не совпадает с указанным в заявке'})}
 
             new_password = (body.get('password') or '').strip()
-            if len(new_password) < 4:
-                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Пароль — не менее 4 символов'})}
+            if len(new_password) != 4:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Пароль — ровно 4 символа'})}
             new_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
             cur.execute(
                 f"INSERT INTO {schema}.garage_accounts (phone_last10, password_hash, updated_at) "

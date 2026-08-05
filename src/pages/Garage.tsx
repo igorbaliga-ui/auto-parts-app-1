@@ -203,8 +203,8 @@ const GarageContent = () => {
   const submitResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetError('');
-    if (resetPasswordInput.trim().length < 4) {
-      setResetError('Пароль — не менее 4 символов');
+    if (resetPasswordInput.trim().length !== 4) {
+      setResetError('Пароль — ровно 4 символа');
       return;
     }
     setResetLoading(true);
@@ -265,8 +265,8 @@ const GarageContent = () => {
     e.preventDefault();
     setPasswordSettingsError('');
     setPasswordSettingsSuccess('');
-    if (newPasswordInput.trim().length < 4) {
-      setPasswordSettingsError('Пароль — не менее 4 символов');
+    if (newPasswordInput.trim().length !== 4) {
+      setPasswordSettingsError('Пароль — ровно 4 символа');
       return;
     }
     setPasswordSettingsLoading(true);
@@ -407,7 +407,8 @@ const GarageContent = () => {
               type="password"
               value={resetPasswordInput}
               onChange={(e) => setResetPasswordInput(e.target.value)}
-              placeholder="Новый пароль"
+              maxLength={4}
+              placeholder="Новый пароль (4 символа)"
             />
             {resetError && <p className="text-primary text-sm text-center">{resetError}</p>}
             <Button type="submit" disabled={resetLoading} className="font-head uppercase tracking-wide h-11">
@@ -454,6 +455,7 @@ const GarageContent = () => {
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
+              maxLength={4}
               placeholder="Пароль"
               autoFocus
             />
@@ -621,6 +623,7 @@ const GarageContent = () => {
                     type="password"
                     value={oldPasswordInput}
                     onChange={(e) => setOldPasswordInput(e.target.value)}
+                    maxLength={4}
                     placeholder="Текущий пароль"
                     className="mt-1.5 bg-background"
                   />
@@ -634,7 +637,8 @@ const GarageContent = () => {
                   type="password"
                   value={newPasswordInput}
                   onChange={(e) => setNewPasswordInput(e.target.value)}
-                  placeholder="Не менее 4 символов"
+                  maxLength={4}
+                  placeholder="4 символа"
                   className="mt-1.5 bg-background"
                 />
               </div>
