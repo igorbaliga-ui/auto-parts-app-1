@@ -6,10 +6,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
+const PREVIEW_WIDTH_CH = 25;
+const PREVIEW_MAX_LINES = 5;
+const DIALOG_WIDTH_CH = 40;
+
 type ExpandableTextProps = {
   text: string | null | undefined;
   label?: string;
-  maxChars?: number;
   className?: string;
   emptyFallback?: string;
 };
@@ -17,7 +20,6 @@ type ExpandableTextProps = {
 const ExpandableText = ({
   text,
   label = 'Текст',
-  maxChars = 60,
   className = '',
   emptyFallback = '—',
 }: ExpandableTextProps) => {
@@ -27,18 +29,35 @@ const ExpandableText = ({
     return <span className={className}>{emptyFallback}</span>;
   }
 
-  const isLong = text.length > maxChars;
-  const preview = isLong ? `${text.slice(0, maxChars).trimEnd()}…` : text;
+  // Прикидываем, влезет ли текст в превью шириной 25 символов и высотой 5 строк,
+  // учитывая явные переносы строк в тексте
+  const estimatedLines = text
+    .split('\n')
+    .reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / PREVIEW_WIDTH_CH)), 0);
+  const isLong = estimatedLines > PREVIEW_MAX_LINES;
 
   return (
     <>
       <span className={className}>
-        {preview}
+        <span
+          className="block whitespace-pre-wrap break-words align-top"
+          style={{
+            maxWidth: `${PREVIEW_WIDTH_CH}ch`,
+            ...(isLong && {
+              display: '-webkit-box',
+              WebkitLineClamp: PREVIEW_MAX_LINES,
+              WebkitBoxOrient: 'vertical' as const,
+              overflow: 'hidden',
+            }),
+          }}
+        >
+          {text}
+        </span>
         {isLong && (
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="ml-1.5 text-primary hover:underline whitespace-nowrap"
+            className="text-primary hover:underline whitespace-nowrap text-xs mt-0.5"
           >
             Показать полностью
           </button>
@@ -46,13 +65,18 @@ const ExpandableText = ({
       </span>
       {isLong && (
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="bg-card border-border sm:max-w-[520px] max-h-[80vh] overflow-y-auto">
+          <DialogContent className="bg-card border-border max-h-[80vh] overflow-y-auto w-fit max-w-[90vw]">
             <DialogHeader>
               <DialogTitle className="font-head uppercase tracking-wide text-xl">
                 {label}
               </DialogTitle>
             </DialogHeader>
-            <p className="text-sm whitespace-pre-wrap break-words">{text}</p>
+            <p
+              className="text-sm whitespace-pre-wrap break-words"
+              style={{ maxWidth: `${DIALOG_WIDTH_CH}ch` }}
+            >
+              {text}
+            </p>
           </DialogContent>
         </Dialog>
       )}

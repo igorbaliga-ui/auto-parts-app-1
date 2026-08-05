@@ -173,8 +173,8 @@ const AdminLeadsTable = ({
                       </TableCell>
                     )}
                     {isColumnVisible('parts') && (
-                      <TableCell className="max-w-[240px] text-muted-foreground">
-                        <ExpandableText text={l.parts} label="Интересующие запчасти" maxChars={50} />
+                      <TableCell className="text-muted-foreground">
+                        <ExpandableText text={l.parts} label="Интересующие запчасти" />
                       </TableCell>
                     )}
                     {isColumnVisible('photo') && (

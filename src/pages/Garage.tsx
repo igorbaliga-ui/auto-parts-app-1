@@ -406,7 +406,7 @@ const GarageContent = () => {
                   </div>
                   <div className="flex justify-between sm:block">
                     <span className="text-muted-foreground">Запчасти: </span>
-                    <ExpandableText text={o.parts} label="Интересующие запчасти" maxChars={60} />
+                    <ExpandableText text={o.parts} label="Интересующие запчасти" />
                   </div>
                   <div className="flex justify-between sm:block">
                     <span className="text-muted-foreground">Сумма заказа: </span>
