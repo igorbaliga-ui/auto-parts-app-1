@@ -465,12 +465,6 @@ const GarageContent = () => {
             </Button>
           </div>
           <div className="flex flex-col items-end gap-1.5">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <h1 className="font-head uppercase tracking-wide text-lg sm:text-2xl whitespace-nowrap">Мой гараж</h1>
-              <span className="w-9 h-9 sm:w-11 sm:h-11 shrink-0 rounded-sm bg-primary/15 flex items-center justify-center">
-                <Icon name="Warehouse" className="text-primary" size={18} />
-              </span>
-            </div>
             <Link
               to="/"
               className="hidden sm:flex items-center justify-center h-10 px-4 rounded-sm border border-steel text-muted-foreground text-sm font-head uppercase tracking-wide hover:border-primary/60 hover:text-foreground transition-colors"
@@ -478,6 +472,12 @@ const GarageContent = () => {
               <Icon name="ArrowLeft" size={16} className="mr-2" />
               На главную
             </Link>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <h1 className="font-head uppercase tracking-wide text-lg sm:text-2xl whitespace-nowrap">Мой гараж</h1>
+              <span className="w-9 h-9 sm:w-11 sm:h-11 shrink-0 rounded-sm bg-primary/15 flex items-center justify-center">
+                <Icon name="Warehouse" className="text-primary" size={18} />
+              </span>
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-1.5 text-muted-foreground text-sm hover:text-primary transition-colors">
