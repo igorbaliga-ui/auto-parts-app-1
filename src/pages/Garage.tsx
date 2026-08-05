@@ -436,18 +436,18 @@ const GarageContent = () => {
         </Link>
 
         <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link
               to="/"
               aria-label="На главную"
               title="На главную"
-              className="w-11 h-11 rounded-sm bg-primary/15 flex items-center justify-center hover:bg-primary/25 transition-colors"
+              className="w-9 h-9 sm:w-11 sm:h-11 shrink-0 rounded-sm bg-primary/15 flex items-center justify-center hover:bg-primary/25 transition-colors"
             >
-              <Icon name="Warehouse" className="text-primary" size={22} />
+              <Icon name="Warehouse" className="text-primary" size={18} />
             </Link>
-            <h1 className="font-head uppercase tracking-wide text-2xl">Мой гараж</h1>
+            <h1 className="font-head uppercase tracking-wide text-lg sm:text-2xl whitespace-nowrap">Мой гараж</h1>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             <Link
               to="/"
               className="hidden sm:flex items-center justify-center h-10 px-4 rounded-sm border border-steel text-muted-foreground text-sm font-head uppercase tracking-wide hover:border-primary/60 hover:text-foreground transition-colors"
@@ -455,22 +455,28 @@ const GarageContent = () => {
               <Icon name="ArrowLeft" size={16} className="mr-2" />
               На главную
             </Link>
-            <Button onClick={() => open(undefined, undefined, phone, knownName, vinHistory, city)} className="font-head uppercase tracking-wide">
-              <Icon name="Plus" size={16} className="sm:mr-2" />
-              <span className="hidden sm:inline">Новая заявка</span>
+            <Button
+              onClick={() => open(undefined, undefined, phone, knownName, vinHistory, city)}
+              size="sm"
+              className="font-head uppercase tracking-wide text-xs sm:text-sm px-2.5 sm:px-4 sm:h-10 whitespace-nowrap"
+            >
+              <Icon name="Plus" size={16} className="mr-1 sm:mr-2" />
+              Новая заявка
             </Button>
             <Button
               variant="secondary"
+              size="icon"
               onClick={openPasswordSettings}
-              className="font-head uppercase tracking-wide"
+              className="h-9 w-9 sm:h-10 sm:w-10 shrink-0"
               title="Пароль для входа"
             >
               <Icon name="Lock" size={16} />
             </Button>
             <Button
               variant="secondary"
+              size="icon"
               onClick={() => setLogoutConfirmOpen(true)}
-              className="font-head uppercase tracking-wide"
+              className="h-9 w-9 sm:h-10 sm:w-10 shrink-0"
               title="Выйти"
             >
               <Icon name="LogOut" size={16} />
