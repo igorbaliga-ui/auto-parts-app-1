@@ -82,6 +82,9 @@ def handler(event: dict, context) -> dict:
     phone_digits = re.sub(r'\D', '', phone)
     if len(phone_digits) < 10:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный телефон'})}
+    # Нормализуем в единый формат +7XXXXXXXXXX, чтобы 8.../7.../900... считались одним номером
+    phone_last10 = phone_digits[-10:]
+    phone = f'+7{phone_last10}'
     if messenger not in ('telegram', 'max', 'whatsapp'):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Выберите мессенджер'})}
     if len(parts) < 2:

@@ -33,6 +33,9 @@ def handler(event: dict, context) -> dict:
     if len(phone_digits) < 10:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите корректный телефон'})}
 
+    # Сравниваем по последним 10 цифрам, чтобы +7900..., 8900... и 900... считались одним номером
+    phone_last10 = phone_digits[-10:]
+
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']
     conn = psycopg2.connect(dsn)
@@ -40,9 +43,9 @@ def handler(event: dict, context) -> dict:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
             f"SELECT id, vin, name, phone, parts, messenger, order_amount, cashback, created_at "
-            f"FROM {schema}.leads WHERE regexp_replace(phone, '\\D', '', 'g') = %s "
+            f"FROM {schema}.leads WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s "
             f"ORDER BY created_at DESC LIMIT 100",
-            (phone_digits,),
+            (phone_last10,),
         )
         rows = cur.fetchall()
         cur.close()
