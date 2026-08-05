@@ -6,8 +6,7 @@ import { useNav, Tab } from '@/components/site/NavContext';
 import { useGarageAuth } from '@/hooks/use-garage-auth';
 import InstallGuide from './InstallGuide';
 
-const allLinks: { label: string; tab: Tab }[] = [
-  { label: 'Подбор по VIN', tab: 'vin' },
+const links: { label: string; tab: Tab }[] = [
   { label: 'Как заказать', tab: 'how' },
   { label: 'Преимущества', tab: 'advantages' },
   { label: 'Контакты', tab: 'contacts' },
@@ -20,7 +19,6 @@ const Header = () => {
   const [guideTab, setGuideTab] = useState<'ios' | 'android'>('ios');
   const { goTo } = useNav();
   const { authed: garageAuthed } = useGarageAuth();
-  const links = garageAuthed ? allLinks.filter((l) => l.tab !== 'vin') : allLinks;
 
   const openGuide = (tab: 'ios' | 'android') => {
     setOpen(false);
