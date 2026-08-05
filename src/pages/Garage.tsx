@@ -280,13 +280,7 @@ const GarageContent = () => {
         </DropdownMenu>
 
         {orders.length > 0 && (
-          <div className="mb-8 mt-6 grid sm:grid-cols-2 gap-4">
-            <div className="bg-card border border-steel rounded-sm p-6">
-              <span className="text-muted-foreground text-xs uppercase tracking-[0.12em]">
-                Заказов
-              </span>
-              <div className="font-head text-3xl mt-1">{orders.length}</div>
-            </div>
+          <div className="mb-8 mt-6">
             <div className="bg-card border border-primary/40 rounded-sm p-6">
               <span className="text-muted-foreground text-xs uppercase tracking-[0.12em]">
                 Накопленный кэшбэк
