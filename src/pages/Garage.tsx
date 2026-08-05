@@ -405,9 +405,9 @@ const GarageContent = () => {
                     <span className="text-muted-foreground">Мессенджер: </span>
                     <span>{o.messenger ? messengerLabel[o.messenger] ?? o.messenger : '—'}</span>
                   </div>
-                  <div className="flex justify-between sm:block">
-                    <span className="text-muted-foreground">Запчасти: </span>
-                    <ExpandableText text={o.parts} label="Интересующие запчасти" />
+                  <div className="sm:col-span-2">
+                    <span className="text-muted-foreground block mb-1">Запчасти:</span>
+                    <ExpandableText text={o.parts} label="Интересующие запчасти" className="text-left" />
                   </div>
                   <div className="flex justify-between sm:block">
                     <span className="text-muted-foreground">Сумма заказа: </span>
