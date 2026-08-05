@@ -56,6 +56,7 @@ const GarageContent = () => {
   const [phone, setPhone] = useState('');
   const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingSaved, setCheckingSaved] = useState(() => !!localStorage.getItem(STORAGE_KEY));
   const [error, setError] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
   const [carNameDrafts, setCarNameDrafts] = useState<Record<number, string>>({});
@@ -82,6 +83,7 @@ const GarageContent = () => {
       setError('Не удалось загрузить заказы. Проверьте телефон и попробуйте снова.');
     } finally {
       setLoading(false);
+      setCheckingSaved(false);
     }
   };
 
@@ -90,6 +92,8 @@ const GarageContent = () => {
     if (saved) {
       setPhone(saved);
       load(saved);
+    } else {
+      setCheckingSaved(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -149,6 +153,16 @@ const GarageContent = () => {
       setSavingCarId(null);
     }
   };
+
+  if (checkingSaved) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-5">
+        <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center animate-pulse">
+          <Icon name="Warehouse" className="text-primary" size={28} />
+        </span>
+      </div>
+    );
+  }
 
   if (!authed) {
     return (
