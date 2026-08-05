@@ -303,9 +303,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       )}
 
       <div>
-        <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-          VIN-код {photo && <span className="normal-case text-muted-foreground/70">(необязательно, есть фото)</span>}
-        </label>
+        <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">VIN или Frame</label>
         <div className="relative mt-1.5">
           <Input
             value={form.vin}
