@@ -36,6 +36,7 @@ const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8
 const GARAGE_CAR_NAME_URL = 'https://functions.poehali.dev/22aa943f-f262-4beb-b2e2-c713d1684c82';
 const GARAGE_AUTH_URL = 'https://functions.poehali.dev/d92ac11d-c6d2-4430-b948-a767c0048442';
 const STORAGE_KEY = 'zapoptom_garage_phone';
+const PASSWORD_VERIFIED_KEY = 'zapoptom_garage_password_verified';
 
 type Order = {
   id: number;
@@ -136,6 +137,11 @@ const GarageContent = () => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       setPhone(saved);
+      // Пароль уже подтверждён в этой сессии — не спрашиваем его повторно при возврате в «Гараж»
+      if (localStorage.getItem(PASSWORD_VERIFIED_KEY) === saved) {
+        load(saved);
+        return;
+      }
       (async () => {
         const needsPassword = await checkHasPassword(saved);
         if (needsPassword) {
@@ -186,6 +192,7 @@ const GarageContent = () => {
       }
       setPasswordInput('');
       setPasswordRequired(false);
+      localStorage.setItem(PASSWORD_VERIFIED_KEY, phone);
       await load(phone);
     } catch {
       setError('Не удалось войти. Попробуйте ещё раз.');
@@ -195,6 +202,7 @@ const GarageContent = () => {
 
   const logout = () => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(PASSWORD_VERIFIED_KEY);
     setAuthed(false);
     setOrders([]);
     setPhone('');
