@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { RequestProvider, useRequest } from '@/components/site/RequestDialog';
+import PageBackground from '@/components/site/PageBackground';
 import { notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
 import { cities, getStoredCity, setStoredCity } from '@/lib/garage-city';
 
@@ -156,53 +157,58 @@ const GarageContent = () => {
 
   if (checkingSaved) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-5">
-        <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center animate-pulse">
-          <Icon name="Warehouse" className="text-primary" size={28} />
-        </span>
-      </div>
+      <PageBackground>
+        <div className="min-h-screen flex items-center justify-center px-5">
+          <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center animate-pulse">
+            <Icon name="Warehouse" className="text-primary" size={28} />
+          </span>
+        </div>
+      </PageBackground>
     );
   }
 
   if (!authed) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-5">
-        <form
-          onSubmit={submit}
-          className="w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4"
-        >
-          <div className="flex justify-center mb-2">
-            <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center">
-              <Icon name="Warehouse" className="text-primary" size={28} />
-            </span>
-          </div>
-          <h1 className="font-head uppercase tracking-wide text-2xl text-center">
-            Гараж
-          </h1>
-          <p className="text-muted-foreground text-sm text-center">
-            Введите телефон, который указывали в заявке — покажем ваши заказы.
-          </p>
-          <Input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+7 900 000-00-00"
-            autoFocus
-          />
-          {error && <p className="text-primary text-sm text-center">{error}</p>}
-          <Button type="submit" disabled={loading} className="font-head uppercase tracking-wide h-11">
-            {loading ? 'Загружаем…' : 'Войти'}
-          </Button>
-          <a href="/" className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors">
-            На главную
-          </a>
-        </form>
-      </div>
+      <PageBackground>
+        <div className="min-h-screen flex items-center justify-center px-5">
+          <form
+            onSubmit={submit}
+            className="w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4"
+          >
+            <div className="flex justify-center mb-2">
+              <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center">
+                <Icon name="Warehouse" className="text-primary" size={28} />
+              </span>
+            </div>
+            <h1 className="font-head uppercase tracking-wide text-2xl text-center">
+              Гараж
+            </h1>
+            <p className="text-muted-foreground text-sm text-center">
+              Введите телефон, который указывали в заявке — покажем ваши заказы.
+            </p>
+            <Input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+7 900 000-00-00"
+              autoFocus
+            />
+            {error && <p className="text-primary text-sm text-center">{error}</p>}
+            <Button type="submit" disabled={loading} className="font-head uppercase tracking-wide h-11">
+              {loading ? 'Загружаем…' : 'Войти'}
+            </Button>
+            <a href="/" className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors">
+              На главную
+            </a>
+          </form>
+        </div>
+      </PageBackground>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground px-5 sm:px-8 lg:px-12 py-10">
+    <PageBackground>
+    <div className="min-h-screen text-foreground px-5 sm:px-8 lg:px-12 py-10">
       <div className="max-w-[1000px] mx-auto">
         <Link
           to="/"
@@ -366,6 +372,7 @@ const GarageContent = () => {
         )}
       </div>
     </div>
+    </PageBackground>
   );
 };
 

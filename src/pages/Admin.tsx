@@ -10,6 +10,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import Icon from '@/components/ui/icon';
+import PageBackground from '@/components/site/PageBackground';
 
 const LEADS_ADMIN_URL = 'https://functions.poehali.dev/68ca5544-c377-4c79-ba1f-57ba286b33a9';
 const LEADS_UPDATE_URL = 'https://functions.poehali.dev/1612bdca-502b-46a9-b0ea-8d6d93876dc6';
@@ -131,32 +132,35 @@ const Admin = () => {
 
   if (!authed) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-5">
-        <form
-          onSubmit={submit}
-          className="w-full max-w-[360px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4"
-        >
-          <h1 className="font-head uppercase tracking-wide text-xl text-center">
-            Заявки — вход
-          </h1>
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Пароль"
-            autoFocus
-          />
-          {error && <p className="text-primary text-sm text-center">{error}</p>}
-          <Button type="submit" disabled={loading} className="font-head uppercase tracking-wide h-11">
-            {loading ? 'Входим…' : 'Войти'}
-          </Button>
-        </form>
-      </div>
+      <PageBackground>
+        <div className="min-h-screen flex items-center justify-center px-5">
+          <form
+            onSubmit={submit}
+            className="w-full max-w-[360px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4"
+          >
+            <h1 className="font-head uppercase tracking-wide text-xl text-center">
+              Заявки — вход
+            </h1>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Пароль"
+              autoFocus
+            />
+            {error && <p className="text-primary text-sm text-center">{error}</p>}
+            <Button type="submit" disabled={loading} className="font-head uppercase tracking-wide h-11">
+              {loading ? 'Входим…' : 'Войти'}
+            </Button>
+          </form>
+        </div>
+      </PageBackground>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground px-5 sm:px-8 lg:px-12 py-10">
+    <PageBackground>
+    <div className="min-h-screen text-foreground px-5 sm:px-8 lg:px-12 py-10">
       <div className="max-w-[1400px] mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-head uppercase tracking-wide text-2xl">
@@ -258,6 +262,7 @@ const Admin = () => {
         )}
       </div>
     </div>
+    </PageBackground>
   );
 };
 
