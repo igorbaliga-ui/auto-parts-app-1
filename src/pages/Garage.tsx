@@ -26,6 +26,7 @@ import ExpandableText from '@/components/shared/ExpandableText';
 import CityInput from '@/components/shared/CityInput';
 import { notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
 import { getStoredCity, setStoredCity } from '@/lib/garage-city';
+import { normalizePhoneInput } from '@/lib/phone';
 
 const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
 const GARAGE_CAR_NAME_URL = 'https://functions.poehali.dev/22aa943f-f262-4beb-b2e2-c713d1684c82';
@@ -512,7 +513,7 @@ const GarageContent = () => {
             <Input
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(normalizePhoneInput(phone, e.target.value))}
               maxLength={12}
               placeholder="+7 900 000-00-00"
               autoFocus

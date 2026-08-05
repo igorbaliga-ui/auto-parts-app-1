@@ -7,6 +7,7 @@ import Icon from '@/components/ui/icon';
 import { useSubmitLead } from '@/hooks/use-submit-lead';
 import { preparePhotoForUpload } from '@/lib/image';
 import { GARAGE_PHONE_KEY, notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
+import { normalizePhoneInput } from '@/lib/phone';
 
 const messengers = [
   { id: 'telegram', label: 'Telegram', icon: 'Send' },
@@ -38,6 +39,9 @@ const VinForm = () => {
     (k: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const setPhone = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, phone: normalizePhoneInput(f.phone, e.target.value) }));
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -191,7 +195,7 @@ const VinForm = () => {
                   </label>
                   <Input
                     value={form.phone}
-                    onChange={set('phone')}
+                    onChange={setPhone}
                     maxLength={12}
                     placeholder="+7 900 000-00-00"
                     className="mt-1.5 h-12"

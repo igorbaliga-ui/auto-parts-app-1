@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import CityInput from '@/components/shared/CityInput';
 import { setStoredCity } from '@/lib/garage-city';
+import { normalizePhoneInput } from '@/lib/phone';
 import { messengers, GarageCar } from './RequestContext';
 
 type FormState = { vin: string; name: string; phone: string; parts: string; city: string };
@@ -52,6 +53,10 @@ const RequestFormFields = ({
 }: RequestFormFieldsProps) => {
   const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((f) => ({ ...f, [k]: e.target.value }));
+  };
+
+  const setPhone = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((f) => ({ ...f, phone: normalizePhoneInput(f.phone, e.target.value) }));
   };
 
   return (
@@ -182,7 +187,7 @@ const RequestFormFields = ({
             </label>
             <Input
               value={form.phone}
-              onChange={set('phone')}
+              onChange={setPhone}
               maxLength={12}
               placeholder="+7 900 000-00-00"
               className="mt-1.5 bg-background"
