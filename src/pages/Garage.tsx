@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
@@ -133,12 +134,24 @@ const GarageContent = () => {
       <div className="max-w-[1000px] mx-auto">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
-            <span className="w-11 h-11 rounded-sm bg-primary/15 flex items-center justify-center">
+            <Link
+              to="/"
+              aria-label="На главную"
+              title="На главную"
+              className="w-11 h-11 rounded-sm bg-primary/15 flex items-center justify-center hover:bg-primary/25 transition-colors"
+            >
               <Icon name="Warehouse" className="text-primary" size={22} />
-            </span>
+            </Link>
             <h1 className="font-head uppercase tracking-wide text-2xl">Мой гараж</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              to="/"
+              className="hidden sm:flex items-center justify-center h-10 px-4 rounded-sm border border-steel text-muted-foreground text-sm font-head uppercase tracking-wide hover:border-primary/60 hover:text-foreground transition-colors"
+            >
+              <Icon name="ArrowLeft" size={16} className="mr-2" />
+              На главную
+            </Link>
             <Button onClick={() => open(undefined, undefined, phone)} className="font-head uppercase tracking-wide">
               <Icon name="Plus" size={16} className="mr-2" />
               Новая заявка

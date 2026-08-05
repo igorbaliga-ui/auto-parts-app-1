@@ -45,7 +45,7 @@ const Header = () => {
           </span>
         </a>
 
-        <div className="flex items-center gap-1 ml-4">
+        <div className="flex items-center gap-0.5 ml-4 px-1 rounded-sm border border-border/60 bg-card/40">
           <button
             onClick={() => openGuide('ios')}
             aria-label="Установить на iPhone"
