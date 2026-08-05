@@ -136,6 +136,14 @@ const GarageContent = () => {
   return (
     <div className="min-h-screen bg-background text-foreground px-5 sm:px-8 lg:px-12 py-10">
       <div className="max-w-[1000px] mx-auto">
+        <Link
+          to="/"
+          className="sm:hidden flex items-center gap-2 mb-5 text-muted-foreground text-sm font-head uppercase tracking-wide hover:text-primary transition-colors w-fit"
+        >
+          <Icon name="ArrowLeft" size={16} />
+          Назад в меню
+        </Link>
+
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <Link
