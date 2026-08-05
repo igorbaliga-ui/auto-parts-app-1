@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { RequestProvider, useRequest } from '@/components/site/RequestDialog';
+import { notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
 
 const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
 const GARAGE_CAR_NAME_URL = 'https://functions.poehali.dev/22aa943f-f262-4beb-b2e2-c713d1684c82';
@@ -84,6 +85,7 @@ const GarageContent = () => {
       setSavedCarNames(names);
       setAuthed(true);
       localStorage.setItem(STORAGE_KEY, ph);
+      notifyGarageAuthChanged();
     } catch {
       setError('Не удалось загрузить заказы. Проверьте телефон и попробуйте снова.');
     } finally {
@@ -114,6 +116,7 @@ const GarageContent = () => {
     setAuthed(false);
     setOrders([]);
     setPhone('');
+    notifyGarageAuthChanged();
   };
 
   const totalCashback = orders.reduce((sum, o) => sum + (o.cashback || 0), 0);

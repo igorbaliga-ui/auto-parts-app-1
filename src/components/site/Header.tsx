@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
 import { useNav, Tab } from '@/components/site/NavContext';
+import { useGarageAuth } from '@/hooks/use-garage-auth';
 import InstallGuide from './InstallGuide';
 
 const links: { label: string; tab: Tab }[] = [
@@ -18,6 +19,7 @@ const Header = () => {
   const [guideOpen, setGuideOpen] = useState(false);
   const [guideTab, setGuideTab] = useState<'ios' | 'android'>('ios');
   const { goTo } = useNav();
+  const { authed: garageAuthed } = useGarageAuth();
 
   const openGuide = (tab: 'ios' | 'android') => {
     setOpen(false);
@@ -88,21 +90,39 @@ const Header = () => {
           ))}
           <Link
             to="/garage"
-            className="flex items-center gap-1.5 font-head font-medium uppercase tracking-[0.14em] text-xs text-muted-foreground hover:text-primary transition-colors"
+            className={`relative flex items-center gap-1.5 font-head font-medium uppercase tracking-[0.14em] text-xs transition-colors ${
+              garageAuthed ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+            }`}
           >
-            <Icon name="Warehouse" size={14} />
+            <span className="relative">
+              <Icon name="Warehouse" size={14} />
+              {garageAuthed && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary border border-background" />
+              )}
+            </span>
             Гараж
+            {garageAuthed && (
+              <span className="flex items-center gap-1 text-[0.65rem] normal-case tracking-normal text-primary/80">
+                <Icon name="Check" size={11} />
+                Вы вошли
+              </span>
+            )}
           </Link>
         </nav>
 
         <div className="md:hidden flex items-center gap-3 ml-auto">
           <Link
             to="/garage"
-            aria-label="Гараж"
-            title="Гараж"
-            className="flex items-center justify-center w-9 h-9 text-muted-foreground hover:text-primary transition-colors"
+            aria-label={garageAuthed ? 'Гараж — вы вошли' : 'Гараж'}
+            title={garageAuthed ? 'Гараж — вы вошли' : 'Гараж'}
+            className={`relative flex items-center justify-center w-9 h-9 transition-colors ${
+              garageAuthed ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+            }`}
           >
             <Icon name="Warehouse" size={22} />
+            {garageAuthed && (
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary border border-background" />
+            )}
           </Link>
           <button
             className="text-foreground"
