@@ -448,42 +448,67 @@ const GarageContent = () => {
           </div>
         </div>
 
-        <div className="flex items-center justify-end mb-2 gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-            <Link
-              to="/"
-              className="hidden sm:flex items-center justify-center h-10 px-4 rounded-sm border border-steel text-muted-foreground text-sm font-head uppercase tracking-wide hover:border-primary/60 hover:text-foreground transition-colors"
-            >
-              <Icon name="ArrowLeft" size={16} className="mr-2" />
-              На главную
-            </Link>
-            <Button
-              onClick={() => open(undefined, undefined, phone, knownName, vinHistory, city)}
-              size="sm"
-              className="font-head uppercase tracking-wide text-xs sm:text-sm px-2.5 sm:px-4 sm:h-10 whitespace-nowrap"
-            >
-              <Icon name="Plus" size={16} className="mr-1 sm:mr-2" />
-              Новая заявка
-            </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={openPasswordSettings}
-              className="h-9 w-9 sm:h-10 sm:w-10 shrink-0"
-              title="Пароль для входа"
-            >
-              <Icon name="Lock" size={16} />
-            </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={() => setLogoutConfirmOpen(true)}
-              className="h-9 w-9 sm:h-10 sm:w-10 shrink-0"
-              title="Выйти"
-            >
-              <Icon name="LogOut" size={16} />
-            </Button>
+        <div className="flex flex-col-reverse sm:flex-col">
+          <div className="flex items-center justify-end mb-2 gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <Link
+                to="/"
+                className="hidden sm:flex items-center justify-center h-10 px-4 rounded-sm border border-steel text-muted-foreground text-sm font-head uppercase tracking-wide hover:border-primary/60 hover:text-foreground transition-colors"
+              >
+                <Icon name="ArrowLeft" size={16} className="mr-2" />
+                На главную
+              </Link>
+              <Button
+                onClick={() => open(undefined, undefined, phone, knownName, vinHistory, city)}
+                size="sm"
+                className="font-head uppercase tracking-wide text-xs sm:text-sm px-2.5 sm:px-4 sm:h-10 whitespace-nowrap"
+              >
+                <Icon name="Plus" size={16} className="mr-1 sm:mr-2" />
+                Новая заявка
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={openPasswordSettings}
+                className="h-9 w-9 sm:h-10 sm:w-10 shrink-0"
+                title="Пароль для входа"
+              >
+                <Icon name="Lock" size={16} />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={() => setLogoutConfirmOpen(true)}
+                className="h-9 w-9 sm:h-10 sm:w-10 shrink-0"
+                title="Выйти"
+              >
+                <Icon name="LogOut" size={16} />
+              </Button>
+            </div>
           </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-1.5 text-muted-foreground text-sm hover:text-primary transition-colors mb-6">
+                <Icon name="MapPin" size={14} />
+                {city}
+                <Icon name="ChevronDown" size={14} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {cities.map((c) => (
+                <DropdownMenuItem
+                  key={c}
+                  onClick={() => {
+                    setCity(c);
+                    setStoredCity(c);
+                  }}
+                >
+                  {c}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <Dialog open={passwordSettingsOpen} onOpenChange={setPasswordSettingsOpen}>
@@ -575,29 +600,6 @@ const GarageContent = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-1.5 text-muted-foreground text-sm hover:text-primary transition-colors mb-6">
-              <Icon name="MapPin" size={14} />
-              {city}
-              <Icon name="ChevronDown" size={14} />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            {cities.map((c) => (
-              <DropdownMenuItem
-                key={c}
-                onClick={() => {
-                  setCity(c);
-                  setStoredCity(c);
-                }}
-              >
-                {c}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
 
         {orders.length > 0 && (
           <div className="mb-8 mt-6">
