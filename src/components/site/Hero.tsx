@@ -99,11 +99,14 @@ const Hero = () => {
               </button>
             </form>
 
-            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-muted-foreground text-sm">
-              <span className="flex items-center gap-2"></span>
+            <div className="mt-4 flex flex-col items-start gap-2 text-muted-foreground text-sm">
               <span className="flex items-center gap-2">
                 <i className="w-1.5 h-1.5 bg-primary inline-block rotate-45" />
                 Все запчасти проверенны на подлинность
+              </span>
+              <span className="flex items-center gap-2">
+                <i className="w-1.5 h-1.5 bg-primary inline-block rotate-45" />
+                Оптовые цены. Кэшбэк 3%
               </span>
             </div>
           </div>

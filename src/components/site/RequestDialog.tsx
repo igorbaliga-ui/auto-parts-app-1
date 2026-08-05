@@ -22,8 +22,11 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { preparePhotoForUpload } from '@/lib/image';
 
 type Ctx = {
-  open: (vin?: string, photo?: File | null, phone?: string) => void;
+  open: (vin?: string, photo?: File | null, phone?: string, name?: string) => void;
 };
+
+const isValidName = (name?: string) => !!name && name.trim().length >= 2;
+const isValidPhone = (phone?: string) => !!phone && phone.replace(/\D/g, '').length >= 10;
 
 const RequestContext = createContext<Ctx>({ open: () => {} });
 
@@ -58,6 +61,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [knownContact, setKnownContact] = useState(false);
 
   useEffect(() => {
     const draft = loadDraft();
@@ -76,10 +80,16 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [form, messenger]);
 
-  const open = (vin?: string, incomingPhoto?: File | null, phone?: string) => {
+  const open = (vin?: string, incomingPhoto?: File | null, phone?: string, name?: string) => {
     setSent(false);
     setErrors({});
-    setForm((f) => ({ ...f, vin: vin ?? f.vin, phone: phone ?? f.phone }));
+    setForm((f) => ({
+      ...f,
+      vin: vin ?? f.vin,
+      phone: phone ?? f.phone,
+      name: name ?? f.name,
+    }));
+    setKnownContact(isValidName(name) && isValidPhone(phone));
     if (incomingPhoto) {
       setPhoto(incomingPhoto);
       setPhotoPreview(URL.createObjectURL(incomingPhoto));
@@ -105,11 +115,11 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     if (!vinValid && !photo) {
       e.vin = 'Укажите VIN или прикрепите фото СТС';
     }
-    if (form.name.trim().length < 2) {
+    if (!knownContact && form.name.trim().length < 2) {
       e.name = 'Укажите имя';
     }
     const phoneDigits = form.phone.replace(/\D/g, '');
-    if (phoneDigits.length < 10) {
+    if (!knownContact && phoneDigits.length < 10) {
       e.phone = 'Укажите корректный телефон';
     }
     if (!messenger) {
@@ -126,6 +136,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     setSent(true);
     setForm(emptyForm);
     setMessenger(null);
+    setKnownContact(false);
     removePhoto();
     localStorage.removeItem(STORAGE_KEY);
   });
@@ -180,36 +191,38 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-            Имя
-          </label>
-          <Input
-            value={form.name}
-            onChange={set('name')}
-            placeholder="Как к вам обращаться"
-            className="mt-1.5 bg-background"
-          />
-          {errors.name && (
-            <p className="text-primary text-xs mt-1">{errors.name}</p>
-          )}
+      {!knownContact && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+              Имя
+            </label>
+            <Input
+              value={form.name}
+              onChange={set('name')}
+              placeholder="Как к вам обращаться"
+              className="mt-1.5 bg-background"
+            />
+            {errors.name && (
+              <p className="text-primary text-xs mt-1">{errors.name}</p>
+            )}
+          </div>
+          <div>
+            <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+              Телефон
+            </label>
+            <Input
+              value={form.phone}
+              onChange={set('phone')}
+              placeholder="+7 900 000-00-00"
+              className="mt-1.5 bg-background"
+            />
+            {errors.phone && (
+              <p className="text-primary text-xs mt-1">{errors.phone}</p>
+            )}
+          </div>
         </div>
-        <div>
-          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-            Телефон
-          </label>
-          <Input
-            value={form.phone}
-            onChange={set('phone')}
-            placeholder="+7 900 000-00-00"
-            className="mt-1.5 bg-background"
-          />
-          {errors.phone && (
-            <p className="text-primary text-xs mt-1">{errors.phone}</p>
-          )}
-        </div>
-      </div>
+      )}
 
       <div>
         <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">

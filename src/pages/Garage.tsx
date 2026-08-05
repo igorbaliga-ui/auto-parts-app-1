@@ -91,6 +91,7 @@ const GarageContent = () => {
   };
 
   const totalCashback = orders.reduce((sum, o) => sum + (o.cashback || 0), 0);
+  const knownName = orders[0]?.name;
 
   if (!authed) {
     return (
@@ -152,7 +153,7 @@ const GarageContent = () => {
               <Icon name="ArrowLeft" size={16} className="mr-2" />
               На главную
             </Link>
-            <Button onClick={() => open(undefined, undefined, phone)} className="font-head uppercase tracking-wide">
+            <Button onClick={() => open(undefined, undefined, phone, knownName)} className="font-head uppercase tracking-wide">
               <Icon name="Plus" size={16} className="mr-2" />
               Новая заявка
             </Button>
@@ -186,7 +187,7 @@ const GarageContent = () => {
             <p className="text-muted-foreground">
               По этому телефону заказов пока нет.
             </p>
-            <Button onClick={() => open(undefined, undefined, phone)} className="font-head uppercase tracking-wide">
+            <Button onClick={() => open(undefined, undefined, phone, knownName)} className="font-head uppercase tracking-wide">
               <Icon name="Plus" size={16} className="mr-2" />
               Оставить заявку
             </Button>
