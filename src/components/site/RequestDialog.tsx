@@ -77,6 +77,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const [knownContact, setKnownContact] = useState(false);
   const [vinHistory, setVinHistory] = useState<string[]>([]);
   const [garageCars, setGarageCars] = useState<GarageCar[]>([]);
+  const [vinSource, setVinSource] = useState<'garage' | 'manual' | null>(null);
   const nameLookupTimer = useRef<ReturnType<typeof setTimeout>>();
   const lastLookupPhone = useRef<string>('');
 
@@ -163,6 +164,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     }));
     setKnownContact(isValidName(name) && isValidPhone(phone));
     setVinHistory(history ?? []);
+    setVinSource(vin ? 'manual' : null);
     if (incomingPhoto) {
       setPhoto(incomingPhoto);
       setPhotoPreview(URL.createObjectURL(incomingPhoto));
@@ -210,6 +212,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     setForm(emptyForm);
     setMessenger(null);
     setKnownContact(false);
+    setVinSource(null);
     removePhoto();
     localStorage.removeItem(STORAGE_KEY);
   });
@@ -262,8 +265,12 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
             Ваш автомобиль
           </label>
           <Select
-            value={garageCars.some((c) => c.vin === form.vin) ? form.vin : undefined}
-            onValueChange={(vin) => setForm((f) => ({ ...f, vin }))}
+            value={vinSource === 'garage' && garageCars.some((c) => c.vin === form.vin) ? form.vin : undefined}
+            onValueChange={(vin) => {
+              setForm((f) => ({ ...f, vin }));
+              setVinSource('garage');
+            }}
+            disabled={vinSource === 'manual'}
           >
             <SelectTrigger className="mt-1.5 bg-background">
               <SelectValue placeholder="Выберите из гаража или введите VIN ниже" />
@@ -276,6 +283,18 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
               ))}
             </SelectContent>
           </Select>
+          {vinSource === 'manual' && (
+            <button
+              type="button"
+              onClick={() => {
+                setForm((f) => ({ ...f, vin: '' }));
+                setVinSource(null);
+              }}
+              className="mt-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              Очистить VIN, чтобы выбрать автомобиль из гаража
+            </button>
+          )}
         </div>
       )}
 
@@ -285,11 +304,15 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
         </label>
         <Input
           value={form.vin}
-          onChange={set('vin')}
+          onChange={(e) => {
+            set('vin')(e);
+            setVinSource(e.target.value ? 'manual' : null);
+          }}
           maxLength={17}
           placeholder="XW8ZZZ• • • • • • •"
           className="mt-1.5 tracking-[0.14em] uppercase bg-background"
           list="vin-history-list"
+          disabled={vinSource === 'garage'}
         />
         {vinHistory.length > 0 && (
           <datalist id="vin-history-list">
@@ -297,6 +320,18 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
               <option key={v} value={v} />
             ))}
           </datalist>
+        )}
+        {vinSource === 'garage' && (
+          <button
+            type="button"
+            onClick={() => {
+              setForm((f) => ({ ...f, vin: '' }));
+              setVinSource(null);
+            }}
+            className="mt-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+          >
+            Сбросить выбор и ввести VIN вручную
+          </button>
         )}
         {errors.vin && (
           <p className="text-primary text-xs mt-1">{errors.vin}</p>
