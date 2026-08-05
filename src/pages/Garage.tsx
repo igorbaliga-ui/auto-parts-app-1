@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { RequestProvider, useRequest } from '@/components/site/RequestDialog';
 import PageBackground from '@/components/site/PageBackground';
+import ExpandableText from '@/components/shared/ExpandableText';
 import { notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
 import { cities, getStoredCity, setStoredCity } from '@/lib/garage-city';
 
@@ -405,7 +406,7 @@ const GarageContent = () => {
                   </div>
                   <div className="flex justify-between sm:block">
                     <span className="text-muted-foreground">Запчасти: </span>
-                    <span>{o.parts || '—'}</span>
+                    <ExpandableText text={o.parts} label="Интересующие запчасти" maxChars={60} />
                   </div>
                   <div className="flex justify-between sm:block">
                     <span className="text-muted-foreground">Сумма заказа: </span>

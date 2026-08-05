@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import Icon from '@/components/ui/icon';
+import ExpandableText from '@/components/shared/ExpandableText';
 import ColumnSearchInput from './ColumnSearchInput';
 import { Lead, ColumnKey, columns, messengerLabel, statusLabel, formatDate } from './adminTypes';
 
@@ -173,7 +174,7 @@ const AdminLeadsTable = ({
                     )}
                     {isColumnVisible('parts') && (
                       <TableCell className="max-w-[240px] text-muted-foreground">
-                        {l.parts || '—'}
+                        <ExpandableText text={l.parts} label="Интересующие запчасти" maxChars={50} />
                       </TableCell>
                     )}
                     {isColumnVisible('photo') && (
