@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,8 @@ const messengers = [
   { id: 'whatsapp', label: 'WhatsApp', icon: 'MessageCircle' },
 ] as const;
 
+const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
+
 const STORAGE_KEY = 'zapoptom_request_draft';
 
 const emptyForm = { vin: '', name: '', phone: '', parts: '', city: '' };
@@ -63,6 +65,8 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [knownContact, setKnownContact] = useState(false);
   const [vinHistory, setVinHistory] = useState<string[]>([]);
+  const nameLookupTimer = useRef<ReturnType<typeof setTimeout>>();
+  const lastLookupPhone = useRef<string>('');
 
   useEffect(() => {
     const draft = loadDraft();
@@ -80,6 +84,32 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem(STORAGE_KEY);
     }
   }, [form, messenger]);
+
+  // Телефон привязан к одному имени: при вводе известного номера имя подставляется автоматически
+  useEffect(() => {
+    if (knownContact) return;
+    const digits = form.phone.replace(/\D/g, '');
+    if (digits.length < 10) return;
+    if (lastLookupPhone.current === digits) return;
+
+    clearTimeout(nameLookupTimer.current);
+    nameLookupTimer.current = setTimeout(async () => {
+      lastLookupPhone.current = digits;
+      try {
+        const res = await fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(digits)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const foundName = data.orders?.[0]?.name;
+        if (foundName) {
+          setForm((f) => (f.phone.replace(/\D/g, '') === digits ? { ...f, name: foundName } : f));
+        }
+      } catch {
+        // тихо игнорируем — это необязательная подсказка
+      }
+    }, 500);
+
+    return () => clearTimeout(nameLookupTimer.current);
+  }, [form.phone, knownContact]);
 
   const open = (vin?: string, incomingPhoto?: File | null, phone?: string, name?: string, history?: string[], city?: string) => {
     setSent(false);
@@ -214,20 +244,6 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-              Имя
-            </label>
-            <Input
-              value={form.name}
-              onChange={set('name')}
-              placeholder="Как к вам обращаться"
-              className="mt-1.5 bg-background"
-            />
-            {errors.name && (
-              <p className="text-primary text-xs mt-1">{errors.name}</p>
-            )}
-          </div>
-          <div>
-            <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
               Телефон
             </label>
             <Input
@@ -238,6 +254,20 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
             />
             {errors.phone && (
               <p className="text-primary text-xs mt-1">{errors.phone}</p>
+            )}
+          </div>
+          <div>
+            <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+              Имя
+            </label>
+            <Input
+              value={form.name}
+              onChange={set('name')}
+              placeholder="Как к вам обращаться"
+              className="mt-1.5 bg-background"
+            />
+            {errors.name && (
+              <p className="text-primary text-xs mt-1">{errors.name}</p>
             )}
           </div>
         </div>
