@@ -82,6 +82,8 @@ const GarageContent = () => {
           setOldPasswordInput={g.setOldPasswordInput}
           newPasswordInput={g.newPasswordInput}
           setNewPasswordInput={g.setNewPasswordInput}
+          newPasswordConfirmInput={g.newPasswordConfirmInput}
+          setNewPasswordConfirmInput={g.setNewPasswordConfirmInput}
           passwordSettingsError={g.passwordSettingsError}
           passwordSettingsSuccess={g.passwordSettingsSuccess}
           passwordSettingsLoading={g.passwordSettingsLoading}

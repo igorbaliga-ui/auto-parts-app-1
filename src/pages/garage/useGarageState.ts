@@ -39,6 +39,7 @@ export const useGarageState = () => {
   const [hasPassword, setHasPassword] = useState(false);
   const [oldPasswordInput, setOldPasswordInput] = useState('');
   const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [newPasswordConfirmInput, setNewPasswordConfirmInput] = useState('');
   const [passwordSettingsError, setPasswordSettingsError] = useState('');
   const [passwordSettingsLoading, setPasswordSettingsLoading] = useState(false);
   const [passwordSettingsSuccess, setPasswordSettingsSuccess] = useState('');
@@ -207,6 +208,7 @@ export const useGarageState = () => {
     setPasswordSettingsSuccess('');
     setOldPasswordInput('');
     setNewPasswordInput('');
+    setNewPasswordConfirmInput('');
     const has = await checkHasPassword(phone);
     setHasPassword(has);
     setPasswordSettingsOpen(true);
@@ -218,6 +220,10 @@ export const useGarageState = () => {
     setPasswordSettingsSuccess('');
     if (newPasswordInput.trim().length !== 4) {
       setPasswordSettingsError('Пароль — ровно 4 символа');
+      return;
+    }
+    if (newPasswordInput.trim() !== newPasswordConfirmInput.trim()) {
+      setPasswordSettingsError('Пароли не совпадают');
       return;
     }
     setPasswordSettingsLoading(true);
@@ -240,6 +246,7 @@ export const useGarageState = () => {
       setHasPassword(true);
       setOldPasswordInput('');
       setNewPasswordInput('');
+      setNewPasswordConfirmInput('');
       setPasswordSettingsSuccess('Пароль сохранён');
       setTimeout(() => {
         setPasswordSettingsOpen(false);
@@ -270,6 +277,7 @@ export const useGarageState = () => {
       setHasPassword(false);
       setOldPasswordInput('');
       setNewPasswordInput('');
+      setNewPasswordConfirmInput('');
       setPasswordSettingsSuccess('Пароль удалён');
     } catch {
       setPasswordSettingsError('Не удалось удалить пароль');
@@ -353,6 +361,8 @@ export const useGarageState = () => {
     setOldPasswordInput,
     newPasswordInput,
     setNewPasswordInput,
+    newPasswordConfirmInput,
+    setNewPasswordConfirmInput,
     passwordSettingsError,
     passwordSettingsLoading,
     passwordSettingsSuccess,

@@ -36,6 +36,8 @@ type GarageHeaderProps = {
   setOldPasswordInput: (v: string) => void;
   newPasswordInput: string;
   setNewPasswordInput: (v: string) => void;
+  newPasswordConfirmInput: string;
+  setNewPasswordConfirmInput: (v: string) => void;
   passwordSettingsError: string;
   passwordSettingsSuccess: string;
   passwordSettingsLoading: boolean;
@@ -58,6 +60,8 @@ const GarageHeader = ({
   setOldPasswordInput,
   newPasswordInput,
   setNewPasswordInput,
+  newPasswordConfirmInput,
+  setNewPasswordConfirmInput,
   passwordSettingsError,
   passwordSettingsSuccess,
   passwordSettingsLoading,
@@ -170,6 +174,19 @@ const GarageHeader = ({
                 type="password"
                 value={newPasswordInput}
                 onChange={(e) => setNewPasswordInput(e.target.value)}
+                maxLength={4}
+                placeholder="4 символа"
+                className="mt-1.5 bg-background"
+              />
+            </div>
+            <div>
+              <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+                Повторите пароль
+              </label>
+              <Input
+                type="password"
+                value={newPasswordConfirmInput}
+                onChange={(e) => setNewPasswordConfirmInput(e.target.value)}
                 maxLength={4}
                 placeholder="4 символа"
                 className="mt-1.5 bg-background"
