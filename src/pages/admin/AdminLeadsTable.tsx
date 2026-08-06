@@ -36,6 +36,7 @@ import { Lead, ColumnKey, columns, messengerLabel, statusLabel, formatDate } fro
 import { exportLeadsToExcel } from './exportLeads';
 import LeadHistoryDialog from './LeadHistoryDialog';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
+import { useIsIosInstallable } from '@/hooks/use-ios-install-hint';
 
 type AdminLeadsTableProps = {
   leads: Lead[];
@@ -103,6 +104,7 @@ const AdminLeadsTable = ({
   const [historyLeadId, setHistoryLeadId] = useState<number | null>(null);
   const historyLead = leads.find((l) => l.id === historyLeadId) || null;
   const { canInstall, promptInstall } = usePwaInstall();
+  const isIosInstallable = useIsIosInstallable();
 
   return (
     <div className="min-h-screen text-foreground px-5 sm:px-8 lg:px-12 py-10">
@@ -124,6 +126,20 @@ const AdminLeadsTable = ({
             >
               Установить
             </Button>
+          </div>
+        )}
+        {isIosInstallable && (
+          <div className="mb-4 flex flex-wrap items-start gap-3 bg-card border border-primary/40 rounded-sm p-4">
+            <span className="w-9 h-9 shrink-0 rounded-full bg-primary/15 flex items-center justify-center">
+              <Icon name="Apple" className="text-primary" size={18} />
+            </span>
+            <div className="text-sm text-muted-foreground">
+              <p className="text-foreground mb-1">Установите админку на iPhone отдельным приложением:</p>
+              <p>
+                Нажмите значок «Поделиться» внизу экрана Safari → «На экран Домой» → «Добавить».
+                Важно делать это именно с этой страницы (/admin), а не с главного сайта.
+              </p>
+            </div>
           </div>
         )}
         {pushPermission !== 'unsupported' && pushPermission !== 'granted' && (

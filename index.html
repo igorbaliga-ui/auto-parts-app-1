@@ -8,19 +8,22 @@
     <meta name="author" content="poehali.dev"/>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="manifest" href="/manifest.webmanifest">
-    <script>
-        // Синхронно подменяем манифест ДО загрузки React, иначе браузер на телефоне
-        // успевает считать общий манифест сайта раньше, чем сработает подмена в JS,
-        // и «Установить на главный экран» на /admin ставит вместо админки весь сайт.
-        if (location.pathname.indexOf('/admin') === 0) {
-            document.querySelector('link[rel="manifest"]').setAttribute('href', '/admin-manifest.webmanifest');
-        }
-    </script>
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <meta name="theme-color" content="#0e0e0f">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ЗАП Оптом">
+    <script>
+        // Синхронно (ДО загрузки React) подстраиваем манифест и apple-mobile-web-app-title
+        // под /admin. Это критично именно для iOS Safari: при «Добавить на экран Домой»
+        // название и манифест берутся из состояния DOM в момент добавления, а не пересчитываются
+        // потом из React — иначе установленный на /admin ярлык откроет весь сайт, а не админку.
+        if (location.pathname.indexOf('/admin') === 0) {
+            document.querySelector('link[rel="manifest"]').setAttribute('href', '/admin-manifest.webmanifest');
+            document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'Заявки');
+            document.title = 'ЗАП Оптом — Заявки';
+        }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@400;500;600&display=swap" />
