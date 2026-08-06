@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui/button';
-import Icon from '@/components/ui/icon';
+import { Button } from "@/components/ui/button";
+import Icon from "@/components/ui/icon";
 
 type RequestSuccessMessageProps = {
   onClose: () => void;
@@ -14,7 +14,7 @@ const RequestSuccessMessage = ({ onClose }: RequestSuccessMessageProps) => (
       Заявка отправлена
     </h3>
     <p className="text-muted-foreground max-w-[30ch]">
-      Спасибо! Подберём деталь по VIN и перезвоним в течение 15 минут.
+      Спасибо! Свяжемся с Вами в ближайшее время.
     </p>
     <Button
       variant="secondary"
