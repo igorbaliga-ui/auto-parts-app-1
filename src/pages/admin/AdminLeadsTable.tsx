@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,12 +33,14 @@ import ExpandableText from '@/components/shared/ExpandableText';
 import ColumnSearchInput from './ColumnSearchInput';
 import { Lead, ColumnKey, columns, messengerLabel, statusLabel, formatDate } from './adminTypes';
 import { exportLeadsToExcel } from './exportLeads';
+import LeadHistoryDialog from './LeadHistoryDialog';
 
 type AdminLeadsTableProps = {
   leads: Lead[];
   filteredLeads: Lead[];
   drafts: Record<number, { amount: string; prepayment: string }>;
   savingId: number | null;
+  adminPassword: string;
   hiddenColumns: Set<ColumnKey>;
   columnFilters: Partial<Record<ColumnKey, string>>;
   suggestionsByColumn: Record<ColumnKey, string[]>;
@@ -65,6 +68,7 @@ const AdminLeadsTable = ({
   filteredLeads,
   drafts,
   savingId,
+  adminPassword,
   hiddenColumns,
   columnFilters,
   suggestionsByColumn,
@@ -86,6 +90,9 @@ const AdminLeadsTable = ({
   inProgressCount,
   doneCount,
 }: AdminLeadsTableProps) => {
+  const [historyLeadId, setHistoryLeadId] = useState<number | null>(null);
+  const historyLead = leads.find((l) => l.id === historyLeadId) || null;
+
   return (
     <div className="min-h-screen text-foreground px-5 sm:px-8 lg:px-12 py-10">
       <div className="w-full">
@@ -358,14 +365,23 @@ const AdminLeadsTable = ({
                       </TableCell>
                     )}
                     <TableCell>
-                      <Button
-                        size="sm"
-                        onClick={() => saveLead(l.id)}
-                        disabled={savingId === l.id}
-                        className="font-head uppercase tracking-wide text-xs h-9"
-                      >
-                        {savingId === l.id ? '…' : 'Сохранить'}
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          onClick={() => saveLead(l.id)}
+                          disabled={savingId === l.id}
+                          className="font-head uppercase tracking-wide text-xs h-9"
+                        >
+                          {savingId === l.id ? '…' : 'Сохранить'}
+                        </Button>
+                        <button
+                          onClick={() => setHistoryLeadId(l.id)}
+                          title="История изменений"
+                          className="shrink-0 flex items-center justify-center w-9 h-9 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                        >
+                          <Icon name="History" size={15} />
+                        </button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -381,6 +397,15 @@ const AdminLeadsTable = ({
           </div>
         )}
       </div>
+      {historyLead && (
+        <LeadHistoryDialog
+          leadId={historyLead.id}
+          leadLabel={`${historyLead.name} — ${historyLead.vin || historyLead.car_name || historyLead.phone}`}
+          adminPassword={adminPassword}
+          open={historyLeadId !== null}
+          onOpenChange={(open) => !open && setHistoryLeadId(null)}
+        />
+      )}
     </div>
   );
 };

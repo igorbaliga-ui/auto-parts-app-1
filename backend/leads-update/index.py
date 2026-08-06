@@ -3,9 +3,37 @@ import os
 import psycopg2
 from send_push import send_push_to_phone
 
+STATUS_LABEL = {'in_progress': 'В работе', 'done': 'Выполнен'}
+
+
+def fmt_amount(v):
+    return None if v is None else str(float(v))
+
+
+def fmt_status(v):
+    return None if v is None else STATUS_LABEL.get(v, v)
+
+
+def fmt_arrived(v):
+    if v is None:
+        return None
+    return 'Да' if v else 'Нет'
+
+
+def log_change(cur, schema: str, lead_id: int, admin_name: str, field: str, old_value, new_value):
+    if old_value == new_value:
+        return
+    cur.execute(
+        f"INSERT INTO {schema}.lead_changes (lead_id, admin_name, field, old_value, new_value) "
+        f"VALUES (%s, %s, %s, %s, %s)",
+        (lead_id, admin_name, field, old_value, new_value),
+    )
+
+
 def handler(event: dict, context) -> dict:
     """Обновляет сумму заказа, предоплату, статус и пометку «Поступил» по заявке (для менеджера в /admin).
     Остаток (сумма заказа минус предоплата) считается автоматически в БД.
+    Каждое изменение суммы, предоплаты и статуса записывается в журнал lead_changes (кто и когда менял).
     При простановке пометки «Поступил» или переводе в статус «Выполнен» отправляет клиенту Web Push уведомление."""
     method = event.get('httpMethod', 'GET')
 
@@ -39,6 +67,7 @@ def handler(event: dict, context) -> dict:
     prepayment = body.get('prepayment')
     status = body.get('status')
     arrived = body.get('arrived')
+    admin_name = (body.get('admin_name') or '').strip() or 'Менеджер'
 
     if not isinstance(lead_id, int):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный id заявки'})}
@@ -53,6 +82,15 @@ def handler(event: dict, context) -> dict:
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor()
+
+        # Читаем текущие значения для журнала изменений
+        cur.execute(
+            f"SELECT order_amount, prepayment, status, arrived FROM {schema}.leads WHERE id = %s",
+            (lead_id,),
+        )
+        prev = cur.fetchone()
+        prev_amount, prev_prepayment, prev_status, prev_arrived = prev if prev else (None, None, None, None)
+
         if status is not None:
             # При переводе в «Выполнен» фиксируем дату/время выполнения.
             # При возврате в «В работе» — сбрасываем её.
@@ -93,6 +131,15 @@ def handler(event: dict, context) -> dict:
         cashback = float(row[0]) if row and row[0] is not None else None
         remaining = float(row[1]) if row and row[1] is not None else None
         completed_at = row[2].isoformat() if row and row[2] else None
+
+        # Записываем изменения в журнал
+        log_change(cur, schema, lead_id, admin_name, 'order_amount', fmt_amount(prev_amount), fmt_amount(order_amount))
+        log_change(cur, schema, lead_id, admin_name, 'prepayment', fmt_amount(prev_prepayment), fmt_amount(prepayment))
+        if status is not None:
+            log_change(cur, schema, lead_id, admin_name, 'status', fmt_status(prev_status), fmt_status(status))
+        if arrived is not None:
+            log_change(cur, schema, lead_id, admin_name, 'arrived', fmt_arrived(prev_arrived), fmt_arrived(arrived))
+
         conn.commit()
         cur.close()
 

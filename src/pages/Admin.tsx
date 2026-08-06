@@ -10,6 +10,7 @@ const GARAGE_AUTH_URL = 'https://functions.poehali.dev/d92ac11d-c6d2-4430-b948-a
 
 const Admin = () => {
   const [password, setPassword] = useState('');
+  const [adminName, setAdminName] = useState('');
   const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -58,6 +59,8 @@ const Admin = () => {
 
   useEffect(() => {
     const saved = sessionStorage.getItem('admin_password');
+    const savedName = sessionStorage.getItem('admin_name');
+    if (savedName) setAdminName(savedName);
     if (saved) {
       setPassword(saved);
       load(saved);
@@ -67,6 +70,7 @@ const Admin = () => {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    sessionStorage.setItem('admin_name', adminName.trim() || 'Менеджер');
     load(password);
   };
 
@@ -89,7 +93,7 @@ const Admin = () => {
       const res = await fetch(LEADS_UPDATE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
-        body: JSON.stringify({ id, order_amount: amount, prepayment, status: lead?.status }),
+        body: JSON.stringify({ id, order_amount: amount, prepayment, status: lead?.status, admin_name: adminName }),
       });
       if (!res.ok) throw new Error('request failed');
       const data = await res.json();
@@ -118,7 +122,7 @@ const Admin = () => {
       const res = await fetch(LEADS_UPDATE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
-        body: JSON.stringify({ id, order_amount: amount, prepayment, status: nextStatus }),
+        body: JSON.stringify({ id, order_amount: amount, prepayment, status: nextStatus, admin_name: adminName }),
       });
       if (!res.ok) throw new Error('request failed');
       const data = await res.json();
@@ -147,7 +151,7 @@ const Admin = () => {
       const res = await fetch(LEADS_UPDATE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
-        body: JSON.stringify({ id, order_amount: amount, prepayment, arrived: nextArrived }),
+        body: JSON.stringify({ id, order_amount: amount, prepayment, arrived: nextArrived, admin_name: adminName }),
       });
       if (!res.ok) throw new Error('request failed');
       setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, arrived: nextArrived } : l)));
@@ -235,6 +239,8 @@ const Admin = () => {
       <AdminLoginForm
         password={password}
         setPassword={setPassword}
+        adminName={adminName}
+        setAdminName={setAdminName}
         error={error}
         loading={loading}
         onSubmit={submit}
@@ -249,6 +255,7 @@ const Admin = () => {
         filteredLeads={filteredLeads}
         drafts={drafts}
         savingId={savingId}
+        adminPassword={password}
         hiddenColumns={hiddenColumns}
         columnFilters={columnFilters}
         suggestionsByColumn={suggestionsByColumn}
