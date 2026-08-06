@@ -1,312 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
 import PageBackground from '@/components/site/PageBackground';
 import AdminLoginForm from './admin/AdminLoginForm';
 import AdminLeadsTable from './admin/AdminLeadsTable';
-import { Lead, ColumnKey, columns } from './admin/adminTypes';
-import { useAdminPushSubscription } from '@/hooks/use-admin-push-subscription';
-
-const LEADS_ADMIN_URL = 'https://functions.poehali.dev/68ca5544-c377-4c79-ba1f-57ba286b33a9';
-const LEADS_UPDATE_URL = 'https://functions.poehali.dev/1612bdca-502b-46a9-b0ea-8d6d93876dc6';
-const GARAGE_AUTH_URL = 'https://functions.poehali.dev/d92ac11d-c6d2-4430-b948-a767c0048442';
+import { useAdminLeads } from './admin/useAdminLeads';
 
 const Admin = () => {
-  const [password, setPassword] = useState('');
-  const [adminName, setAdminName] = useState('');
-  const [authed, setAuthed] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [drafts, setDrafts] = useState<Record<number, { amount: string; prepayment: string; note: string }>>({});
-  const [savingId, setSavingId] = useState<number | null>(null);
-  const [hiddenColumns, setHiddenColumns] = useState<Set<ColumnKey>>(new Set());
-  const [columnFilters, setColumnFilters] = useState<Partial<Record<ColumnKey, string>>>({});
-  const [statusTab, setStatusTab] = useState<'in_progress' | 'done' | 'all'>('in_progress');
-  const {
-    permission: pushPermission,
-    subscribing: pushSubscribing,
-    subscribe: subscribePush,
-  } = useAdminPushSubscription(authed ? password : null);
+  const a = useAdminLeads();
 
-  const load = async (pwd: string) => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch(LEADS_ADMIN_URL, {
-        headers: { 'X-Admin-Password': pwd },
-      });
-      if (res.status === 401) {
-        setError('Неверный пароль');
-        setAuthed(false);
-        return;
-      }
-      if (!res.ok) throw new Error('request failed');
-      const data = await res.json();
-      const list: Lead[] = data.leads || [];
-      setLeads(list);
-      setDrafts(
-        Object.fromEntries(
-          list.map((l) => [
-            l.id,
-            {
-              amount: l.order_amount != null ? String(l.order_amount) : '',
-              prepayment: l.prepayment != null ? String(l.prepayment) : '',
-              note: l.internal_note ?? '',
-            },
-          ]),
-        ),
-      );
-      setAuthed(true);
-      sessionStorage.setItem('admin_password', pwd);
-    } catch {
-      setError('Не удалось загрузить заявки');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const saved = sessionStorage.getItem('admin_password');
-    const savedName = sessionStorage.getItem('admin_name');
-    if (savedName) setAdminName(savedName);
-    if (saved) {
-      setPassword(saved);
-      load(saved);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Манифест для /admin уже подставлен синхронно в index.html (до загрузки React) —
-  // это нужно, чтобы браузер сразу видел манифест админки при установке на главный экран.
-  // Здесь только подстраховка для перехода на /admin кликом внутри SPA (без полной перезагрузки),
-  // и обязательный возврат к манифесту сайта при уходе со страницы.
-  useEffect(() => {
-    const link = document.querySelector('link[rel="manifest"]');
-    link?.setAttribute('href', '/admin-manifest.webmanifest');
-    return () => {
-      link?.setAttribute('href', '/manifest.webmanifest');
-    };
-  }, []);
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    sessionStorage.setItem('admin_name', adminName.trim() || 'Менеджер');
-    load(password);
-  };
-
-  const setDraft = (id: number, value: string) => {
-    setDrafts((d) => ({
-      ...d,
-      [id]: { amount: value, prepayment: d[id]?.prepayment ?? '', note: d[id]?.note ?? '' },
-    }));
-  };
-
-  const setPrepaymentDraft = (id: number, value: string) => {
-    setDrafts((d) => ({
-      ...d,
-      [id]: { amount: d[id]?.amount ?? '', prepayment: value, note: d[id]?.note ?? '' },
-    }));
-  };
-
-  const setNoteDraft = (id: number, value: string) => {
-    setDrafts((d) => ({
-      ...d,
-      [id]: { amount: d[id]?.amount ?? '', prepayment: d[id]?.prepayment ?? '', note: value },
-    }));
-  };
-
-  const saveLead = async (id: number) => {
-    const draft = drafts[id];
-    if (!draft) return;
-    setSavingId(id);
-    try {
-      const amount = draft.amount ? Number(draft.amount) : null;
-      const prepayment = draft.prepayment ? Number(draft.prepayment) : null;
-      const note = draft.note.trim() ? draft.note : null;
-      const lead = leads.find((l) => l.id === id);
-      const res = await fetch(LEADS_UPDATE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
-        body: JSON.stringify({
-          id,
-          order_amount: amount,
-          prepayment,
-          status: lead?.status,
-          internal_note: note,
-          admin_name: adminName,
-        }),
-      });
-      if (!res.ok) throw new Error('request failed');
-      const data = await res.json();
-      setLeads((ls) =>
-        ls.map((l) =>
-          l.id === id
-            ? {
-                ...l,
-                order_amount: amount,
-                prepayment,
-                internal_note: note,
-                remaining: data.remaining ?? null,
-                cashback: data.cashback ?? null,
-              }
-            : l,
-        ),
-      );
-    } catch {
-      setError('Не удалось сохранить. Попробуйте ещё раз.');
-    } finally {
-      setSavingId(null);
-    }
-  };
-
-  const toggleStatus = async (id: number) => {
-    const lead = leads.find((l) => l.id === id);
-    if (!lead) return;
-    const nextStatus = lead.status === 'done' ? 'in_progress' : 'done';
-    setSavingId(id);
-    try {
-      const amount = drafts[id]?.amount ? Number(drafts[id].amount) : lead.order_amount;
-      const prepayment = drafts[id]?.prepayment ? Number(drafts[id].prepayment) : lead.prepayment;
-      const note = drafts[id]?.note.trim() ? drafts[id].note : lead.internal_note;
-      const res = await fetch(LEADS_UPDATE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
-        body: JSON.stringify({
-          id,
-          order_amount: amount,
-          prepayment,
-          status: nextStatus,
-          internal_note: note,
-          admin_name: adminName,
-        }),
-      });
-      if (!res.ok) throw new Error('request failed');
-      const data = await res.json();
-      setLeads((ls) =>
-        ls.map((l) =>
-          l.id === id
-            ? { ...l, status: nextStatus, remaining: data.remaining ?? null, completed_at: data.completed_at ?? null }
-            : l,
-        ),
-      );
-    } catch {
-      setError('Не удалось изменить статус. Попробуйте ещё раз.');
-    } finally {
-      setSavingId(null);
-    }
-  };
-
-  const toggleArrived = async (id: number) => {
-    const lead = leads.find((l) => l.id === id);
-    if (!lead) return;
-    const nextArrived = !lead.arrived;
-    setSavingId(id);
-    try {
-      const amount = drafts[id]?.amount ? Number(drafts[id].amount) : lead.order_amount;
-      const prepayment = drafts[id]?.prepayment ? Number(drafts[id].prepayment) : lead.prepayment;
-      const note = drafts[id]?.note.trim() ? drafts[id].note : lead.internal_note;
-      const res = await fetch(LEADS_UPDATE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
-        body: JSON.stringify({
-          id,
-          order_amount: amount,
-          prepayment,
-          arrived: nextArrived,
-          internal_note: note,
-          admin_name: adminName,
-        }),
-      });
-      if (!res.ok) throw new Error('request failed');
-      setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, arrived: nextArrived } : l)));
-    } catch {
-      setError('Не удалось изменить пометку. Попробуйте ещё раз.');
-    } finally {
-      setSavingId(null);
-    }
-  };
-
-  const resetGaragePassword = async (id: number) => {
-    const lead = leads.find((l) => l.id === id);
-    if (!lead) return;
-    setSavingId(id);
-    try {
-      const res = await fetch(GARAGE_AUTH_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
-        body: JSON.stringify({ action: 'admin_reset_password', phone: lead.phone }),
-      });
-      if (!res.ok) throw new Error('request failed');
-    } catch {
-      setError('Не удалось сбросить пароль. Попробуйте ещё раз.');
-    } finally {
-      setSavingId(null);
-    }
-  };
-
-  const isColumnVisible = (key: ColumnKey) => !hiddenColumns.has(key);
-
-  const toggleColumn = (key: ColumnKey) => {
-    setHiddenColumns((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
-
-  const setColumnFilter = (key: ColumnKey, value: string) => {
-    setColumnFilters((f) => ({ ...f, [key]: value }));
-  };
-
-  // Уникальные значения по каждому столбцу — подсказки для datalist по мере ввода
-  const suggestionsByColumn = useMemo(() => {
-    const map = {} as Record<ColumnKey, string[]>;
-    columns.forEach((col) => {
-      if (!col.searchable || !col.getSearchValue) return;
-      const values = new Set<string>();
-      leads.forEach((l) => {
-        const v = col.getSearchValue!(l);
-        if (v) values.add(v);
-      });
-      map[col.key] = Array.from(values).sort();
-    });
-    return map;
-  }, [leads]);
-
-  const statusFilteredLeads = useMemo(() => {
-    if (statusTab === 'all') return leads;
-    return leads.filter((l) => l.status === statusTab);
-  }, [leads, statusTab]);
-
-  const inProgressCount = useMemo(() => leads.filter((l) => l.status === 'in_progress').length, [leads]);
-  const doneCount = useMemo(() => leads.filter((l) => l.status === 'done').length, [leads]);
-
-  const filteredLeads = useMemo(() => {
-    const activeFilters = Object.entries(columnFilters).filter(([, v]) => v && v.trim());
-    if (activeFilters.length === 0) return statusFilteredLeads;
-    return statusFilteredLeads.filter((l) =>
-      activeFilters.every(([key, value]) => {
-        const col = columns.find((c) => c.key === key);
-        if (!col?.getSearchValue) return true;
-        return col.getSearchValue(l).toLowerCase().includes(value.trim().toLowerCase());
-      }),
-    );
-  }, [statusFilteredLeads, columnFilters]);
-
-  const hasActiveFilters = Object.values(columnFilters).some((v) => v && v.trim());
-
-  const clearFilters = () => setColumnFilters({});
-
-  if (!authed) {
+  if (!a.authed) {
     return (
       <AdminLoginForm
-        password={password}
-        setPassword={setPassword}
-        adminName={adminName}
-        setAdminName={setAdminName}
-        error={error}
-        loading={loading}
-        onSubmit={submit}
+        password={a.password}
+        setPassword={a.setPassword}
+        adminName={a.adminName}
+        setAdminName={a.setAdminName}
+        error={a.error}
+        loading={a.loading}
+        onSubmit={a.submit}
       />
     );
   }
@@ -314,35 +23,35 @@ const Admin = () => {
   return (
     <PageBackground>
       <AdminLeadsTable
-        leads={leads}
-        filteredLeads={filteredLeads}
-        drafts={drafts}
-        savingId={savingId}
-        adminPassword={password}
-        hiddenColumns={hiddenColumns}
-        columnFilters={columnFilters}
-        suggestionsByColumn={suggestionsByColumn}
-        hasActiveFilters={hasActiveFilters}
-        loading={loading}
-        isColumnVisible={isColumnVisible}
-        toggleColumn={toggleColumn}
-        setColumnFilter={setColumnFilter}
-        clearFilters={clearFilters}
-        setDraft={setDraft}
-        setPrepaymentDraft={setPrepaymentDraft}
-        setNoteDraft={setNoteDraft}
-        pushPermission={pushPermission}
-        pushSubscribing={pushSubscribing}
-        subscribePush={subscribePush}
-        saveLead={saveLead}
-        toggleStatus={toggleStatus}
-        toggleArrived={toggleArrived}
-        resetGaragePassword={resetGaragePassword}
-        onRefresh={() => load(password)}
-        statusTab={statusTab}
-        setStatusTab={setStatusTab}
-        inProgressCount={inProgressCount}
-        doneCount={doneCount}
+        leads={a.leads}
+        filteredLeads={a.filteredLeads}
+        drafts={a.drafts}
+        savingId={a.savingId}
+        adminPassword={a.password}
+        hiddenColumns={a.hiddenColumns}
+        columnFilters={a.columnFilters}
+        suggestionsByColumn={a.suggestionsByColumn}
+        hasActiveFilters={a.hasActiveFilters}
+        loading={a.loading}
+        isColumnVisible={a.isColumnVisible}
+        toggleColumn={a.toggleColumn}
+        setColumnFilter={a.setColumnFilter}
+        clearFilters={a.clearFilters}
+        setDraft={a.setDraft}
+        setPrepaymentDraft={a.setPrepaymentDraft}
+        setNoteDraft={a.setNoteDraft}
+        pushPermission={a.pushPermission}
+        pushSubscribing={a.pushSubscribing}
+        subscribePush={a.subscribePush}
+        saveLead={a.saveLead}
+        toggleStatus={a.toggleStatus}
+        toggleArrived={a.toggleArrived}
+        resetGaragePassword={a.resetGaragePassword}
+        onRefresh={a.onRefresh}
+        statusTab={a.statusTab}
+        setStatusTab={a.setStatusTab}
+        inProgressCount={a.inProgressCount}
+        doneCount={a.doneCount}
       />
     </PageBackground>
   );
