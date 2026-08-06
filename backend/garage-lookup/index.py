@@ -49,13 +49,14 @@ def handler(event: dict, context) -> dict:
         )
         rows = cur.fetchall()
 
-        # Если менеджер вручную задал итоговый кэшбэк клиента — он приоритетнее автосчёта
+        # Сумма списаний кэшбэка менеджером — вычитается из общей суммы, видной клиенту
         cur.execute(
-            f"SELECT cashback_override FROM {schema}.client_cashback_overrides WHERE phone_last10 = %s",
+            f"SELECT COALESCE(SUM(amount), 0) AS deducted FROM {schema}.client_cashback_deductions "
+            f"WHERE phone_last10 = %s",
             (phone_last10,),
         )
-        override_row = cur.fetchone()
-        cashback_override = float(override_row['cashback_override']) if override_row else None
+        deducted_row = cur.fetchone()
+        cashback_deducted = float(deducted_row['deducted']) if deducted_row else 0
         cur.close()
     finally:
         conn.close()
@@ -85,5 +86,5 @@ def handler(event: dict, context) -> dict:
     return {
         'statusCode': 200,
         'headers': headers,
-        'body': json.dumps({'orders': orders, 'cashback_override': cashback_override}),
+        'body': json.dumps({'orders': orders, 'cashback_deducted': cashback_deducted}),
     }

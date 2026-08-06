@@ -28,6 +28,7 @@ const Admin = () => {
         drafts={a.drafts}
         savingId={a.savingId}
         adminPassword={a.password}
+        adminName={a.adminName}
         hiddenColumns={a.hiddenColumns}
         columnFilters={a.columnFilters}
         suggestionsByColumn={a.suggestionsByColumn}

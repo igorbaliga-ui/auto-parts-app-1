@@ -1,7 +1,9 @@
 import json
 import os
 import re
+
 import psycopg2
+import psycopg2.extras
 
 
 def normalize_phone(phone: str) -> str:
@@ -10,10 +12,10 @@ def normalize_phone(phone: str) -> str:
 
 
 def handler(event: dict, context) -> dict:
-    """Считает суммарный кэшбэк клиента (3% от выполненных заказов) и позволяет
-    менеджеру вручную задать итоговую сумму кэшбэка по номеру телефона (для /admin).
-    Если задано ручное значение — оно приоритетнее автоматического расчёта и
-    именно оно показывается клиенту в «Гараже»."""
+    """Считает суммарный кэшбэк клиента (3% от выполненных заказов минус списания) и
+    позволяет менеджеру списать часть кэшбэка по номеру телефона (для /admin).
+    Новые начисления (выполненные заказы) продолжают суммироваться в общий кэшбэк,
+    списания вычитаются из него. Клиент в «Гараже» видит итоговую сумму."""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -41,30 +43,61 @@ def handler(event: dict, context) -> dict:
     schema = os.environ['MAIN_DB_SCHEMA']
 
     if method == 'GET':
+        params = event.get('queryStringParameters') or {}
+        phone_param = params.get('phone')
+
         conn = psycopg2.connect(dsn)
         try:
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+            if phone_param:
+                # История списаний по конкретному клиенту
+                phone_last10 = normalize_phone(phone_param)
+                cur.execute(
+                    f"SELECT id, amount, admin_name, created_at FROM {schema}.client_cashback_deductions "
+                    f"WHERE phone_last10 = %s ORDER BY created_at DESC LIMIT 200",
+                    (phone_last10,),
+                )
+                rows = cur.fetchall()
+                cur.close()
+                history = [{
+                    'id': r['id'],
+                    'amount': float(r['amount']),
+                    'admin_name': r['admin_name'],
+                    'created_at': r['created_at'].isoformat() if r['created_at'] else None,
+                } for r in rows]
+                return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'history': history})}
+
+            # Список всех клиентов со сводкой по кэшбэку
             cur.execute(
                 f"SELECT RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) AS phone_last10, "
-                f"MAX(name) AS name, SUM(CASE WHEN status = 'done' THEN cashback ELSE 0 END) AS auto_cashback "
+                f"MAX(name) AS name, SUM(CASE WHEN status = 'done' THEN cashback ELSE 0 END) AS accrued "
                 f"FROM {schema}.leads GROUP BY 1"
             )
             rows = cur.fetchall()
-            cur.execute(f"SELECT phone_last10, cashback_override FROM {schema}.client_cashback_overrides")
-            overrides = {r[0]: float(r[1]) for r in cur.fetchall()}
+
+            cur.execute(
+                f"SELECT phone_last10, COALESCE(SUM(amount), 0) AS deducted "
+                f"FROM {schema}.client_cashback_deductions GROUP BY 1"
+            )
+            deducted_map = {r['phone_last10']: float(r['deducted']) for r in cur.fetchall()}
             cur.close()
         finally:
             conn.close()
 
         clients = []
-        for phone_last10, name, auto_cashback in rows:
+        for r in rows:
+            phone_last10 = r['phone_last10']
             if not phone_last10:
                 continue
+            accrued = float(r['accrued']) if r['accrued'] is not None else 0
+            deducted = deducted_map.get(phone_last10, 0)
             clients.append({
                 'phone_last10': phone_last10,
-                'name': name,
-                'auto_cashback': float(auto_cashback) if auto_cashback is not None else 0,
-                'cashback_override': overrides.get(phone_last10),
+                'name': r['name'],
+                'accrued': accrued,
+                'deducted': deducted,
+                'total_cashback': accrued - deducted,
             })
 
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'clients': clients})}
@@ -77,23 +110,25 @@ def handler(event: dict, context) -> dict:
     if len(phone_last10) < 10:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный телефон'})}
 
-    cashback_override = body.get('cashback_override')
+    amount = body.get('amount')
+    try:
+        amount = float(amount)
+    except (TypeError, ValueError):
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректная сумма'})}
+
+    if amount <= 0:
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Сумма списания должна быть больше нуля'})}
+
+    admin_name = (body.get('admin_name') or '').strip() or 'Менеджер'
 
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor()
-        if cashback_override is None:
-            cur.execute(
-                f"DELETE FROM {schema}.client_cashback_overrides WHERE phone_last10 = %s",
-                (phone_last10,),
-            )
-        else:
-            cur.execute(
-                f"INSERT INTO {schema}.client_cashback_overrides (phone_last10, cashback_override, updated_at) "
-                f"VALUES (%s, %s, now()) "
-                f"ON CONFLICT (phone_last10) DO UPDATE SET cashback_override = EXCLUDED.cashback_override, updated_at = now()",
-                (phone_last10, cashback_override),
-            )
+        cur.execute(
+            f"INSERT INTO {schema}.client_cashback_deductions (phone_last10, amount, admin_name) "
+            f"VALUES (%s, %s, %s)",
+            (phone_last10, amount, admin_name),
+        )
         conn.commit()
         cur.close()
     finally:

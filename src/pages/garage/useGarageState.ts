@@ -26,7 +26,7 @@ export const useGarageState = () => {
   const [checkingSaved, setCheckingSaved] = useState(() => !!localStorage.getItem(STORAGE_KEY));
   const [error, setError] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
-  const [cashbackOverride, setCashbackOverride] = useState<number | null>(null);
+  const [cashbackDeducted, setCashbackDeducted] = useState(0);
   const [carNameDrafts, setCarNameDrafts] = useState<Record<number, string>>({});
   const [savedCarNames, setSavedCarNames] = useState<Record<number, string>>({});
   const [savingCarId, setSavingCarId] = useState<number | null>(null);
@@ -80,7 +80,7 @@ export const useGarageState = () => {
         return;
       }
       setOrders(list);
-      setCashbackOverride(typeof data.cashback_override === 'number' ? data.cashback_override : null);
+      setCashbackDeducted(typeof data.cashback_deducted === 'number' ? data.cashback_deducted : 0);
       const names = Object.fromEntries(list.map((o) => [o.id, o.car_name || '']));
       setCarNameDrafts(names);
       setSavedCarNames(names);
@@ -296,8 +296,7 @@ export const useGarageState = () => {
     }
   };
 
-  const totalCashback =
-    cashbackOverride !== null ? cashbackOverride : orders.reduce((sum, o) => sum + (o.cashback || 0), 0);
+  const totalCashback = orders.reduce((sum, o) => sum + (o.cashback || 0), 0) - cashbackDeducted;
   const knownName = orders[0]?.name;
   const vinHistory = Array.from(new Set(orders.map((o) => o.vin).filter((v): v is string => !!v)));
   const inProgressOrders = orders.filter((o) => o.status !== 'done');

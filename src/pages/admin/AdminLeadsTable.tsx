@@ -15,6 +15,7 @@ type AdminLeadsTableProps = {
   drafts: Record<number, { amount: string; prepayment: string; note: string }>;
   savingId: number | null;
   adminPassword: string;
+  adminName: string;
   hiddenColumns: Set<ColumnKey>;
   columnFilters: Partial<Record<ColumnKey, string>>;
   suggestionsByColumn: Record<ColumnKey, string[]>;
@@ -47,6 +48,7 @@ const AdminLeadsTable = ({
   drafts,
   savingId,
   adminPassword,
+  adminName,
   hiddenColumns,
   columnFilters,
   suggestionsByColumn,
@@ -154,6 +156,7 @@ const AdminLeadsTable = ({
       )}
       <ClientCashbackDialog
         adminPassword={adminPassword}
+        adminName={adminName}
         open={cashbackDialogOpen}
         onOpenChange={setCashbackDialogOpen}
       />
