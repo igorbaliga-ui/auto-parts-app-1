@@ -241,6 +241,10 @@ export const useGarageState = () => {
       setOldPasswordInput('');
       setNewPasswordInput('');
       setPasswordSettingsSuccess('Пароль сохранён');
+      setTimeout(() => {
+        setPasswordSettingsOpen(false);
+        setPasswordSettingsSuccess('');
+      }, 1200);
     } catch {
       setPasswordSettingsError('Не удалось сохранить пароль');
     } finally {
