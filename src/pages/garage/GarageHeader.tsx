@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import Icon from '@/components/ui/icon';
+import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import Icon from "@/components/ui/icon";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,16 +11,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
-import CityInput from '@/components/shared/CityInput';
-import { setStoredCity } from '@/lib/garage-city';
+} from "@/components/ui/dialog";
+import CityInput from "@/components/shared/CityInput";
+import { setStoredCity } from "@/lib/garage-city";
 
 type GarageHeaderProps = {
   city: string;
@@ -88,7 +88,9 @@ const GarageHeader = ({
           >
             <Icon name="Warehouse" className="text-primary" size={20} />
           </Link>
-          <h1 className="font-head uppercase tracking-wide text-xl sm:text-2xl whitespace-nowrap">Мой гараж</h1>
+          <h1 className="font-head uppercase tracking-wide text-xl sm:text-2xl whitespace-nowrap">
+            Мой гараж
+          </h1>
         </div>
       </div>
 
@@ -123,7 +125,11 @@ const GarageHeader = ({
           size="icon"
           onClick={openPasswordSettings}
           className="relative h-10 w-10 shrink-0"
-          title={hasPassword ? 'Пароль для входа' : 'Пароль не задан — защитите доступ к заказам'}
+          title={
+            hasPassword
+              ? "Пароль для входа"
+              : "Пароль не задан — защитите доступ к заказам"
+          }
         >
           <Icon name="Lock" size={16} />
           {!hasPassword && (
@@ -144,19 +150,25 @@ const GarageHeader = ({
         </Button>
       </div>
 
-      <Dialog open={passwordSettingsOpen} onOpenChange={setPasswordSettingsOpen}>
+      <Dialog
+        open={passwordSettingsOpen}
+        onOpenChange={setPasswordSettingsOpen}
+      >
         <DialogContent className="bg-card border-border sm:max-w-[420px]">
           <DialogHeader>
             <DialogTitle className="font-head uppercase tracking-wide text-xl">
-              {hasPassword ? 'Пароль для входа' : 'Задать пароль'}
+              {hasPassword ? "Пароль для входа" : "Задать пароль"}
             </DialogTitle>
             <DialogDescription>
               {hasPassword
-                ? 'Пароль защищает доступ к вашим заказам по этому номеру телефона.'
-                : 'Необязательно: задайте пароль, чтобы дополнительно защитить доступ к заказам.'}
+                ? "Пароль защищает доступ к вашим заказам по этому номеру телефона."
+                : "РЕКОМЕНДУЕМ!: задайте пароль, чтобы дополнительно защитить доступ к заказам."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={savePasswordSettings} className="flex flex-col gap-3 mt-1">
+          <form
+            onSubmit={savePasswordSettings}
+            className="flex flex-col gap-3 mt-1"
+          >
             {hasPassword && (
               <div>
                 <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
@@ -174,7 +186,7 @@ const GarageHeader = ({
             )}
             <div>
               <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-                {hasPassword ? 'Новый пароль' : 'Пароль'}
+                {hasPassword ? "Новый пароль" : "Пароль"}
               </label>
               <Input
                 type="password"
@@ -210,7 +222,11 @@ const GarageHeader = ({
                 disabled={passwordSettingsLoading}
                 className="font-head uppercase tracking-wide flex-1"
               >
-                {passwordSettingsLoading ? 'Сохраняем…' : hasPassword ? 'Сменить пароль' : 'Сохранить'}
+                {passwordSettingsLoading
+                  ? "Сохраняем…"
+                  : hasPassword
+                    ? "Сменить пароль"
+                    : "Сохранить"}
               </Button>
               {hasPassword && (
                 <Button
@@ -235,14 +251,18 @@ const GarageHeader = ({
               Выйти из гаража?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Вам нужно будет заново ввести номер телефона, чтобы снова увидеть свои заказы.
+              Вам нужно будет заново ввести номер телефона, чтобы снова увидеть
+              свои заказы.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="font-head uppercase tracking-wide">
               Отмена
             </AlertDialogCancel>
-            <AlertDialogAction onClick={logout} className="font-head uppercase tracking-wide">
+            <AlertDialogAction
+              onClick={logout}
+              className="font-head uppercase tracking-wide"
+            >
               Выйти
             </AlertDialogAction>
           </AlertDialogFooter>
