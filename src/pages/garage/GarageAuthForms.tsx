@@ -1,8 +1,8 @@
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import Icon from '@/components/ui/icon';
-import PageBackground from '@/components/site/PageBackground';
-import { normalizePhoneInput } from '@/lib/phone';
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import Icon from "@/components/ui/icon";
+import PageBackground from "@/components/site/PageBackground";
+import { normalizePhoneInput } from "@/lib/phone";
 
 type CheckingSavedViewProps = Record<string, never>;
 
@@ -56,7 +56,8 @@ export const ResetPasswordView = ({
           Восстановление пароля
         </h1>
         <p className="text-muted-foreground text-sm text-center">
-          Введите имя, которое указывали в самой первой заявке с номера {phone}, и задайте новый пароль.
+          Введите имя, которое указывали в самой первой заявке с номера {phone},
+          и задайте новый пароль.
         </p>
         <Input
           value={resetNameInput}
@@ -72,17 +73,23 @@ export const ResetPasswordView = ({
           maxLength={4}
           placeholder="Новый пароль (4 символа)"
         />
-        {resetError && <p className="text-primary text-sm text-center">{resetError}</p>}
-        <Button type="submit" disabled={resetLoading} className="font-head uppercase tracking-wide h-11">
-          {resetLoading ? 'Сохраняем…' : 'Сохранить и войти'}
+        {resetError && (
+          <p className="text-primary text-sm text-center">{resetError}</p>
+        )}
+        <Button
+          type="submit"
+          disabled={resetLoading}
+          className="font-head uppercase tracking-wide h-11"
+        >
+          {resetLoading ? "Сохраняем…" : "Сохранить и войти"}
         </Button>
         <button
           type="button"
           onClick={() => {
             setResetPasswordMode(false);
-            setResetNameInput('');
-            setResetPasswordInput('');
-            setResetError('');
+            setResetNameInput("");
+            setResetPasswordInput("");
+            setResetError("");
           }}
           className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -144,14 +151,18 @@ export const PasswordRequiredView = ({
           autoFocus
         />
         {error && <p className="text-primary text-sm text-center">{error}</p>}
-        <Button type="submit" disabled={loading} className="font-head uppercase tracking-wide h-11">
-          {loading ? 'Входим…' : 'Войти'}
+        <Button
+          type="submit"
+          disabled={loading}
+          className="font-head uppercase tracking-wide h-11"
+        >
+          {loading ? "Входим…" : "Войти"}
         </Button>
         <button
           type="button"
           onClick={() => {
             setResetPasswordMode(true);
-            setResetError('');
+            setResetError("");
           }}
           className="text-center text-xs text-primary hover:underline"
         >
@@ -161,8 +172,8 @@ export const PasswordRequiredView = ({
           type="button"
           onClick={() => {
             setPasswordRequired(false);
-            setPasswordInput('');
-            setError('');
+            setPasswordInput("");
+            setError("");
           }}
           className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -212,14 +223,21 @@ export const PhoneEntryView = ({
           value={phone}
           onChange={(e) => setPhone(normalizePhoneInput(phone, e.target.value))}
           maxLength={12}
-          placeholder="+7 900 000-00-00"
+          placeholder="+7 910 000-00-00"
           autoFocus
         />
         {error && <p className="text-primary text-sm text-center">{error}</p>}
-        <Button type="submit" disabled={loading || checkingPassword} className="font-head uppercase tracking-wide h-11">
-          {loading || checkingPassword ? 'Загружаем…' : 'Войти'}
+        <Button
+          type="submit"
+          disabled={loading || checkingPassword}
+          className="font-head uppercase tracking-wide h-11"
+        >
+          {loading || checkingPassword ? "Загружаем…" : "Войти"}
         </Button>
-        <a href="/" className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors">
+        <a
+          href="/"
+          className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
           На главную
         </a>
       </form>
