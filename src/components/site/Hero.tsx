@@ -1,20 +1,20 @@
-import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import Icon from '@/components/ui/icon';
-import { useRequest } from './RequestDialog';
-import { useGarageAuth } from '@/hooks/use-garage-auth';
-import heroBg from '@/assets/hero-bg.webp';
+import { useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import Icon from "@/components/ui/icon";
+import { useRequest } from "./RequestDialog";
+import { useGarageAuth } from "@/hooks/use-garage-auth";
+import heroBg from "@/assets/hero-bg.webp";
 
 const Hero = () => {
   const { open } = useRequest();
   const { authed: garageAuthed } = useGarageAuth();
-  const [vin, setVin] = useState('');
-  const [photoName, setPhotoName] = useState('');
+  const [vin, setVin] = useState("");
+  const [photoName, setPhotoName] = useState("");
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
-    setPhotoName(file ? file.name : '');
+    setPhotoName(file ? file.name : "");
     open(vin, file);
   };
 
@@ -45,8 +45,9 @@ const Hero = () => {
             </span>
 
             <h1 className="font-head font-bold uppercase leading-[0.92] tracking-[-0.03em] text-[12vw] xs:text-[11vw] sm:text-6xl lg:text-[5.1rem] mb-6 break-words">
-              Введи&nbsp;VIN&nbsp;—<br />
-              <span className="text-primary">получи</span>{' '}
+              Введи&nbsp;VIN&nbsp;—
+              <br />
+              <span className="text-primary">получи</span>{" "}
               <span className="font-medium text-muted-foreground">нужную</span>
               <br />
               деталь
@@ -68,12 +69,17 @@ const Hero = () => {
                     Заявки оформляются через личный кабинет
                   </span>
                 </span>
-                <Icon name="ChevronRight" className="text-primary ml-auto" size={22} />
+                <Icon
+                  name="ChevronRight"
+                  className="text-primary ml-auto"
+                  size={22}
+                />
               </Link>
             ) : (
               <>
                 <p className="max-w-[34ch] text-muted-foreground leading-relaxed text-base sm:text-lg mb-4">
-                  Напишите VIN или Frame-номер автомобиля, или отправьте фото СТС
+                  Напишите VIN или Frame-номер автомобиля, или отправьте фото
+                  СТС
                 </p>
                 {photoName && (
                   <p className="text-primary text-xs mb-4 flex items-center gap-1.5">
@@ -149,7 +155,10 @@ const Hero = () => {
             )}
 
             <div className="mt-4 flex flex-col items-start gap-2 text-muted-foreground text-sm">
-              <span className="flex items-center gap-2">Все запчасти проверены на подлинность</span>
+              <i className="w-1.5 h-1.5 bg-primary inline-block rotate-45" />
+              <span className="flex items-center gap-2">
+                Все запчасти проверены на подлинность
+              </span>
               <span className="flex items-center gap-2">
                 <i className="w-1.5 h-1.5 bg-primary inline-block rotate-45" />
                 Оптовые цены. <span className="text-primary">Кэшбэк 3%</span>
@@ -165,7 +174,7 @@ const Hero = () => {
             <div
               className="relative w-[460px] h-[460px]"
               style={{
-                filter: 'drop-shadow(-18px 22px 0 hsl(var(--steel-dark)))',
+                filter: "drop-shadow(-18px 22px 0 hsl(var(--steel-dark)))",
               }}
             >
               <svg viewBox="0 0 200 200" width="460" height="460">
@@ -174,7 +183,12 @@ const Hero = () => {
                     fill="hsl(var(--steel))"
                     d="M100 6l9 3 6-8 10 5 2 10 10 1 5 10-6 9 8 7-2 11-10 3 3 10-8 7-9-4-4 9-11 1-6-8-9 4-9-7 1-10-10-3-2-11 8-7-6-9 5-10 10-1 2-10 10-5 6 8z"
                   />
-                  <circle cx="100" cy="100" r="62" fill="hsl(var(--background))" />
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r="62"
+                    fill="hsl(var(--background))"
+                  />
                   <circle
                     cx="100"
                     cy="100"
@@ -201,7 +215,8 @@ const Hero = () => {
                   Ваш автомобиль
                 </span>
                 <span className="font-body font-medium tracking-[0.14em] text-xl text-foreground">
-                  XW8&nbsp;<b className="text-primary font-medium">ZZZ</b>&nbsp;3G2
+                  XW8&nbsp;<b className="text-primary font-medium">ZZZ</b>
+                  &nbsp;3G2
                 </span>
               </div>
             </div>
