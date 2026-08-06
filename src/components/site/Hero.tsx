@@ -82,26 +82,41 @@ const Hero = () => {
                   </p>
                 )}
 
-                <div className="flex items-stretch gap-2 w-full max-w-[440px]">
-                  <button
-                    type="button"
-                    onClick={() => photoInputRef.current?.click()}
-                    aria-label="Прикрепить фото СТС"
-                    title="Прикрепить фото СТС"
-                    className="shrink-0 flex items-center justify-center w-11 sm:w-12 rounded-sm bg-primary text-primary-foreground hover:brightness-110 transition-all shadow-sm"
-                  >
-                    <Icon name="Camera" size={18} />
-                  </button>
-                  <input
-                    ref={photoInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoChange}
-                    className="hidden"
-                  />
+                <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full max-w-[440px]">
+                  <div className="flex items-stretch gap-2 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      aria-label="Прикрепить фото СТС"
+                      title="Прикрепить фото СТС"
+                      className="shrink-0 flex items-center justify-center w-11 sm:w-12 rounded-sm bg-primary text-primary-foreground hover:brightness-110 transition-all shadow-sm"
+                    >
+                      <Icon name="Camera" size={18} />
+                    </button>
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                    <div className="flex items-stretch flex-1 min-w-0 sm:hidden border-[1.5px] border-steel rounded-sm bg-card overflow-hidden">
+                      <input
+                        form="hero-vin-form"
+                        value={vin}
+                        onChange={(e) => setVin(e.target.value)}
+                        maxLength={17}
+                        type="text"
+                        placeholder="XW8ZZZ • • • •"
+                        aria-label="VIN-код автомобиля"
+                        className="flex-1 min-w-0 bg-transparent text-foreground text-sm tracking-[0.1em] px-3 outline-none placeholder:text-steel"
+                      />
+                    </div>
+                  </div>
                   <form
+                    id="hero-vin-form"
                     onSubmit={submit}
-                    className="flex items-stretch flex-1 min-w-0 border-[1.5px] border-steel rounded-sm bg-card overflow-hidden"
+                    className="hidden sm:flex items-stretch flex-1 min-w-0 border-[1.5px] border-steel rounded-sm bg-card overflow-hidden"
                   >
                     <span className="hidden sm:flex items-center px-4 font-head font-bold tracking-[0.12em] text-sm text-muted-foreground border-r-[1.5px] border-steel bg-steel-dark shrink-0">
                       VIN
@@ -113,15 +128,22 @@ const Hero = () => {
                       type="text"
                       placeholder="XW8ZZZ • • • •"
                       aria-label="VIN-код автомобиля"
-                      className="flex-1 min-w-0 bg-transparent text-foreground text-sm tracking-[0.1em] sm:tracking-[0.16em] px-3 sm:px-4 outline-none placeholder:text-steel"
+                      className="flex-1 min-w-0 bg-transparent text-foreground text-sm tracking-[0.16em] px-4 outline-none placeholder:text-steel"
                     />
                     <button
                       type="submit"
-                      className="shrink-0 bg-primary text-primary-foreground font-head font-bold uppercase tracking-[0.1em] text-xs sm:text-sm px-3 sm:px-5 hover:brightness-110 transition"
+                      className="shrink-0 bg-primary text-primary-foreground font-head font-bold uppercase tracking-[0.1em] text-sm px-5 hover:brightness-110 transition"
                     >
                       Подобрать
                     </button>
                   </form>
+                  <button
+                    type="submit"
+                    form="hero-vin-form"
+                    className="sm:hidden shrink-0 bg-primary text-primary-foreground font-head font-bold uppercase tracking-[0.1em] text-sm px-5 py-3 rounded-sm hover:brightness-110 transition"
+                  >
+                    Подобрать
+                  </button>
                 </div>
               </>
             )}
