@@ -35,6 +35,7 @@ import ColumnSearchInput from './ColumnSearchInput';
 import { Lead, ColumnKey, columns, messengerLabel, statusLabel, formatDate } from './adminTypes';
 import { exportLeadsToExcel } from './exportLeads';
 import LeadHistoryDialog from './LeadHistoryDialog';
+import { usePwaInstall } from '@/hooks/use-pwa-install';
 
 type AdminLeadsTableProps = {
   leads: Lead[];
@@ -54,6 +55,9 @@ type AdminLeadsTableProps = {
   setDraft: (id: number, value: string) => void;
   setPrepaymentDraft: (id: number, value: string) => void;
   setNoteDraft: (id: number, value: string) => void;
+  pushPermission: NotificationPermission | 'unsupported';
+  pushSubscribing: boolean;
+  subscribePush: () => void;
   saveLead: (id: number) => void;
   toggleStatus: (id: number) => void;
   toggleArrived: (id: number) => void;
@@ -83,6 +87,9 @@ const AdminLeadsTable = ({
   setDraft,
   setPrepaymentDraft,
   setNoteDraft,
+  pushPermission,
+  pushSubscribing,
+  subscribePush,
   saveLead,
   toggleStatus,
   toggleArrived,
@@ -95,10 +102,51 @@ const AdminLeadsTable = ({
 }: AdminLeadsTableProps) => {
   const [historyLeadId, setHistoryLeadId] = useState<number | null>(null);
   const historyLead = leads.find((l) => l.id === historyLeadId) || null;
+  const { canInstall, promptInstall } = usePwaInstall();
 
   return (
     <div className="min-h-screen text-foreground px-5 sm:px-8 lg:px-12 py-10">
       <div className="w-full">
+        {canInstall && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 bg-card border border-primary/40 rounded-sm p-4">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 shrink-0 rounded-full bg-primary/15 flex items-center justify-center">
+                <Icon name="Smartphone" className="text-primary" size={18} />
+              </span>
+              <p className="text-sm text-muted-foreground">
+                Установите админку на телефон как приложение — быстрый доступ и push-уведомления.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={promptInstall}
+              className="font-head uppercase tracking-wide text-xs shrink-0"
+            >
+              Установить
+            </Button>
+          </div>
+        )}
+        {pushPermission !== 'unsupported' && pushPermission !== 'granted' && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-card border border-steel rounded-sm p-4">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 shrink-0 rounded-full bg-primary/15 flex items-center justify-center">
+                <Icon name="Bell" className="text-primary" size={18} />
+              </span>
+              <p className="text-sm text-muted-foreground">
+                Включите уведомления — сообщим о новых заявках, даже если приложение закрыто.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={pushSubscribing}
+              onClick={subscribePush}
+              className="font-head uppercase tracking-wide text-xs shrink-0"
+            >
+              {pushSubscribing ? 'Включаем…' : 'Включить'}
+            </Button>
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h1 className="font-head uppercase tracking-wide text-2xl">
             Заявки ({filteredLeads.length}{filteredLeads.length !== leads.length ? ` из ${leads.length}` : ''})

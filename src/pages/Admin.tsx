@@ -3,6 +3,7 @@ import PageBackground from '@/components/site/PageBackground';
 import AdminLoginForm from './admin/AdminLoginForm';
 import AdminLeadsTable from './admin/AdminLeadsTable';
 import { Lead, ColumnKey, columns } from './admin/adminTypes';
+import { useAdminPushSubscription } from '@/hooks/use-admin-push-subscription';
 
 const LEADS_ADMIN_URL = 'https://functions.poehali.dev/68ca5544-c377-4c79-ba1f-57ba286b33a9';
 const LEADS_UPDATE_URL = 'https://functions.poehali.dev/1612bdca-502b-46a9-b0ea-8d6d93876dc6';
@@ -20,6 +21,11 @@ const Admin = () => {
   const [hiddenColumns, setHiddenColumns] = useState<Set<ColumnKey>>(new Set());
   const [columnFilters, setColumnFilters] = useState<Partial<Record<ColumnKey, string>>>({});
   const [statusTab, setStatusTab] = useState<'in_progress' | 'done' | 'all'>('in_progress');
+  const {
+    permission: pushPermission,
+    subscribing: pushSubscribing,
+    subscribe: subscribePush,
+  } = useAdminPushSubscription(authed ? password : null);
 
   const load = async (pwd: string) => {
     setLoading(true);
@@ -67,6 +73,17 @@ const Admin = () => {
       load(saved);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Пока пользователь на /admin — подменяем манифест, чтобы «Установить на главный экран»
+  // ставило именно админку (со своим именем/иконкой и запуском сразу в /admin), а не весь сайт
+  useEffect(() => {
+    const link = document.querySelector('link[rel="manifest"]');
+    const prevHref = link?.getAttribute('href') ?? '/manifest.webmanifest';
+    link?.setAttribute('href', '/admin-manifest.webmanifest');
+    return () => {
+      link?.setAttribute('href', prevHref);
+    };
   }, []);
 
   const submit = (e: React.FormEvent) => {
@@ -313,6 +330,9 @@ const Admin = () => {
         setDraft={setDraft}
         setPrepaymentDraft={setPrepaymentDraft}
         setNoteDraft={setNoteDraft}
+        pushPermission={pushPermission}
+        pushSubscribing={pushSubscribing}
+        subscribePush={subscribePush}
         saveLead={saveLead}
         toggleStatus={toggleStatus}
         toggleArrived={toggleArrived}

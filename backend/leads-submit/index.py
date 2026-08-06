@@ -5,6 +5,7 @@ import re
 import uuid
 import psycopg2
 import boto3
+from send_admin_push import send_push_to_admins
 
 
 def upload_photo(photo_base64: str) -> str:
@@ -127,6 +128,13 @@ def handler(event: dict, context) -> dict:
         new_id = cur.fetchone()[0]
         conn.commit()
         cur.close()
+
+        car_label = car_name or vin_to_save or 'без VIN'
+        send_push_to_admins(
+            dsn, schema,
+            title='Новая заявка',
+            body=f'{name}, {phone} — {car_label}',
+        )
     finally:
         conn.close()
 
