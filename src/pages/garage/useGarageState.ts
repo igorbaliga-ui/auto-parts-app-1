@@ -70,6 +70,14 @@ export const useGarageState = () => {
       if (!res.ok) throw new Error('request failed');
       const data = await res.json();
       const list: Order[] = data.orders || [];
+      if (list.length === 0) {
+        setError('По этому номеру заявок не найдено. Оставьте заявку, чтобы получить доступ в гараж.');
+        setAuthed(false);
+        setPasswordRequired(false);
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(PASSWORD_VERIFIED_KEY);
+        return;
+      }
       setOrders(list);
       const names = Object.fromEntries(list.map((o) => [o.id, o.car_name || '']));
       setCarNameDrafts(names);
