@@ -106,7 +106,9 @@ const RequestFormFields = ({
 
       <div>
         <div className="flex items-center justify-between gap-3">
-          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">VIN или Frame</label>
+          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+            VIN или Frame{photoPreview ? ' (необязательно)' : ''}
+          </label>
           {photoPreview ? (
             <div className="relative shrink-0">
               <img
