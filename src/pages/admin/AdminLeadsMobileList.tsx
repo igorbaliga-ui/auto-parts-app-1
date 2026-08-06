@@ -1,0 +1,57 @@
+import { Lead } from './adminTypes';
+import AdminLeadCard from './AdminLeadCard';
+
+type AdminLeadsMobileListProps = {
+  filteredLeads: Lead[];
+  drafts: Record<number, { amount: string; prepayment: string; note: string }>;
+  savingId: number | null;
+  setDraft: (id: number, value: string) => void;
+  setPrepaymentDraft: (id: number, value: string) => void;
+  setNoteDraft: (id: number, value: string) => void;
+  saveLead: (id: number) => void;
+  toggleStatus: (id: number) => void;
+  toggleArrived: (id: number) => void;
+  resetGaragePassword: (id: number) => void;
+  onShowHistory: (id: number) => void;
+};
+
+const AdminLeadsMobileList = ({
+  filteredLeads,
+  drafts,
+  savingId,
+  setDraft,
+  setPrepaymentDraft,
+  setNoteDraft,
+  saveLead,
+  toggleStatus,
+  toggleArrived,
+  resetGaragePassword,
+  onShowHistory,
+}: AdminLeadsMobileListProps) => {
+  return (
+    <div className="md:hidden flex flex-col gap-3">
+      {filteredLeads.length === 0 ? (
+        <p className="text-muted-foreground py-8 text-center">Ничего не найдено по заданным фильтрам.</p>
+      ) : (
+        filteredLeads.map((l) => (
+          <AdminLeadCard
+            key={l.id}
+            lead={l}
+            draft={drafts[l.id] ?? { amount: '', prepayment: '', note: '' }}
+            savingId={savingId}
+            setDraft={setDraft}
+            setPrepaymentDraft={setPrepaymentDraft}
+            setNoteDraft={setNoteDraft}
+            saveLead={saveLead}
+            toggleStatus={toggleStatus}
+            toggleArrived={toggleArrived}
+            resetGaragePassword={resetGaragePassword}
+            onShowHistory={onShowHistory}
+          />
+        ))
+      )}
+    </div>
+  );
+};
+
+export default AdminLeadsMobileList;
