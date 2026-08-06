@@ -31,6 +31,7 @@ import Icon from '@/components/ui/icon';
 import ExpandableText from '@/components/shared/ExpandableText';
 import ColumnSearchInput from './ColumnSearchInput';
 import { Lead, ColumnKey, columns, messengerLabel, statusLabel, formatDate } from './adminTypes';
+import { exportLeadsToExcel } from './exportLeads';
 
 type AdminLeadsTableProps = {
   leads: Lead[];
@@ -125,6 +126,15 @@ const AdminLeadsTable = ({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button
+              variant="secondary"
+              onClick={() => exportLeadsToExcel(filteredLeads, isColumnVisible)}
+              disabled={filteredLeads.length === 0}
+              className="font-head uppercase tracking-wide"
+            >
+              <Icon name="FileSpreadsheet" size={16} className="mr-2" />
+              Выгрузить в Excel
+            </Button>
             <Button
               variant="secondary"
               onClick={onRefresh}
