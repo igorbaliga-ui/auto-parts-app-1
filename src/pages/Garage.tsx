@@ -1,78 +1,25 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import Icon from '@/components/ui/icon';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
 import { RequestProvider, useRequest } from '@/components/site/RequestDialog';
 import PageBackground from '@/components/site/PageBackground';
-import ExpandableText from '@/components/shared/ExpandableText';
-import CityInput from '@/components/shared/CityInput';
 import { notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
-import { getStoredCity, setStoredCity } from '@/lib/garage-city';
-import { normalizePhoneInput } from '@/lib/phone';
-import { usePushSubscription, isPushSupported } from '@/hooks/use-push-subscription';
-
-const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
-const GARAGE_CAR_NAME_URL = 'https://functions.poehali.dev/22aa943f-f262-4beb-b2e2-c713d1684c82';
-const GARAGE_AUTH_URL = 'https://functions.poehali.dev/d92ac11d-c6d2-4430-b948-a767c0048442';
-const STORAGE_KEY = 'zapoptom_garage_phone';
-const PASSWORD_VERIFIED_KEY = 'zapoptom_garage_password_verified';
-
-type Order = {
-  id: number;
-  vin: string | null;
-  name: string;
-  phone: string;
-  parts: string | null;
-  messenger: string | null;
-  order_amount: number | null;
-  prepayment: number | null;
-  remaining: number | null;
-  cashback: number | null;
-  created_at: string;
-  car_name: string | null;
-  city: string | null;
-  status: 'in_progress' | 'done';
-  completed_at: string | null;
-  arrived: boolean;
-};
-
-const messengerLabel: Record<string, string> = {
-  telegram: 'Telegram',
-  max: 'MAX',
-  whatsapp: 'WhatsApp',
-};
-
-const formatDate = (iso: string) => {
-  const d = new Date(iso);
-  return d.toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
-const formatMoney = (n: number) =>
-  new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n) + ' ₽';
+import { getStoredCity } from '@/lib/garage-city';
+import { usePushSubscription } from '@/hooks/use-push-subscription';
+import {
+  GARAGE_LOOKUP_URL,
+  GARAGE_CAR_NAME_URL,
+  GARAGE_AUTH_URL,
+  STORAGE_KEY,
+  PASSWORD_VERIFIED_KEY,
+  Order,
+} from './garage/garageTypes';
+import {
+  CheckingSavedView,
+  ResetPasswordView,
+  PasswordRequiredView,
+  PhoneEntryView,
+} from './garage/GarageAuthForms';
+import GarageHeader from './garage/GarageHeader';
+import GarageOrdersList from './garage/GarageOrdersList';
 
 const GarageContent = () => {
   const { open } = useRequest();
@@ -373,167 +320,53 @@ const GarageContent = () => {
   };
 
   if (checkingSaved) {
-    return (
-      <PageBackground>
-        <div className="min-h-screen flex items-center justify-center px-5">
-          <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center animate-pulse">
-            <Icon name="Warehouse" className="text-primary" size={28} />
-          </span>
-        </div>
-      </PageBackground>
-    );
+    return <CheckingSavedView />;
   }
 
   if (!authed && passwordRequired && resetPasswordMode) {
     return (
-      <PageBackground>
-        <div className="min-h-screen flex items-center justify-center px-5">
-          <form
-            onSubmit={submitResetPassword}
-            className="w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4"
-          >
-            <div className="flex justify-center mb-2">
-              <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center">
-                <Icon name="KeyRound" className="text-primary" size={28} />
-              </span>
-            </div>
-            <h1 className="font-head uppercase tracking-wide text-2xl text-center">
-              Восстановление пароля
-            </h1>
-            <p className="text-muted-foreground text-sm text-center">
-              Введите имя, которое указывали в самой первой заявке с номера {phone}, и задайте новый пароль.
-            </p>
-            <Input
-              value={resetNameInput}
-              onChange={(e) => setResetNameInput(e.target.value)}
-              maxLength={30}
-              placeholder="Имя из заявки"
-              autoFocus
-            />
-            <Input
-              type="password"
-              value={resetPasswordInput}
-              onChange={(e) => setResetPasswordInput(e.target.value)}
-              maxLength={4}
-              placeholder="Новый пароль (4 символа)"
-            />
-            {resetError && <p className="text-primary text-sm text-center">{resetError}</p>}
-            <Button type="submit" disabled={resetLoading} className="font-head uppercase tracking-wide h-11">
-              {resetLoading ? 'Сохраняем…' : 'Сохранить и войти'}
-            </Button>
-            <button
-              type="button"
-              onClick={() => {
-                setResetPasswordMode(false);
-                setResetNameInput('');
-                setResetPasswordInput('');
-                setResetError('');
-              }}
-              className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Назад к вводу пароля
-            </button>
-          </form>
-        </div>
-      </PageBackground>
+      <ResetPasswordView
+        phone={phone}
+        resetNameInput={resetNameInput}
+        setResetNameInput={setResetNameInput}
+        resetPasswordInput={resetPasswordInput}
+        setResetPasswordInput={setResetPasswordInput}
+        resetError={resetError}
+        resetLoading={resetLoading}
+        submitResetPassword={submitResetPassword}
+        setResetPasswordMode={setResetPasswordMode}
+        setResetError={setResetError}
+      />
     );
   }
 
   if (!authed && passwordRequired) {
     return (
-      <PageBackground>
-        <div className="min-h-screen flex items-center justify-center px-5">
-          <form
-            onSubmit={submitPassword}
-            className="w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4"
-          >
-            <div className="flex justify-center mb-2">
-              <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center">
-                <Icon name="Lock" className="text-primary" size={28} />
-              </span>
-            </div>
-            <h1 className="font-head uppercase tracking-wide text-2xl text-center">
-              Введите пароль
-            </h1>
-            <p className="text-muted-foreground text-sm text-center">
-              Для номера {phone} задан пароль. Введите его, чтобы войти в гараж.
-            </p>
-            <Input
-              type="password"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              maxLength={4}
-              placeholder="Пароль"
-              autoFocus
-            />
-            {error && <p className="text-primary text-sm text-center">{error}</p>}
-            <Button type="submit" disabled={loading} className="font-head uppercase tracking-wide h-11">
-              {loading ? 'Входим…' : 'Войти'}
-            </Button>
-            <button
-              type="button"
-              onClick={() => {
-                setResetPasswordMode(true);
-                setResetError('');
-              }}
-              className="text-center text-xs text-primary hover:underline"
-            >
-              Забыли пароль?
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPasswordRequired(false);
-                setPasswordInput('');
-                setError('');
-              }}
-              className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Ввести другой номер
-            </button>
-          </form>
-        </div>
-      </PageBackground>
+      <PasswordRequiredView
+        phone={phone}
+        submitPassword={submitPassword}
+        passwordInput={passwordInput}
+        setPasswordInput={setPasswordInput}
+        error={error}
+        loading={loading}
+        setResetPasswordMode={setResetPasswordMode}
+        setResetError={setResetError}
+        setPasswordRequired={setPasswordRequired}
+        setError={setError}
+      />
     );
   }
 
   if (!authed) {
     return (
-      <PageBackground>
-        <div className="min-h-screen flex items-center justify-center px-5">
-          <form
-            onSubmit={submit}
-            className="w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4"
-          >
-            <div className="flex justify-center mb-2">
-              <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center">
-                <Icon name="Warehouse" className="text-primary" size={28} />
-              </span>
-            </div>
-            <h1 className="font-head uppercase tracking-wide text-2xl text-center">
-              Гараж
-            </h1>
-            <p className="text-muted-foreground text-sm text-center">
-              Введите телефон, который указывали в заявке — покажем ваши заказы.
-            </p>
-            <Input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(normalizePhoneInput(phone, e.target.value))}
-              maxLength={12}
-              placeholder="+7 900 000-00-00"
-              autoFocus
-            />
-            {error && <p className="text-primary text-sm text-center">{error}</p>}
-            <Button type="submit" disabled={loading || checkingPassword} className="font-head uppercase tracking-wide h-11">
-              {loading || checkingPassword ? 'Загружаем…' : 'Войти'}
-            </Button>
-            <a href="/" className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors">
-              На главную
-            </a>
-          </form>
-        </div>
-      </PageBackground>
+      <PhoneEntryView
+        submit={submit}
+        phone={phone}
+        setPhone={setPhone}
+        error={error}
+        loading={loading}
+        checkingPassword={checkingPassword}
+      />
     );
   }
 
@@ -541,348 +374,46 @@ const GarageContent = () => {
     <PageBackground>
     <div className="min-h-screen text-foreground px-5 sm:px-8 lg:px-12 py-10">
       <div className="max-w-[1000px] mx-auto">
-        <div className="flex items-center justify-between mb-5 sm:mb-2 gap-2">
-          <Link
-            to="/"
-            className="sm:hidden flex items-center gap-2 text-muted-foreground text-sm font-head uppercase tracking-wide hover:text-primary transition-colors w-fit"
-          >
-            <Icon name="ArrowLeft" size={16} />
-            На главную
-          </Link>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              to="/"
-              aria-label="На главную"
-              title="На главную"
-              className="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-sm bg-primary/15 flex items-center justify-center hover:bg-primary/25 transition-colors"
-            >
-              <Icon name="Warehouse" className="text-primary" size={20} />
-            </Link>
-            <h1 className="font-head uppercase tracking-wide text-xl sm:text-2xl whitespace-nowrap">Мой гараж</h1>
-          </div>
-        </div>
+        <GarageHeader
+          city={city}
+          setCity={setCity}
+          onNewRequest={() => open(undefined, undefined, phone, knownName, vinHistory, city)}
+          openPasswordSettings={openPasswordSettings}
+          setLogoutConfirmOpen={setLogoutConfirmOpen}
+          passwordSettingsOpen={passwordSettingsOpen}
+          setPasswordSettingsOpen={setPasswordSettingsOpen}
+          hasPassword={hasPassword}
+          savePasswordSettings={savePasswordSettings}
+          oldPasswordInput={oldPasswordInput}
+          setOldPasswordInput={setOldPasswordInput}
+          newPasswordInput={newPasswordInput}
+          setNewPasswordInput={setNewPasswordInput}
+          passwordSettingsError={passwordSettingsError}
+          passwordSettingsSuccess={passwordSettingsSuccess}
+          passwordSettingsLoading={passwordSettingsLoading}
+          removePasswordSettings={removePasswordSettings}
+          logoutConfirmOpen={logoutConfirmOpen}
+          logout={logout}
+        />
 
-        <div className="mb-4 sm:mb-6 w-full max-w-[220px]">
-          <CityInput
-            value={city}
-            onChange={(v) => {
-              setCity(v);
-              setStoredCity(v);
-            }}
-            className="h-9 text-sm bg-transparent border-0 rounded-none px-0 shadow-none text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
-          />
-        </div>
-
-        <div className="flex items-center justify-end mb-6 sm:mb-2 gap-2">
-          <Link
-            to="/"
-            className="hidden sm:flex items-center justify-center h-10 px-4 rounded-sm border border-steel text-muted-foreground text-sm font-head uppercase tracking-wide hover:border-primary/60 hover:text-foreground transition-colors"
-          >
-            <Icon name="ArrowLeft" size={16} className="mr-2" />
-            На главную
-          </Link>
-          <Button
-            onClick={() => open(undefined, undefined, phone, knownName, vinHistory, city)}
-            className="font-head uppercase tracking-wide text-sm h-10 px-4 flex-1 sm:flex-initial whitespace-nowrap"
-          >
-            <Icon name="Plus" size={16} className="mr-2" />
-            Новая заявка
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            onClick={openPasswordSettings}
-            className="h-10 w-10 shrink-0"
-            title="Пароль для входа"
-          >
-            <Icon name="Lock" size={16} />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            onClick={() => setLogoutConfirmOpen(true)}
-            className="h-10 w-10 shrink-0"
-            title="Выйти"
-          >
-            <Icon name="LogOut" size={16} />
-          </Button>
-        </div>
-
-        <Dialog open={passwordSettingsOpen} onOpenChange={setPasswordSettingsOpen}>
-          <DialogContent className="bg-card border-border sm:max-w-[420px]">
-            <DialogHeader>
-              <DialogTitle className="font-head uppercase tracking-wide text-xl">
-                {hasPassword ? 'Пароль для входа' : 'Задать пароль'}
-              </DialogTitle>
-              <DialogDescription>
-                {hasPassword
-                  ? 'Пароль защищает доступ к вашим заказам по этому номеру телефона.'
-                  : 'Необязательно: задайте пароль, чтобы дополнительно защитить доступ к заказам.'}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={savePasswordSettings} className="flex flex-col gap-3 mt-1">
-              {hasPassword && (
-                <div>
-                  <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-                    Текущий пароль
-                  </label>
-                  <Input
-                    type="password"
-                    value={oldPasswordInput}
-                    onChange={(e) => setOldPasswordInput(e.target.value)}
-                    maxLength={4}
-                    placeholder="Текущий пароль"
-                    className="mt-1.5 bg-background"
-                  />
-                </div>
-              )}
-              <div>
-                <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-                  {hasPassword ? 'Новый пароль' : 'Пароль'}
-                </label>
-                <Input
-                  type="password"
-                  value={newPasswordInput}
-                  onChange={(e) => setNewPasswordInput(e.target.value)}
-                  maxLength={4}
-                  placeholder="4 символа"
-                  className="mt-1.5 bg-background"
-                />
-              </div>
-              {passwordSettingsError && (
-                <p className="text-primary text-sm">{passwordSettingsError}</p>
-              )}
-              {passwordSettingsSuccess && (
-                <p className="text-primary text-sm">{passwordSettingsSuccess}</p>
-              )}
-              <div className="flex items-center gap-2 mt-1">
-                <Button
-                  type="submit"
-                  disabled={passwordSettingsLoading}
-                  className="font-head uppercase tracking-wide flex-1"
-                >
-                  {passwordSettingsLoading ? 'Сохраняем…' : hasPassword ? 'Сменить пароль' : 'Сохранить'}
-                </Button>
-                {hasPassword && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={passwordSettingsLoading}
-                    onClick={removePasswordSettings}
-                    className="font-head uppercase tracking-wide"
-                  >
-                    Убрать пароль
-                  </Button>
-                )}
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        <AlertDialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
-          <AlertDialogContent className="bg-card border-border">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="font-head uppercase tracking-wide">
-                Выйти из гаража?
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                Вам нужно будет заново ввести номер телефона, чтобы снова увидеть свои заказы.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel className="font-head uppercase tracking-wide">
-                Отмена
-              </AlertDialogCancel>
-              <AlertDialogAction onClick={logout} className="font-head uppercase tracking-wide">
-                Выйти
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {orders.length > 0 && (
-          <div className="mb-8 mt-6">
-            <div className="bg-card border border-primary/40 rounded-sm p-6">
-              <span className="text-muted-foreground text-xs uppercase tracking-[0.12em]">
-                Накопленный кэшбэк
-              </span>
-              <div className="font-head text-3xl mt-1 text-primary">
-                {formatMoney(totalCashback)}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isPushSupported() && pushPermission !== 'granted' && (
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-card border border-steel rounded-sm p-4">
-            <div className="flex items-center gap-3">
-              <span className="w-9 h-9 shrink-0 rounded-full bg-primary/15 flex items-center justify-center">
-                <Icon name="Bell" className="text-primary" size={18} />
-              </span>
-              <p className="text-sm text-muted-foreground">
-                Включите уведомления — сообщим, когда деталь поступит.
-              </p>
-            </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={pushSubscribing}
-              onClick={subscribePush}
-              className="font-head uppercase tracking-wide text-xs shrink-0"
-            >
-              {pushSubscribing ? 'Включаем…' : 'Включить'}
-            </Button>
-          </div>
-        )}
-        {orders.length === 0 ? (
-          <div className="mt-8 flex flex-col items-start gap-4">
-            <p className="text-muted-foreground">
-              По этому телефону заказов пока нет.
-            </p>
-            <Button onClick={() => open(undefined, undefined, phone, knownName, vinHistory, city)} className="font-head uppercase tracking-wide">
-              <Icon name="Plus" size={16} className="mr-2" />
-              Оставить заявку
-            </Button>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center gap-2 mb-4">
-              <button
-                onClick={() => setStatusTab('in_progress')}
-                className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
-                  statusTab === 'in_progress'
-                    ? 'border-primary bg-primary/10 text-foreground'
-                    : 'border-steel text-muted-foreground hover:border-primary/60'
-                }`}
-              >
-                В работе ({inProgressOrders.length})
-              </button>
-              <button
-                onClick={() => setStatusTab('done')}
-                className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
-                  statusTab === 'done'
-                    ? 'border-primary bg-primary/10 text-foreground'
-                    : 'border-steel text-muted-foreground hover:border-primary/60'
-                }`}
-              >
-                Выполненные ({doneOrders.length})
-              </button>
-            </div>
-
-            {visibleOrders.length === 0 ? (
-              <p className="text-muted-foreground mt-4">
-                {statusTab === 'in_progress' ? 'Нет заказов в работе.' : 'Нет выполненных заказов.'}
-              </p>
-            ) : (
-          <div className="flex flex-col gap-4 mt-2">
-            {visibleOrders.map((o) => (
-              <div key={o.id} className="relative bg-card border border-steel rounded-sm p-6">
-                {o.status !== 'done' && o.arrived && (
-                  <span
-                    title="Деталь поступила"
-                    className="absolute -top-2.5 -right-2.5 flex items-center gap-1 bg-green-600 text-white text-[0.65rem] font-head uppercase tracking-wide px-2 py-1 rounded-full shadow-sm"
-                  >
-                    <Icon name="Check" size={12} />
-                    Поступило
-                  </span>
-                )}
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                  <span className="font-head tracking-[0.1em] text-lg">
-                    {o.vin || 'VIN не указан (по фото)'}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-[0.65rem] font-head uppercase tracking-wide px-2 py-1 rounded-sm ${
-                        o.status === 'done'
-                          ? 'bg-primary/15 text-primary'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {o.status === 'done' ? 'Выполнен' : 'В работе'}
-                    </span>
-                    <span className="text-muted-foreground text-xs">{formatDate(o.created_at)}</span>
-                  </div>
-                </div>
-                {o.status === 'done' && o.completed_at && (
-                  <p className="text-primary/80 text-xs mb-3 -mt-2">
-                    Выполнен: {formatDate(o.completed_at)}
-                  </p>
-                )}
-                {o.vin && (
-                  <div className="flex items-center gap-2 mb-4">
-                    <Input
-                      value={carNameDrafts[o.id] ?? ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setCarNameDrafts((d) => ({ ...d, [o.id]: value }));
-                      }}
-                      maxLength={25}
-                      placeholder="Название автомобиля, например Toyota Camry"
-                      className="h-9 text-sm bg-background max-w-xs"
-                    />
-                    {(carNameDrafts[o.id] ?? '').trim() !== (savedCarNames[o.id] ?? '').trim() && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={savingCarId === o.id}
-                        onClick={() => saveCarName(o)}
-                        className="h-9 font-head uppercase tracking-wide text-xs"
-                      >
-                        {savingCarId === o.id ? '…' : 'Сохранить'}
-                      </Button>
-                    )}
-                  </div>
-                )}
-                <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                  <div className="flex justify-between sm:block">
-                    <span className="text-muted-foreground">Имя: </span>
-                    <span>{o.name}</span>
-                  </div>
-                  <div className="flex justify-between sm:block">
-                    <span className="text-muted-foreground">Телефон: </span>
-                    <span>{o.phone}</span>
-                  </div>
-                  <div className="flex justify-between sm:block">
-                    <span className="text-muted-foreground">Город: </span>
-                    <span>{o.city || '—'}</span>
-                  </div>
-                  <div className="flex justify-between sm:block">
-                    <span className="text-muted-foreground">Мессенджер: </span>
-                    <span>{o.messenger ? messengerLabel[o.messenger] ?? o.messenger : '—'}</span>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <span className="text-muted-foreground block mb-1">Запчасти:</span>
-                    <ExpandableText text={o.parts} label="Интересующие запчасти" className="text-left" />
-                  </div>
-                  <div className="flex justify-between sm:block">
-                    <span className="text-muted-foreground">Сумма заказа: </span>
-                    <span>{o.order_amount != null ? formatMoney(o.order_amount) : 'Уточняется'}</span>
-                  </div>
-                  {o.status !== 'done' && o.prepayment != null && (
-                    <div className="flex justify-between sm:block">
-                      <span className="text-muted-foreground">Предоплата: </span>
-                      <span>{formatMoney(o.prepayment)}</span>
-                    </div>
-                  )}
-                  {o.status !== 'done' && o.remaining != null && (
-                    <div className="flex justify-between sm:block">
-                      <span className="text-muted-foreground">Остаток: </span>
-                      <span>{formatMoney(o.remaining)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between sm:block">
-                    <span className="text-muted-foreground">Кэшбэк: </span>
-                    <span className="text-primary">
-                      {o.cashback != null ? formatMoney(o.cashback) : '—'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-            )}
-          </>
-        )}
+        <GarageOrdersList
+          orders={orders}
+          totalCashback={totalCashback}
+          pushPermission={pushPermission}
+          pushSubscribing={pushSubscribing}
+          subscribePush={subscribePush}
+          onNewRequest={() => open(undefined, undefined, phone, knownName, vinHistory, city)}
+          statusTab={statusTab}
+          setStatusTab={setStatusTab}
+          inProgressOrders={inProgressOrders}
+          doneOrders={doneOrders}
+          visibleOrders={visibleOrders}
+          carNameDrafts={carNameDrafts}
+          setCarNameDrafts={setCarNameDrafts}
+          savedCarNames={savedCarNames}
+          savingCarId={savingCarId}
+          saveCarName={saveCarName}
+        />
       </div>
     </div>
     </PageBackground>
