@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+    <title>ЗАП Оптом — Заявки</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="manifest" href="/admin-manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="theme-color" content="#0e0e0f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Заявки">
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+            background: #0e0e0f;
+            color: #ede7da;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .wrap {
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 32px 24px;
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 20px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin: 24px 0 12px;
+        }
+        p {
+            color: #8c8a83;
+            font-size: 14px;
+            line-height: 1.5;
+            max-width: 320px;
+            margin: 0 0 28px;
+        }
+        a.btn {
+            display: inline-block;
+            background: #e5432a;
+            color: #0e0e0f;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 14px;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 2px;
+        }
+        img {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+<!--
+  Отдельная статическая страница (вне React-роута /admin) специально для установки
+  админки на iPhone через Safari. Это нужно из-за особенности iOS: «Добавить на экран
+  Домой» запоминает конкретный открытый адрес и его манифест/название в момент
+  добавления, и НЕ учитывает изменения, сделанные скриптом после загрузки страницы —
+  подмена манифеста через JS на общем /admin (используется для Android) на iPhone
+  не работает. К тому же у iOS есть баг: два «домашних экрана» с одного домена иногда
+  путаются между собой — отдельный URL для установки устраняет и эту проблему.
+
+  Пользователь открывает именно этот адрес в Safari и добавляет НА ЭКРАН ДОМОЙ
+  прямо отсюда — get значок будет вести сюда же, а кнопка ниже открывает саму админку.
+-->
+<div class="wrap">
+    <img src="/pwa-192.png" alt="">
+    <h1>ЗАП Оптом — Заявки</h1>
+    <p>
+        Нажмите значок «Поделиться» внизу экрана Safari, затем «На экран Домой» —
+        и добавьте приложение прямо с этой страницы.
+    </p>
+    <a class="btn" href="/admin">Открыть заявки</a>
+</div>
+</body>
+</html>
