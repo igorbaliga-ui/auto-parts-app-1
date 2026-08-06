@@ -7,6 +7,8 @@ export type Lead = {
   messenger: string | null;
   photo_url: string | null;
   order_amount: number | null;
+  prepayment: number | null;
+  remaining: number | null;
   cashback: number | null;
   created_at: string;
   car_name: string | null;
@@ -49,6 +51,8 @@ export type ColumnKey =
   | 'parts'
   | 'photo'
   | 'amount'
+  | 'prepayment'
+  | 'remaining'
   | 'cashback'
   | 'status'
   | 'completed_at';
@@ -76,6 +80,8 @@ export const columns: ColumnDef[] = [
   { key: 'parts', label: 'Запчасти', searchable: true, getSearchValue: (l) => l.parts || '' },
   { key: 'photo', label: 'Фото СТС', searchable: false },
   { key: 'amount', label: 'Сумма заказа', searchable: false },
+  { key: 'prepayment', label: 'Предоплата', searchable: false },
+  { key: 'remaining', label: 'Остаток', searchable: false },
   { key: 'cashback', label: 'Кэшбэк 3%', searchable: false },
   {
     key: 'status',

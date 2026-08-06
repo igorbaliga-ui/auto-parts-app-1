@@ -14,7 +14,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [drafts, setDrafts] = useState<Record<number, { amount: string }>>({});
+  const [drafts, setDrafts] = useState<Record<number, { amount: string; prepayment: string }>>({});
   const [savingId, setSavingId] = useState<number | null>(null);
   const [hiddenColumns, setHiddenColumns] = useState<Set<ColumnKey>>(new Set());
   const [columnFilters, setColumnFilters] = useState<Partial<Record<ColumnKey, string>>>({});
@@ -40,7 +40,10 @@ const Admin = () => {
         Object.fromEntries(
           list.map((l) => [
             l.id,
-            { amount: l.order_amount != null ? String(l.order_amount) : '' },
+            {
+              amount: l.order_amount != null ? String(l.order_amount) : '',
+              prepayment: l.prepayment != null ? String(l.prepayment) : '',
+            },
           ]),
         ),
       );
@@ -68,7 +71,11 @@ const Admin = () => {
   };
 
   const setDraft = (id: number, value: string) => {
-    setDrafts((d) => ({ ...d, [id]: { amount: value } }));
+    setDrafts((d) => ({ ...d, [id]: { amount: value, prepayment: d[id]?.prepayment ?? '' } }));
+  };
+
+  const setPrepaymentDraft = (id: number, value: string) => {
+    setDrafts((d) => ({ ...d, [id]: { amount: d[id]?.amount ?? '', prepayment: value } }));
   };
 
   const saveLead = async (id: number) => {
@@ -77,16 +84,21 @@ const Admin = () => {
     setSavingId(id);
     try {
       const amount = draft.amount ? Number(draft.amount) : null;
+      const prepayment = draft.prepayment ? Number(draft.prepayment) : null;
       const lead = leads.find((l) => l.id === id);
       const res = await fetch(LEADS_UPDATE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
-        body: JSON.stringify({ id, order_amount: amount, status: lead?.status }),
+        body: JSON.stringify({ id, order_amount: amount, prepayment, status: lead?.status }),
       });
       if (!res.ok) throw new Error('request failed');
       const data = await res.json();
       setLeads((ls) =>
-        ls.map((l) => (l.id === id ? { ...l, order_amount: amount, cashback: data.cashback ?? null } : l)),
+        ls.map((l) =>
+          l.id === id
+            ? { ...l, order_amount: amount, prepayment, remaining: data.remaining ?? null, cashback: data.cashback ?? null }
+            : l,
+        ),
       );
     } catch {
       setError('Не удалось сохранить. Попробуйте ещё раз.');
@@ -102,16 +114,19 @@ const Admin = () => {
     setSavingId(id);
     try {
       const amount = drafts[id]?.amount ? Number(drafts[id].amount) : lead.order_amount;
+      const prepayment = drafts[id]?.prepayment ? Number(drafts[id].prepayment) : lead.prepayment;
       const res = await fetch(LEADS_UPDATE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
-        body: JSON.stringify({ id, order_amount: amount, status: nextStatus }),
+        body: JSON.stringify({ id, order_amount: amount, prepayment, status: nextStatus }),
       });
       if (!res.ok) throw new Error('request failed');
       const data = await res.json();
       setLeads((ls) =>
         ls.map((l) =>
-          l.id === id ? { ...l, status: nextStatus, completed_at: data.completed_at ?? null } : l,
+          l.id === id
+            ? { ...l, status: nextStatus, remaining: data.remaining ?? null, completed_at: data.completed_at ?? null }
+            : l,
         ),
       );
     } catch {
@@ -128,10 +143,11 @@ const Admin = () => {
     setSavingId(id);
     try {
       const amount = drafts[id]?.amount ? Number(drafts[id].amount) : lead.order_amount;
+      const prepayment = drafts[id]?.prepayment ? Number(drafts[id].prepayment) : lead.prepayment;
       const res = await fetch(LEADS_UPDATE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
-        body: JSON.stringify({ id, order_amount: amount, arrived: nextArrived }),
+        body: JSON.stringify({ id, order_amount: amount, prepayment, arrived: nextArrived }),
       });
       if (!res.ok) throw new Error('request failed');
       setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, arrived: nextArrived } : l)));
@@ -243,6 +259,7 @@ const Admin = () => {
         setColumnFilter={setColumnFilter}
         clearFilters={clearFilters}
         setDraft={setDraft}
+        setPrepaymentDraft={setPrepaymentDraft}
         saveLead={saveLead}
         toggleStatus={toggleStatus}
         toggleArrived={toggleArrived}

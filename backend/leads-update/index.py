@@ -4,7 +4,8 @@ import psycopg2
 from send_push import send_push_to_phone
 
 def handler(event: dict, context) -> dict:
-    """Обновляет сумму заказа, статус и пометку «Поступил» по заявке (для менеджера в /admin).
+    """Обновляет сумму заказа, предоплату, статус и пометку «Поступил» по заявке (для менеджера в /admin).
+    Остаток (сумма заказа минус предоплата) считается автоматически в БД.
     При простановке пометки «Поступил» или переводе в статус «Выполнен» отправляет клиенту Web Push уведомление."""
     method = event.get('httpMethod', 'GET')
 
@@ -35,6 +36,7 @@ def handler(event: dict, context) -> dict:
     body = json.loads(event.get('body') or '{}')
     lead_id = body.get('id')
     order_amount = body.get('order_amount')
+    prepayment = body.get('prepayment')
     status = body.get('status')
     arrived = body.get('arrived')
 
@@ -44,7 +46,7 @@ def handler(event: dict, context) -> dict:
     if status is not None and status not in ('in_progress', 'done'):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный статус'})}
 
-    # Кэшбэк — вычисляемая колонка в БД (3% от order_amount), пересчитывается автоматически
+    # Кэшбэк и остаток — вычисляемые колонки в БД, пересчитываются автоматически
 
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']
@@ -56,46 +58,47 @@ def handler(event: dict, context) -> dict:
             # При возврате в «В работе» — сбрасываем её.
             if status == 'done':
                 cur.execute(
-                    f"UPDATE {schema}.leads SET order_amount = %s, status = %s, "
+                    f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, status = %s, "
                     f"completed_at = COALESCE(completed_at, now()) WHERE id = %s "
-                    f"RETURNING cashback, completed_at, phone, car_name, vin",
-                    (order_amount, status, lead_id),
+                    f"RETURNING cashback, remaining, completed_at, phone, car_name, vin",
+                    (order_amount, prepayment, status, lead_id),
                 )
             else:
                 cur.execute(
-                    f"UPDATE {schema}.leads SET order_amount = %s, status = %s, completed_at = NULL "
-                    f"WHERE id = %s RETURNING cashback, completed_at, phone, car_name, vin",
-                    (order_amount, status, lead_id),
+                    f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, status = %s, completed_at = NULL "
+                    f"WHERE id = %s RETURNING cashback, remaining, completed_at, phone, car_name, vin",
+                    (order_amount, prepayment, status, lead_id),
                 )
         elif arrived is not None:
             if arrived:
                 cur.execute(
-                    f"UPDATE {schema}.leads SET order_amount = %s, arrived = true, "
+                    f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, arrived = true, "
                     f"arrived_at = COALESCE(arrived_at, now()) WHERE id = %s "
-                    f"RETURNING cashback, completed_at, phone, car_name, vin",
-                    (order_amount, lead_id),
+                    f"RETURNING cashback, remaining, completed_at, phone, car_name, vin",
+                    (order_amount, prepayment, lead_id),
                 )
             else:
                 cur.execute(
-                    f"UPDATE {schema}.leads SET order_amount = %s, arrived = false, arrived_at = NULL "
-                    f"WHERE id = %s RETURNING cashback, completed_at, phone, car_name, vin",
-                    (order_amount, lead_id),
+                    f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, arrived = false, arrived_at = NULL "
+                    f"WHERE id = %s RETURNING cashback, remaining, completed_at, phone, car_name, vin",
+                    (order_amount, prepayment, lead_id),
                 )
         else:
             cur.execute(
-                f"UPDATE {schema}.leads SET order_amount = %s WHERE id = %s "
-                f"RETURNING cashback, completed_at, phone, car_name, vin",
-                (order_amount, lead_id),
+                f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s WHERE id = %s "
+                f"RETURNING cashback, remaining, completed_at, phone, car_name, vin",
+                (order_amount, prepayment, lead_id),
             )
         row = cur.fetchone()
         cashback = float(row[0]) if row and row[0] is not None else None
-        completed_at = row[1].isoformat() if row and row[1] else None
+        remaining = float(row[1]) if row and row[1] is not None else None
+        completed_at = row[2].isoformat() if row and row[2] else None
         conn.commit()
         cur.close()
 
         # Уведомляем клиента о смене статуса заказа
         if row:
-            phone, car_name, vin = row[2], row[3], row[4]
+            phone, car_name, vin = row[3], row[4], row[5]
             car_label = car_name or vin or 'ваш заказ'
             if arrived is True:
                 send_push_to_phone(
@@ -115,5 +118,5 @@ def handler(event: dict, context) -> dict:
     return {
         'statusCode': 200,
         'headers': headers,
-        'body': json.dumps({'success': True, 'cashback': cashback, 'completed_at': completed_at}),
+        'body': json.dumps({'success': True, 'cashback': cashback, 'remaining': remaining, 'completed_at': completed_at}),
     }

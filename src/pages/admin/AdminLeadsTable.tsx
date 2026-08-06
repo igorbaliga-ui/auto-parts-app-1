@@ -35,7 +35,7 @@ import { Lead, ColumnKey, columns, messengerLabel, statusLabel, formatDate } fro
 type AdminLeadsTableProps = {
   leads: Lead[];
   filteredLeads: Lead[];
-  drafts: Record<number, { amount: string }>;
+  drafts: Record<number, { amount: string; prepayment: string }>;
   savingId: number | null;
   hiddenColumns: Set<ColumnKey>;
   columnFilters: Partial<Record<ColumnKey, string>>;
@@ -47,6 +47,7 @@ type AdminLeadsTableProps = {
   setColumnFilter: (key: ColumnKey, value: string) => void;
   clearFilters: () => void;
   setDraft: (id: number, value: string) => void;
+  setPrepaymentDraft: (id: number, value: string) => void;
   saveLead: (id: number) => void;
   toggleStatus: (id: number) => void;
   toggleArrived: (id: number) => void;
@@ -73,6 +74,7 @@ const AdminLeadsTable = ({
   setColumnFilter,
   clearFilters,
   setDraft,
+  setPrepaymentDraft,
   saveLead,
   toggleStatus,
   toggleArrived,
@@ -285,6 +287,22 @@ const AdminLeadsTable = ({
                           placeholder="0"
                           className="w-28 h-9"
                         />
+                      </TableCell>
+                    )}
+                    {isColumnVisible('prepayment') && (
+                      <TableCell>
+                        <Input
+                          type="number"
+                          value={drafts[l.id]?.prepayment ?? ''}
+                          onChange={(e) => setPrepaymentDraft(l.id, e.target.value)}
+                          placeholder="0"
+                          className="w-28 h-9"
+                        />
+                      </TableCell>
+                    )}
+                    {isColumnVisible('remaining') && (
+                      <TableCell className="whitespace-nowrap">
+                        {l.remaining != null ? `${l.remaining} ₽` : '—'}
                       </TableCell>
                     )}
                     {isColumnVisible('cashback') && (

@@ -43,6 +43,8 @@ type Order = {
   parts: string | null;
   messenger: string | null;
   order_amount: number | null;
+  prepayment: number | null;
+  remaining: number | null;
   cashback: number | null;
   created_at: string;
   car_name: string | null;
@@ -856,6 +858,18 @@ const GarageContent = () => {
                     <span className="text-muted-foreground">Сумма заказа: </span>
                     <span>{o.order_amount != null ? formatMoney(o.order_amount) : 'Уточняется'}</span>
                   </div>
+                  {o.prepayment != null && (
+                    <div className="flex justify-between sm:block">
+                      <span className="text-muted-foreground">Предоплата: </span>
+                      <span>{formatMoney(o.prepayment)}</span>
+                    </div>
+                  )}
+                  {o.remaining != null && (
+                    <div className="flex justify-between sm:block">
+                      <span className="text-muted-foreground">Остаток: </span>
+                      <span>{formatMoney(o.remaining)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between sm:block">
                     <span className="text-muted-foreground">Кэшбэк: </span>
                     <span className="text-primary">
