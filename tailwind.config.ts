@@ -101,13 +101,28 @@ export default {
 				'scale-in': {
 					from: { opacity: '0', transform: 'scale(0.96)' },
 					to: { opacity: '1', transform: 'scale(1)' }
+				},
+				'glow-pulse': {
+					'0%, 100%': { boxShadow: '0 0 0 0 hsl(var(--primary) / 0.55)' },
+					'50%': { boxShadow: '0 0 0 8px hsl(var(--primary) / 0)' }
+				},
+				'bell-ring': {
+					'0%, 100%': { transform: 'rotate(0deg)' },
+					'10%': { transform: 'rotate(14deg)' },
+					'20%': { transform: 'rotate(-12deg)' },
+					'30%': { transform: 'rotate(9deg)' },
+					'40%': { transform: 'rotate(-7deg)' },
+					'50%': { transform: 'rotate(4deg)' },
+					'60%, 100%': { transform: 'rotate(0deg)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.6s ease-out both',
-				'scale-in': 'scale-in 0.4s ease-out both'
+				'scale-in': 'scale-in 0.4s ease-out both',
+				'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
+				'bell-ring': 'bell-ring 2.5s ease-in-out infinite'
 			}
 		}
 	},

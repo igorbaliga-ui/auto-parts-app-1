@@ -62,18 +62,17 @@ const GarageOrdersList = ({
       )}
 
       {isPushSupported() && pushPermission !== "granted" && !pushSubscribed && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-card border border-steel rounded-sm p-4">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-primary/15 via-card to-card border border-primary/60 rounded-sm p-4 animate-glow-pulse">
           <div className="flex items-center gap-3">
-            <span className="w-9 h-9 shrink-0 rounded-full bg-primary/15 flex items-center justify-center">
-              <Icon name="Bell" className="text-primary" size={18} />
+            <span className="w-9 h-9 shrink-0 rounded-full bg-primary/20 flex items-center justify-center">
+              <Icon name="Bell" className="text-primary animate-bell-ring" size={18} />
             </span>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground">
               Включите уведомления — сообщим, когда деталь поступит.
             </p>
           </div>
           <Button
             size="sm"
-            variant="secondary"
             disabled={pushSubscribing}
             onClick={subscribePush}
             className="font-head uppercase tracking-wide text-xs shrink-0"
