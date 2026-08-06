@@ -5,7 +5,7 @@ from send_push import send_push_to_phone
 
 def handler(event: dict, context) -> dict:
     """Обновляет сумму заказа, статус и пометку «Поступил» по заявке (для менеджера в /admin).
-    При простановке пометки «Поступил» отправляет клиенту Web Push уведомление."""
+    При простановке пометки «Поступил» или переводе в статус «Выполнен» отправляет клиенту Web Push уведомление."""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -58,13 +58,13 @@ def handler(event: dict, context) -> dict:
                 cur.execute(
                     f"UPDATE {schema}.leads SET order_amount = %s, status = %s, "
                     f"completed_at = COALESCE(completed_at, now()) WHERE id = %s "
-                    f"RETURNING cashback, completed_at",
+                    f"RETURNING cashback, completed_at, phone, car_name, vin",
                     (order_amount, status, lead_id),
                 )
             else:
                 cur.execute(
                     f"UPDATE {schema}.leads SET order_amount = %s, status = %s, completed_at = NULL "
-                    f"WHERE id = %s RETURNING cashback, completed_at",
+                    f"WHERE id = %s RETURNING cashback, completed_at, phone, car_name, vin",
                     (order_amount, status, lead_id),
                 )
         elif arrived is not None:
@@ -93,15 +93,22 @@ def handler(event: dict, context) -> dict:
         conn.commit()
         cur.close()
 
-        # Уведомляем клиента, что деталь поступила
-        if arrived is True and row:
+        # Уведомляем клиента о смене статуса заказа
+        if row:
             phone, car_name, vin = row[2], row[3], row[4]
             car_label = car_name or vin or 'ваш заказ'
-            send_push_to_phone(
-                dsn, schema, phone,
-                title='Деталь поступила',
-                body=f'{car_label}: заказанная деталь поступила и ждёт вас.',
-            )
+            if arrived is True:
+                send_push_to_phone(
+                    dsn, schema, phone,
+                    title='Деталь поступила',
+                    body=f'{car_label}: заказанная деталь поступила и ждёт вас.',
+                )
+            elif status == 'done':
+                send_push_to_phone(
+                    dsn, schema, phone,
+                    title='Заказ выполнен',
+                    body=f'{car_label}: заказ выполнен. Спасибо, что выбрали нас!',
+                )
     finally:
         conn.close()
 
