@@ -66,7 +66,7 @@ self.addEventListener("push", (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(data.title || "ЗАП Оптом", {
+    self.registration.showNotification(data.title || "ЗАП ОПТОМ", {
       body: data.body || "",
       icon: "/pwa-192.png",
       badge: "/pwa-192.png",

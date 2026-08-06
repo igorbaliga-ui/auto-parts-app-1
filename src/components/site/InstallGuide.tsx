@@ -1,34 +1,34 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import Icon from '@/components/ui/icon';
+} from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import Icon from "@/components/ui/icon";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultTab?: 'ios' | 'android';
+  defaultTab?: "ios" | "android";
 };
 
 const iosSteps = [
-  'Откройте сайт zapoptom.ru в браузере Safari (важно — именно Safari, не Chrome).',
-  'Нажмите на иконку «Поделиться» внизу экрана — квадрат со стрелкой вверх.',
-  'В открывшемся списке выберите «На экран Домой».',
-  'Нажмите «Добавить» в правом верхнем углу.',
-  'Готово — на главном экране появится значок ЗАП Оптом, как обычное приложение.',
+  "Откройте сайт zapoptom.ru в браузере Safari (важно — именно Safari, не Chrome).",
+  "Нажмите на иконку «Поделиться» внизу экрана — квадрат со стрелкой вверх.",
+  "В открывшемся списке выберите «На экран Домой».",
+  "Нажмите «Добавить» в правом верхнем углу.",
+  "Готово — на главном экране появится значок ЗАП ОПТОМ, как обычное приложение.",
 ];
 
 const androidSteps = [
-  'Откройте сайт zapoptom.ru в браузере Chrome.',
-  'Нажмите на иконку ⬇ «Установить» рядом с названием сайта, либо на три точки в правом верхнем углу браузера.',
-  'Выберите «Установить приложение» (или «Добавить на главный экран»).',
-  'Подтвердите установку в появившемся окне.',
-  'Готово — значок ЗАП Оптом появится на главном экране и в списке приложений.',
+  "Откройте сайт zapoptom.ru в браузере Chrome.",
+  "Нажмите на иконку ⬇ «Установить» рядом с названием сайта, либо на три точки в правом верхнем углу браузера.",
+  "Выберите «Установить приложение» (или «Добавить на главный экран»).",
+  "Подтвердите установку в появившемся окне.",
+  "Готово — значок ЗАП ОПТОМ появится на главном экране и в списке приложений.",
 ];
 
 const StepList = ({ steps }: { steps: string[] }) => (
@@ -44,8 +44,8 @@ const StepList = ({ steps }: { steps: string[] }) => (
   </ol>
 );
 
-const InstallGuide = ({ open, onOpenChange, defaultTab = 'ios' }: Props) => {
-  const [tab, setTab] = useState<'ios' | 'android'>(defaultTab);
+const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
+  const [tab, setTab] = useState<"ios" | "android">(defaultTab);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,12 +55,12 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = 'ios' }: Props) => {
             Установка приложения
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Наш сайт работает как приложение — установите его на телефон в один клик,
-            без App Store и Google Play.
+            Наш сайт работает как приложение — установите его на телефон в один
+            клик, без App Store и Google Play.
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'ios' | 'android')}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "ios" | "android")}>
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="ios" className="flex items-center gap-2">
               <Icon name="Apple" size={16} />

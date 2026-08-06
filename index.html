@@ -12,7 +12,7 @@
     <meta name="theme-color" content="#0e0e0f">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ЗАП Оптом">
+    <meta name="apple-mobile-web-app-title" content="ЗАП ОПТОМ">
     <script>
         // Синхронно (ДО загрузки React) подстраиваем манифест и apple-mobile-web-app-title
         // под /admin. Это критично именно для iOS Safari: при «Добавить на экран Домой»
@@ -21,7 +21,7 @@
         if (location.pathname.indexOf('/admin') === 0) {
             document.querySelector('link[rel="manifest"]').setAttribute('href', '/admin-manifest.webmanifest');
             document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'Заявки');
-            document.title = 'ЗАП Оптом — Заявки';
+            document.title = 'ЗАП ОПТОМ — Заявки';
         }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />

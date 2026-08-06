@@ -1,28 +1,28 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import Icon from '@/components/ui/icon';
-import { usePwaInstall } from '@/hooks/use-pwa-install';
-import { useNav, Tab } from '@/components/site/NavContext';
-import { useGarageAuth } from '@/hooks/use-garage-auth';
-import { useGarageArrived } from '@/hooks/use-garage-arrived';
-import InstallGuide from './InstallGuide';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import Icon from "@/components/ui/icon";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
+import { useNav, Tab } from "@/components/site/NavContext";
+import { useGarageAuth } from "@/hooks/use-garage-auth";
+import { useGarageArrived } from "@/hooks/use-garage-arrived";
+import InstallGuide from "./InstallGuide";
 
 const links: { label: string; tab: Tab }[] = [
-  { label: 'Как заказать', tab: 'how' },
-  { label: 'Преимущества', tab: 'advantages' },
-  { label: 'Контакты', tab: 'contacts' },
+  { label: "Как заказать", tab: "how" },
+  { label: "Преимущества", tab: "advantages" },
+  { label: "Контакты", tab: "contacts" },
 ];
 
 const Header = () => {
   const [open, setOpen] = useState(false);
   const { canInstall, promptInstall } = usePwaInstall();
   const [guideOpen, setGuideOpen] = useState(false);
-  const [guideTab, setGuideTab] = useState<'ios' | 'android'>('ios');
+  const [guideTab, setGuideTab] = useState<"ios" | "android">("ios");
   const { goTo } = useNav();
   const { authed: garageAuthed } = useGarageAuth();
   const hasArrived = useGarageArrived();
 
-  const openGuide = (tab: 'ios' | 'android') => {
+  const openGuide = (tab: "ios" | "android") => {
     setOpen(false);
     setGuideTab(tab);
     setGuideOpen(true);
@@ -36,21 +36,21 @@ const Header = () => {
   return (
     <header className="absolute top-0 left-0 right-0 z-30">
       <div className="max-w-[1400px] mx-auto flex items-center px-5 sm:px-8 lg:px-12 py-6">
-        <button
-          onClick={() => navigate('home')}
-          className="flex items-center"
-        >
+        <button onClick={() => navigate("home")} className="flex items-center">
           <span className="font-head font-bold uppercase tracking-[0.18em] text-lg sm:text-xl text-concrete-carved">
-            ЗАП&nbsp;Оптом
+            ЗАП&nbsp;ОПТОМ
           </span>
         </button>
 
         <div
           className="flex items-center gap-0.5 ml-4 px-1.5 py-1 rounded-full border border-border/60 bg-card/40"
-          style={{ boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.55), inset 0 -1px 0 rgba(255,255,255,0.04)' }}
+          style={{
+            boxShadow:
+              "inset 0 2px 4px rgba(0,0,0,0.55), inset 0 -1px 0 rgba(255,255,255,0.04)",
+          }}
         >
           <button
-            onClick={() => openGuide('ios')}
+            onClick={() => openGuide("ios")}
             aria-label="Установить на iPhone"
             title="Установить на iPhone"
             className="flex items-center justify-center w-8 h-8 text-slate-200 hover:text-white hover:scale-110 transition-all"
@@ -58,7 +58,7 @@ const Header = () => {
             <Icon name="Apple" size={17} />
           </button>
           <button
-            onClick={() => openGuide('android')}
+            onClick={() => openGuide("android")}
             aria-label="Установить на Android"
             title="Установить на Android"
             className="flex items-center justify-center w-8 h-8 text-[#3DDC84] hover:brightness-125 hover:scale-110 transition-all"
@@ -67,7 +67,12 @@ const Header = () => {
           </button>
         </div>
 
-        <InstallGuide key={guideTab} open={guideOpen} onOpenChange={setGuideOpen} defaultTab={guideTab} />
+        <InstallGuide
+          key={guideTab}
+          open={guideOpen}
+          onOpenChange={setGuideOpen}
+          defaultTab={guideTab}
+        />
         {canInstall && (
           <button
             onClick={promptInstall}
@@ -92,7 +97,9 @@ const Header = () => {
           <Link
             to="/garage"
             className={`relative flex items-center gap-1.5 font-head font-medium uppercase tracking-[0.14em] text-xs transition-colors ${
-              garageAuthed ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+              garageAuthed
+                ? "text-primary"
+                : "text-muted-foreground hover:text-primary"
             }`}
           >
             <span className="relative">
@@ -118,10 +125,12 @@ const Header = () => {
         <div className="md:hidden flex items-center gap-3 ml-auto">
           <Link
             to="/garage"
-            aria-label={garageAuthed ? 'Гараж — вы вошли' : 'Гараж'}
-            title={garageAuthed ? 'Гараж — вы вошли' : 'Гараж'}
+            aria-label={garageAuthed ? "Гараж — вы вошли" : "Гараж"}
+            title={garageAuthed ? "Гараж — вы вошли" : "Гараж"}
             className={`relative flex items-center justify-center w-9 h-9 transition-colors ${
-              garageAuthed ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+              garageAuthed
+                ? "text-primary"
+                : "text-muted-foreground hover:text-primary"
             }`}
           >
             <Icon name="Warehouse" size={22} />
@@ -138,7 +147,7 @@ const Header = () => {
             onClick={() => setOpen((v) => !v)}
             aria-label="Меню"
           >
-            <Icon name={open ? 'X' : 'Menu'} size={26} />
+            <Icon name={open ? "X" : "Menu"} size={26} />
           </button>
         </div>
       </div>
