@@ -858,13 +858,13 @@ const GarageContent = () => {
                     <span className="text-muted-foreground">Сумма заказа: </span>
                     <span>{o.order_amount != null ? formatMoney(o.order_amount) : 'Уточняется'}</span>
                   </div>
-                  {o.prepayment != null && (
+                  {o.status !== 'done' && o.prepayment != null && (
                     <div className="flex justify-between sm:block">
                       <span className="text-muted-foreground">Предоплата: </span>
                       <span>{formatMoney(o.prepayment)}</span>
                     </div>
                   )}
-                  {o.remaining != null && (
+                  {o.status !== 'done' && o.remaining != null && (
                     <div className="flex justify-between sm:block">
                       <span className="text-muted-foreground">Остаток: </span>
                       <span>{formatMoney(o.remaining)}</span>
