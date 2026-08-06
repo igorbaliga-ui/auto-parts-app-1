@@ -122,10 +122,16 @@ const GarageHeader = ({
           variant="secondary"
           size="icon"
           onClick={openPasswordSettings}
-          className="h-10 w-10 shrink-0"
-          title="Пароль для входа"
+          className="relative h-10 w-10 shrink-0"
+          title={hasPassword ? 'Пароль для входа' : 'Пароль не задан — защитите доступ к заказам'}
         >
           <Icon name="Lock" size={16} />
+          {!hasPassword && (
+            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-primary" />
+            </span>
+          )}
         </Button>
         <Button
           variant="secondary"

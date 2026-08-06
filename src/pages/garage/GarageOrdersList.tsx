@@ -51,27 +51,22 @@ const GarageOrdersList = ({
   return (
     <>
       {orders.length > 0 && (
-        <div className="mb-8 mt-6">
-          <div className="bg-card border border-primary/40 rounded-sm p-6 flex items-end justify-between gap-3">
-            <div>
-              <span className="text-muted-foreground text-xs uppercase tracking-[0.12em]">
-                Накопленный кэшбэк
-              </span>
-              <div className="font-head text-3xl mt-1 text-primary">
-                {formatMoney(totalCashback)}
-              </div>
-            </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onShowCashbackHistory}
-              className="shrink-0 text-muted-foreground hover:text-foreground"
-              title="История начислений и списаний"
-            >
-              <Icon name="History" size={16} className="mr-1.5" />
-              История
-            </Button>
+        <div className="mb-5 mt-4 bg-card border border-primary/40 rounded-sm px-4 py-2.5 flex items-center justify-between gap-3">
+          <div className="flex items-baseline gap-2">
+            <span className="text-muted-foreground text-xs uppercase tracking-[0.1em]">
+              Кэшбэк
+            </span>
+            <span className="font-head text-xl text-primary">
+              {formatMoney(totalCashback)}
+            </span>
           </div>
+          <button
+            onClick={onShowCashbackHistory}
+            title="История начислений и списаний"
+            className="shrink-0 flex items-center justify-center w-8 h-8 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+          >
+            <Icon name="History" size={15} />
+          </button>
         </div>
       )}
 
@@ -228,9 +223,9 @@ const GarageOrdersList = ({
                           : "—"}
                       </span>
                     </div>
-                    <div className="sm:col-span-2">
-                      <span className="text-muted-foreground block mb-1">
-                        Запчасти:
+                    <div className="sm:col-span-2 bg-muted/40 border border-steel rounded-sm px-3 py-2">
+                      <span className="text-muted-foreground block mb-1 text-xs uppercase tracking-wide">
+                        Запчасти
                       </span>
                       <ExpandableText
                         text={o.parts}

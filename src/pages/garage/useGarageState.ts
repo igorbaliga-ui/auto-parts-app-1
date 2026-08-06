@@ -91,6 +91,7 @@ export const useGarageState = () => {
       setAuthed(true);
       localStorage.setItem(STORAGE_KEY, ph);
       notifyGarageAuthChanged();
+      checkHasPassword(ph).then(setHasPassword);
     } catch {
       setError('Не удалось загрузить заказы. Проверьте телефон и попробуйте снова.');
     } finally {
