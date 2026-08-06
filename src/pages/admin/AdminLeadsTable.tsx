@@ -35,6 +35,7 @@ import ColumnSearchInput from './ColumnSearchInput';
 import { Lead, ColumnKey, columns, messengerLabel, statusLabel, formatDate } from './adminTypes';
 import { exportLeadsToExcel } from './exportLeads';
 import LeadHistoryDialog from './LeadHistoryDialog';
+import AdminLeadCard from './AdminLeadCard';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
 import { useIsIosInstallable } from '@/hooks/use-ios-install-hint';
 
@@ -171,7 +172,7 @@ const AdminLeadsTable = ({
           <h1 className="font-head uppercase tracking-wide text-2xl">
             Заявки ({filteredLeads.length}{filteredLeads.length !== leads.length ? ` из ${leads.length}` : ''})
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {hasActiveFilters && (
               <Button
                 variant="ghost"
@@ -179,12 +180,12 @@ const AdminLeadsTable = ({
                 className="font-head uppercase tracking-wide text-muted-foreground"
               >
                 <Icon name="X" size={16} className="mr-2" />
-                Сбросить фильтры
+                <span className="hidden sm:inline">Сбросить фильтры</span>
               </Button>
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" className="font-head uppercase tracking-wide">
+                <Button variant="secondary" className="hidden md:flex font-head uppercase tracking-wide">
                   <Icon name="Columns3" size={16} className="mr-2" />
                   Столбцы
                 </Button>
@@ -210,8 +211,8 @@ const AdminLeadsTable = ({
               disabled={filteredLeads.length === 0}
               className="font-head uppercase tracking-wide"
             >
-              <Icon name="FileSpreadsheet" size={16} className="mr-2" />
-              Выгрузить в Excel
+              <Icon name="FileSpreadsheet" size={16} className="sm:mr-2" />
+              <span className="hidden sm:inline">Выгрузить в Excel</span>
             </Button>
             <Button
               variant="secondary"
@@ -219,16 +220,16 @@ const AdminLeadsTable = ({
               disabled={loading}
               className="font-head uppercase tracking-wide"
             >
-              <Icon name="RefreshCw" size={16} className="mr-2" />
-              Обновить
+              <Icon name="RefreshCw" size={16} className="sm:mr-2" />
+              <span className="hidden sm:inline">Обновить</span>
             </Button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto -mx-5 px-5 sm:mx-0 sm:px-0">
           <button
             onClick={() => setStatusTab('in_progress')}
-            className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
+            className={`shrink-0 h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors whitespace-nowrap ${
               statusTab === 'in_progress'
                 ? 'border-primary bg-primary/10 text-foreground'
                 : 'border-steel text-muted-foreground hover:border-primary/60'
@@ -238,7 +239,7 @@ const AdminLeadsTable = ({
           </button>
           <button
             onClick={() => setStatusTab('done')}
-            className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
+            className={`shrink-0 h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors whitespace-nowrap ${
               statusTab === 'done'
                 ? 'border-primary bg-primary/10 text-foreground'
                 : 'border-steel text-muted-foreground hover:border-primary/60'
@@ -248,7 +249,7 @@ const AdminLeadsTable = ({
           </button>
           <button
             onClick={() => setStatusTab('all')}
-            className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
+            className={`shrink-0 h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors whitespace-nowrap ${
               statusTab === 'all'
                 ? 'border-primary bg-primary/10 text-foreground'
                 : 'border-steel text-muted-foreground hover:border-primary/60'
@@ -261,7 +262,30 @@ const AdminLeadsTable = ({
         {leads.length === 0 ? (
           <p className="text-muted-foreground">Пока нет заявок.</p>
         ) : (
-          <div className="bg-card border border-steel rounded-sm overflow-x-auto">
+          <>
+          <div className="md:hidden flex flex-col gap-3">
+            {filteredLeads.length === 0 ? (
+              <p className="text-muted-foreground py-8 text-center">Ничего не найдено по заданным фильтрам.</p>
+            ) : (
+              filteredLeads.map((l) => (
+                <AdminLeadCard
+                  key={l.id}
+                  lead={l}
+                  draft={drafts[l.id] ?? { amount: '', prepayment: '', note: '' }}
+                  savingId={savingId}
+                  setDraft={setDraft}
+                  setPrepaymentDraft={setPrepaymentDraft}
+                  setNoteDraft={setNoteDraft}
+                  saveLead={saveLead}
+                  toggleStatus={toggleStatus}
+                  toggleArrived={toggleArrived}
+                  resetGaragePassword={resetGaragePassword}
+                  onShowHistory={setHistoryLeadId}
+                />
+              ))
+            )}
+          </div>
+          <div className="hidden md:block bg-card border border-steel rounded-sm overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -477,6 +501,7 @@ const AdminLeadsTable = ({
               </TableBody>
             </Table>
           </div>
+          </>
         )}
       </div>
       {historyLead && (
