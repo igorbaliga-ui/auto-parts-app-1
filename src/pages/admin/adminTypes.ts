@@ -13,6 +13,7 @@ export type Lead = {
   city: string | null;
   status: 'in_progress' | 'done';
   completed_at: string | null;
+  arrived: boolean;
 };
 
 export const messengerLabel: Record<string, string> = {

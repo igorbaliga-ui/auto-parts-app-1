@@ -120,6 +120,27 @@ const Admin = () => {
     }
   };
 
+  const toggleArrived = async (id: number) => {
+    const lead = leads.find((l) => l.id === id);
+    if (!lead) return;
+    const nextArrived = !lead.arrived;
+    setSavingId(id);
+    try {
+      const amount = drafts[id]?.amount ? Number(drafts[id].amount) : lead.order_amount;
+      const res = await fetch(LEADS_UPDATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
+        body: JSON.stringify({ id, order_amount: amount, arrived: nextArrived }),
+      });
+      if (!res.ok) throw new Error('request failed');
+      setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, arrived: nextArrived } : l)));
+    } catch {
+      setError('Не удалось изменить пометку. Попробуйте ещё раз.');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const isColumnVisible = (key: ColumnKey) => !hiddenColumns.has(key);
 
   const toggleColumn = (key: ColumnKey) => {
@@ -205,6 +226,7 @@ const Admin = () => {
         setDraft={setDraft}
         saveLead={saveLead}
         toggleStatus={toggleStatus}
+        toggleArrived={toggleArrived}
         onRefresh={() => load(password)}
         statusTab={statusTab}
         setStatusTab={setStatusTab}

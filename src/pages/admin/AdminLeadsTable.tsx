@@ -38,6 +38,7 @@ type AdminLeadsTableProps = {
   setDraft: (id: number, value: string) => void;
   saveLead: (id: number) => void;
   toggleStatus: (id: number) => void;
+  toggleArrived: (id: number) => void;
   onRefresh: () => void;
   statusTab: 'in_progress' | 'done' | 'all';
   setStatusTab: (tab: 'in_progress' | 'done' | 'all') => void;
@@ -62,6 +63,7 @@ const AdminLeadsTable = ({
   setDraft,
   saveLead,
   toggleStatus,
+  toggleArrived,
   onRefresh,
   statusTab,
   setStatusTab,
@@ -251,17 +253,34 @@ const AdminLeadsTable = ({
                     )}
                     {isColumnVisible('status') && (
                       <TableCell>
-                        <button
-                          onClick={() => toggleStatus(l.id)}
-                          disabled={savingId === l.id}
-                          className={`whitespace-nowrap text-[0.65rem] font-head uppercase tracking-wide px-2 py-1.5 rounded-sm transition-colors ${
-                            l.status === 'done'
-                              ? 'bg-primary/15 text-primary hover:bg-primary/25'
-                              : 'bg-muted text-muted-foreground hover:bg-muted/70'
-                          }`}
-                        >
-                          {statusLabel[l.status]}
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => toggleStatus(l.id)}
+                            disabled={savingId === l.id}
+                            className={`whitespace-nowrap text-[0.65rem] font-head uppercase tracking-wide px-2 py-1.5 rounded-sm transition-colors ${
+                              l.status === 'done'
+                                ? 'bg-primary/15 text-primary hover:bg-primary/25'
+                                : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                            }`}
+                          >
+                            {statusLabel[l.status]}
+                          </button>
+                          {l.status === 'in_progress' && (
+                            <button
+                              onClick={() => toggleArrived(l.id)}
+                              disabled={savingId === l.id}
+                              title={l.arrived ? 'Убрать пометку «Поступило»' : 'Отметить «Поступило» и уведомить клиента'}
+                              className={`shrink-0 flex items-center gap-1 whitespace-nowrap text-[0.65rem] font-head uppercase tracking-wide px-2 py-1.5 rounded-sm transition-colors ${
+                                l.arrived
+                                  ? 'bg-green-600/15 text-green-500 hover:bg-green-600/25'
+                                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                              }`}
+                            >
+                              <Icon name="Check" size={11} />
+                              Поступило
+                            </button>
+                          )}
+                        </div>
                       </TableCell>
                     )}
                     {isColumnVisible('completed_at') && (

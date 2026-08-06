@@ -27,6 +27,7 @@ import CityInput from '@/components/shared/CityInput';
 import { notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
 import { getStoredCity, setStoredCity } from '@/lib/garage-city';
 import { normalizePhoneInput } from '@/lib/phone';
+import { usePushSubscription, isPushSupported } from '@/hooks/use-push-subscription';
 
 const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
 const GARAGE_CAR_NAME_URL = 'https://functions.poehali.dev/22aa943f-f262-4beb-b2e2-c713d1684c82';
@@ -48,6 +49,7 @@ type Order = {
   city: string | null;
   status: 'in_progress' | 'done';
   completed_at: string | null;
+  arrived: boolean;
 };
 
 const messengerLabel: Record<string, string> = {
@@ -99,6 +101,8 @@ const GarageContent = () => {
   const [resetPasswordInput, setResetPasswordInput] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
+  const { permission: pushPermission, subscribing: pushSubscribing, subscribed: pushSubscribed, subscribe: subscribePush } =
+    usePushSubscription(authed ? phone : null);
 
   const checkHasPassword = async (ph: string) => {
     try {
@@ -707,6 +711,34 @@ const GarageContent = () => {
           </div>
         )}
 
+        {isPushSupported() && pushPermission !== 'granted' && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-card border border-steel rounded-sm p-4">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 shrink-0 rounded-full bg-primary/15 flex items-center justify-center">
+                <Icon name="Bell" className="text-primary" size={18} />
+              </span>
+              <p className="text-sm text-muted-foreground">
+                Включите уведомления — сообщим, когда деталь поступит.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={pushSubscribing}
+              onClick={subscribePush}
+              className="font-head uppercase tracking-wide text-xs shrink-0"
+            >
+              {pushSubscribing ? 'Включаем…' : 'Включить'}
+            </Button>
+          </div>
+        )}
+        {pushSubscribed && (
+          <div className="mb-6 flex items-center gap-2 text-primary text-xs">
+            <Icon name="BellRing" size={14} />
+            Уведомления включены
+          </div>
+        )}
+
         {orders.length === 0 ? (
           <div className="mt-8 flex flex-col items-start gap-4">
             <p className="text-muted-foreground">
@@ -749,7 +781,16 @@ const GarageContent = () => {
             ) : (
           <div className="flex flex-col gap-4 mt-2">
             {visibleOrders.map((o) => (
-              <div key={o.id} className="bg-card border border-steel rounded-sm p-6">
+              <div key={o.id} className="relative bg-card border border-steel rounded-sm p-6">
+                {o.status !== 'done' && o.arrived && (
+                  <span
+                    title="Деталь поступила"
+                    className="absolute -top-2.5 -right-2.5 flex items-center gap-1 bg-green-600 text-white text-[0.65rem] font-head uppercase tracking-wide px-2 py-1 rounded-full shadow-sm"
+                  >
+                    <Icon name="Check" size={12} />
+                    Поступило
+                  </span>
+                )}
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <span className="font-head tracking-[0.1em] text-lg">
                     {o.vin || 'VIN не указан (по фото)'}

@@ -1,10 +1,11 @@
 import json
 import os
 import psycopg2
-
+from send_push import send_push_to_phone
 
 def handler(event: dict, context) -> dict:
-    """Обновляет сумму заказа и кэшбэк по заявке (для менеджера в /admin)"""
+    """Обновляет сумму заказа, статус и пометку «Поступил» по заявке (для менеджера в /admin).
+    При простановке пометки «Поступил» отправляет клиенту Web Push уведомление."""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -35,6 +36,7 @@ def handler(event: dict, context) -> dict:
     lead_id = body.get('id')
     order_amount = body.get('order_amount')
     status = body.get('status')
+    arrived = body.get('arrived')
 
     if not isinstance(lead_id, int):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный id заявки'})}
@@ -65,9 +67,24 @@ def handler(event: dict, context) -> dict:
                     f"WHERE id = %s RETURNING cashback, completed_at",
                     (order_amount, status, lead_id),
                 )
+        elif arrived is not None:
+            if arrived:
+                cur.execute(
+                    f"UPDATE {schema}.leads SET order_amount = %s, arrived = true, "
+                    f"arrived_at = COALESCE(arrived_at, now()) WHERE id = %s "
+                    f"RETURNING cashback, completed_at, phone, car_name, vin",
+                    (order_amount, lead_id),
+                )
+            else:
+                cur.execute(
+                    f"UPDATE {schema}.leads SET order_amount = %s, arrived = false, arrived_at = NULL "
+                    f"WHERE id = %s RETURNING cashback, completed_at, phone, car_name, vin",
+                    (order_amount, lead_id),
+                )
         else:
             cur.execute(
-                f"UPDATE {schema}.leads SET order_amount = %s WHERE id = %s RETURNING cashback, completed_at",
+                f"UPDATE {schema}.leads SET order_amount = %s WHERE id = %s "
+                f"RETURNING cashback, completed_at, phone, car_name, vin",
                 (order_amount, lead_id),
             )
         row = cur.fetchone()
@@ -75,6 +92,16 @@ def handler(event: dict, context) -> dict:
         completed_at = row[1].isoformat() if row and row[1] else None
         conn.commit()
         cur.close()
+
+        # Уведомляем клиента, что деталь поступила
+        if arrived is True and row:
+            phone, car_name, vin = row[2], row[3], row[4]
+            car_label = car_name or vin or 'ваш заказ'
+            send_push_to_phone(
+                dsn, schema, phone,
+                title='Деталь поступила',
+                body=f'{car_label}: заказанная деталь поступила и ждёт вас.',
+            )
     finally:
         conn.close()
 
