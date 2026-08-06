@@ -97,6 +97,7 @@ const GarageContent = () => {
           totalCashback={g.totalCashback}
           pushPermission={g.pushPermission}
           pushSubscribing={g.pushSubscribing}
+          pushSubscribed={g.pushSubscribed}
           subscribePush={g.subscribePush}
           onNewRequest={g.onNewRequest}
           statusTab={g.statusTab}

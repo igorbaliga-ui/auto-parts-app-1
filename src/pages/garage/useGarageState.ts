@@ -48,7 +48,7 @@ export const useGarageState = () => {
   const [resetPasswordInput, setResetPasswordInput] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
-  const { permission: pushPermission, subscribing: pushSubscribing, subscribe: subscribePush } =
+  const { permission: pushPermission, subscribing: pushSubscribing, subscribed: pushSubscribed, subscribe: subscribePush } =
     usePushSubscription(authed ? phone : null);
 
   const checkHasPassword = async (ph: string) => {
@@ -385,6 +385,7 @@ export const useGarageState = () => {
     setResetError,
     pushPermission,
     pushSubscribing,
+    pushSubscribed,
     subscribePush,
     submit,
     submitPassword,

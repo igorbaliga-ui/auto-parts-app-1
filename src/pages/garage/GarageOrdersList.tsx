@@ -10,6 +10,7 @@ type GarageOrdersListProps = {
   totalCashback: number;
   pushPermission: NotificationPermission | "unsupported";
   pushSubscribing: boolean;
+  pushSubscribed: boolean;
   subscribePush: () => void;
   onNewRequest: () => void;
   statusTab: "in_progress" | "done";
@@ -31,6 +32,7 @@ const GarageOrdersList = ({
   totalCashback,
   pushPermission,
   pushSubscribing,
+  pushSubscribed,
   subscribePush,
   onNewRequest,
   statusTab,
@@ -59,7 +61,7 @@ const GarageOrdersList = ({
         </div>
       )}
 
-      {isPushSupported() && pushPermission !== "granted" && (
+      {isPushSupported() && pushPermission !== "granted" && !pushSubscribed && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-card border border-steel rounded-sm p-4">
           <div className="flex items-center gap-3">
             <span className="w-9 h-9 shrink-0 rounded-full bg-primary/15 flex items-center justify-center">
