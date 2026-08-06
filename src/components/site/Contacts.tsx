@@ -1,13 +1,33 @@
-import Icon from '@/components/ui/icon';
-import { Button } from '@/components/ui/button';
-import { useRequest } from './RequestDialog';
-import { useGarageAuth } from '@/hooks/use-garage-auth';
+import Icon from "@/components/ui/icon";
+import { Button } from "@/components/ui/button";
+import { useRequest } from "./RequestDialog";
+import { useGarageAuth } from "@/hooks/use-garage-auth";
 
 const contacts = [
-  { icon: 'Phone', label: 'Телефон', value: '+7 (900) 000-00-00', href: 'tel:+79000000000' },
-  { icon: 'Mail', label: 'Почта', value: 'zakaz@zapoptom.ru', href: 'mailto:zakaz@zapoptom.ru' },
-  { icon: 'MapPin', label: 'Склад', value: 'г. Москва, ул. Автозаводская, 1', href: '#' },
-  { icon: 'Clock', label: 'Часы работы', value: 'Пн–Сб, 9:00–19:00', href: '#' },
+  {
+    icon: "Phone",
+    label: "Телефон",
+    value: "+7 (932) 402-79-37",
+    href: "tel:+79324027937",
+  },
+  {
+    icon: "Mail",
+    label: "Почта",
+    value: "zapoptom@bk.ru",
+    href: "mailto:zapoptom@bk.ru",
+  },
+  {
+    icon: "MapPin",
+    label: "Склад",
+    value: "г. Сургут, ул. Республики, , 71/3с1",
+    href: "#",
+  },
+  {
+    icon: "Clock",
+    label: "Часы работы",
+    value: "Пн–Сб, 9:00–20:00",
+    href: "#",
+  },
 ];
 
 const Contacts = () => {
@@ -22,7 +42,8 @@ const Contacts = () => {
             Контакты
           </span>
           <h2 className="font-head font-bold uppercase leading-[0.95] tracking-[-0.02em] text-4xl sm:text-5xl mb-6">
-            Свяжитесь<br />
+            Свяжитесь
+            <br />
             <span className="text-primary">с нами</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-[42ch] mb-8"></p>
