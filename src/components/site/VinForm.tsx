@@ -223,7 +223,7 @@ const VinForm = () => {
                     value={form.phone}
                     onChange={setPhone}
                     maxLength={12}
-                    placeholder="+7 910 000-00-00"
+                    placeholder="+7 900 000-00-00"
                     className="mt-1.5 h-12"
                   />
                   {errors.phone && (
