@@ -223,7 +223,7 @@ export const PhoneEntryView = ({
           value={phone}
           onChange={(e) => setPhone(normalizePhoneInput(phone, e.target.value))}
           maxLength={12}
-          placeholder="+7 910 000-00-00"
+          placeholder="+7 900 000-00-00"
           autoFocus
         />
         {error && <p className="text-primary text-sm text-center">{error}</p>}
