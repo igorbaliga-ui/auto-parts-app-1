@@ -16,6 +16,7 @@ export type Lead = {
   status: 'in_progress' | 'done';
   completed_at: string | null;
   arrived: boolean;
+  internal_note: string | null;
 };
 
 export const messengerLabel: Record<string, string> = {
@@ -55,7 +56,8 @@ export type ColumnKey =
   | 'remaining'
   | 'cashback'
   | 'status'
-  | 'completed_at';
+  | 'completed_at'
+  | 'internal_note';
 
 export type ColumnDef = {
   key: ColumnKey;
@@ -94,5 +96,11 @@ export const columns: ColumnDef[] = [
     label: 'Дата выполнения',
     searchable: true,
     getSearchValue: (l) => (l.completed_at ? formatDate(l.completed_at) : ''),
+  },
+  {
+    key: 'internal_note',
+    label: 'Заметка',
+    searchable: true,
+    getSearchValue: (l) => l.internal_note || '',
   },
 ];

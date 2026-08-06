@@ -67,6 +67,7 @@ def handler(event: dict, context) -> dict:
     prepayment = body.get('prepayment')
     status = body.get('status')
     arrived = body.get('arrived')
+    internal_note = body.get('internal_note')
     admin_name = (body.get('admin_name') or '').strip() or 'Менеджер'
 
     if not isinstance(lead_id, int):
@@ -85,11 +86,11 @@ def handler(event: dict, context) -> dict:
 
         # Читаем текущие значения для журнала изменений
         cur.execute(
-            f"SELECT order_amount, prepayment, status, arrived FROM {schema}.leads WHERE id = %s",
+            f"SELECT order_amount, prepayment, status, arrived, internal_note FROM {schema}.leads WHERE id = %s",
             (lead_id,),
         )
         prev = cur.fetchone()
-        prev_amount, prev_prepayment, prev_status, prev_arrived = prev if prev else (None, None, None, None)
+        prev_amount, prev_prepayment, prev_status, prev_arrived, prev_note = prev if prev else (None, None, None, None, None)
 
         if status is not None:
             # При переводе в «Выполнен» фиксируем дату/время выполнения.
@@ -97,35 +98,37 @@ def handler(event: dict, context) -> dict:
             if status == 'done':
                 cur.execute(
                     f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, status = %s, "
-                    f"completed_at = COALESCE(completed_at, now()) WHERE id = %s "
+                    f"internal_note = %s, completed_at = COALESCE(completed_at, now()) WHERE id = %s "
                     f"RETURNING cashback, remaining, completed_at, phone, car_name, vin",
-                    (order_amount, prepayment, status, lead_id),
+                    (order_amount, prepayment, status, internal_note, lead_id),
                 )
             else:
                 cur.execute(
-                    f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, status = %s, completed_at = NULL "
+                    f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, status = %s, "
+                    f"internal_note = %s, completed_at = NULL "
                     f"WHERE id = %s RETURNING cashback, remaining, completed_at, phone, car_name, vin",
-                    (order_amount, prepayment, status, lead_id),
+                    (order_amount, prepayment, status, internal_note, lead_id),
                 )
         elif arrived is not None:
             if arrived:
                 cur.execute(
                     f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, arrived = true, "
-                    f"arrived_at = COALESCE(arrived_at, now()) WHERE id = %s "
+                    f"internal_note = %s, arrived_at = COALESCE(arrived_at, now()) WHERE id = %s "
                     f"RETURNING cashback, remaining, completed_at, phone, car_name, vin",
-                    (order_amount, prepayment, lead_id),
+                    (order_amount, prepayment, internal_note, lead_id),
                 )
             else:
                 cur.execute(
-                    f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, arrived = false, arrived_at = NULL "
+                    f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, arrived = false, "
+                    f"internal_note = %s, arrived_at = NULL "
                     f"WHERE id = %s RETURNING cashback, remaining, completed_at, phone, car_name, vin",
-                    (order_amount, prepayment, lead_id),
+                    (order_amount, prepayment, internal_note, lead_id),
                 )
         else:
             cur.execute(
-                f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s WHERE id = %s "
+                f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, internal_note = %s WHERE id = %s "
                 f"RETURNING cashback, remaining, completed_at, phone, car_name, vin",
-                (order_amount, prepayment, lead_id),
+                (order_amount, prepayment, internal_note, lead_id),
             )
         row = cur.fetchone()
         cashback = float(row[0]) if row and row[0] is not None else None
@@ -139,6 +142,7 @@ def handler(event: dict, context) -> dict:
             log_change(cur, schema, lead_id, admin_name, 'status', fmt_status(prev_status), fmt_status(status))
         if arrived is not None:
             log_change(cur, schema, lead_id, admin_name, 'arrived', fmt_arrived(prev_arrived), fmt_arrived(arrived))
+        log_change(cur, schema, lead_id, admin_name, 'internal_note', prev_note, internal_note)
 
         conn.commit()
         cur.close()

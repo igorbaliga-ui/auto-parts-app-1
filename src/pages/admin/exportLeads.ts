@@ -33,6 +33,8 @@ const cellValue = (l: Lead, key: ColumnKey): string | number => {
       return statusLabel[l.status];
     case 'completed_at':
       return l.completed_at ? formatDate(l.completed_at) : '';
+    case 'internal_note':
+      return l.internal_note || '';
     default:
       return '';
   }

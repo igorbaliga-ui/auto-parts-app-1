@@ -8,6 +8,7 @@ FIELD_LABEL = {
     'prepayment': 'Предоплата',
     'status': 'Статус',
     'arrived': 'Поступил',
+    'internal_note': 'Заметка',
 }
 
 

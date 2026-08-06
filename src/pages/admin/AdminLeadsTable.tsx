@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -38,7 +39,7 @@ import LeadHistoryDialog from './LeadHistoryDialog';
 type AdminLeadsTableProps = {
   leads: Lead[];
   filteredLeads: Lead[];
-  drafts: Record<number, { amount: string; prepayment: string }>;
+  drafts: Record<number, { amount: string; prepayment: string; note: string }>;
   savingId: number | null;
   adminPassword: string;
   hiddenColumns: Set<ColumnKey>;
@@ -52,6 +53,7 @@ type AdminLeadsTableProps = {
   clearFilters: () => void;
   setDraft: (id: number, value: string) => void;
   setPrepaymentDraft: (id: number, value: string) => void;
+  setNoteDraft: (id: number, value: string) => void;
   saveLead: (id: number) => void;
   toggleStatus: (id: number) => void;
   toggleArrived: (id: number) => void;
@@ -80,6 +82,7 @@ const AdminLeadsTable = ({
   clearFilters,
   setDraft,
   setPrepaymentDraft,
+  setNoteDraft,
   saveLead,
   toggleStatus,
   toggleArrived,
@@ -362,6 +365,17 @@ const AdminLeadsTable = ({
                     {isColumnVisible('completed_at') && (
                       <TableCell className="whitespace-nowrap text-primary/80 text-sm">
                         {l.completed_at ? formatDate(l.completed_at) : '—'}
+                      </TableCell>
+                    )}
+                    {isColumnVisible('internal_note') && (
+                      <TableCell>
+                        <Textarea
+                          value={drafts[l.id]?.note ?? ''}
+                          onChange={(e) => setNoteDraft(l.id, e.target.value)}
+                          placeholder="Заметка для менеджеров"
+                          title="Видна только менеджерам, клиент её не видит"
+                          className="w-48 min-h-9 h-9 text-xs resize-y"
+                        />
                       </TableCell>
                     )}
                     <TableCell>
