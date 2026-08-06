@@ -130,7 +130,7 @@ const VinForm = () => {
                 Заявка отправлена
               </h3>
               <p className="text-muted-foreground max-w-[32ch]">
-                Спасибо! Подберём деталь по VIN и перезвоним в течение 15 минут.
+                Спасибо! Свяжемся с Вами в ближайшее время.
               </p>
               <Button
                 variant="secondary"
