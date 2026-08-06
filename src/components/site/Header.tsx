@@ -4,6 +4,7 @@ import Icon from '@/components/ui/icon';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
 import { useNav, Tab } from '@/components/site/NavContext';
 import { useGarageAuth } from '@/hooks/use-garage-auth';
+import { useGarageArrived } from '@/hooks/use-garage-arrived';
 import InstallGuide from './InstallGuide';
 
 const links: { label: string; tab: Tab }[] = [
@@ -19,6 +20,7 @@ const Header = () => {
   const [guideTab, setGuideTab] = useState<'ios' | 'android'>('ios');
   const { goTo } = useNav();
   const { authed: garageAuthed } = useGarageAuth();
+  const hasArrived = useGarageArrived();
 
   const openGuide = (tab: 'ios' | 'android') => {
     setOpen(false);
@@ -95,8 +97,12 @@ const Header = () => {
           >
             <span className="relative">
               <Icon name="Warehouse" size={14} />
-              {garageAuthed && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary border border-background" />
+              {hasArrived ? (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-green-500 border border-background" />
+              ) : (
+                garageAuthed && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary border border-background" />
+                )
               )}
             </span>
             Гараж
@@ -119,8 +125,12 @@ const Header = () => {
             }`}
           >
             <Icon name="Warehouse" size={22} />
-            {garageAuthed && (
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary border border-background" />
+            {hasArrived ? (
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-500 border border-background" />
+            ) : (
+              garageAuthed && (
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary border border-background" />
+              )
             )}
           </Link>
           <button

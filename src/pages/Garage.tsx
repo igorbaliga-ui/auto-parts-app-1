@@ -101,7 +101,7 @@ const GarageContent = () => {
   const [resetPasswordInput, setResetPasswordInput] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
-  const { permission: pushPermission, subscribing: pushSubscribing, subscribed: pushSubscribed, subscribe: subscribePush } =
+  const { permission: pushPermission, subscribing: pushSubscribing, subscribe: subscribePush } =
     usePushSubscription(authed ? phone : null);
 
   const checkHasPassword = async (ph: string) => {
@@ -732,13 +732,6 @@ const GarageContent = () => {
             </Button>
           </div>
         )}
-        {pushSubscribed && (
-          <div className="mb-6 flex items-center gap-2 text-primary text-xs">
-            <Icon name="BellRing" size={14} />
-            Уведомления включены
-          </div>
-        )}
-
         {orders.length === 0 ? (
           <div className="mt-8 flex flex-col items-start gap-4">
             <p className="text-muted-foreground">
