@@ -7,6 +7,7 @@ import AdminInstallBanners from './AdminInstallBanners';
 import AdminToolbar from './AdminToolbar';
 import AdminLeadsMobileList from './AdminLeadsMobileList';
 import AdminLeadsDesktopTable from './AdminLeadsDesktopTable';
+import ClientCashbackDialog from './ClientCashbackDialog';
 
 type AdminLeadsTableProps = {
   leads: Lead[];
@@ -73,6 +74,7 @@ const AdminLeadsTable = ({
 }: AdminLeadsTableProps) => {
   const [historyLeadId, setHistoryLeadId] = useState<number | null>(null);
   const historyLead = leads.find((l) => l.id === historyLeadId) || null;
+  const [cashbackDialogOpen, setCashbackDialogOpen] = useState(false);
   const { canInstall, promptInstall } = usePwaInstall();
   const isIosInstallable = useIsIosInstallable();
 
@@ -101,6 +103,7 @@ const AdminLeadsTable = ({
           setStatusTab={setStatusTab}
           inProgressCount={inProgressCount}
           doneCount={doneCount}
+          onOpenCashback={() => setCashbackDialogOpen(true)}
         />
 
         {leads.length === 0 ? (
@@ -149,6 +152,11 @@ const AdminLeadsTable = ({
           onOpenChange={(open) => !open && setHistoryLeadId(null)}
         />
       )}
+      <ClientCashbackDialog
+        adminPassword={adminPassword}
+        open={cashbackDialogOpen}
+        onOpenChange={setCashbackDialogOpen}
+      />
     </div>
   );
 };

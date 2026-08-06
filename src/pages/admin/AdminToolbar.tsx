@@ -24,6 +24,7 @@ type AdminToolbarProps = {
   setStatusTab: (tab: 'in_progress' | 'done' | 'all') => void;
   inProgressCount: number;
   doneCount: number;
+  onOpenCashback: () => void;
 };
 
 const AdminToolbar = ({
@@ -39,6 +40,7 @@ const AdminToolbar = ({
   setStatusTab,
   inProgressCount,
   doneCount,
+  onOpenCashback,
 }: AdminToolbarProps) => {
   return (
     <>
@@ -79,6 +81,14 @@ const AdminToolbar = ({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button
+            variant="secondary"
+            onClick={onOpenCashback}
+            className="font-head uppercase tracking-wide"
+          >
+            <Icon name="Wallet" size={16} className="sm:mr-2" />
+            <span className="hidden sm:inline">Кэшбэк клиентов</span>
+          </Button>
           <Button
             variant="secondary"
             onClick={() => exportLeadsToExcel(filteredLeads, isColumnVisible)}

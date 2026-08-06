@@ -48,6 +48,14 @@ def handler(event: dict, context) -> dict:
             (phone_last10,),
         )
         rows = cur.fetchall()
+
+        # Если менеджер вручную задал итоговый кэшбэк клиента — он приоритетнее автосчёта
+        cur.execute(
+            f"SELECT cashback_override FROM {schema}.client_cashback_overrides WHERE phone_last10 = %s",
+            (phone_last10,),
+        )
+        override_row = cur.fetchone()
+        cashback_override = float(override_row['cashback_override']) if override_row else None
         cur.close()
     finally:
         conn.close()
@@ -74,4 +82,8 @@ def handler(event: dict, context) -> dict:
             'arrived': bool(r['arrived']),
         })
 
-    return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'orders': orders})}
+    return {
+        'statusCode': 200,
+        'headers': headers,
+        'body': json.dumps({'orders': orders, 'cashback_override': cashback_override}),
+    }
