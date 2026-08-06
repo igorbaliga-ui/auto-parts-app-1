@@ -23,6 +23,13 @@ export type Order = {
   arrived: boolean;
 };
 
+export type CashbackHistoryItem = {
+  type: 'accrual' | 'deduction';
+  amount: number;
+  label: string;
+  created_at: string | null;
+};
+
 export const messengerLabel: Record<string, string> = {
   telegram: 'Telegram',
   max: 'MAX',

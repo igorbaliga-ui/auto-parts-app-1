@@ -9,6 +9,7 @@ import {
 } from './garage/GarageAuthForms';
 import GarageHeader from './garage/GarageHeader';
 import GarageOrdersList from './garage/GarageOrdersList';
+import CashbackHistoryDialog from './garage/CashbackHistoryDialog';
 
 const GarageContent = () => {
   const g = useGarageState();
@@ -95,6 +96,7 @@ const GarageContent = () => {
         <GarageOrdersList
           orders={g.orders}
           totalCashback={g.totalCashback}
+          onShowCashbackHistory={() => g.setCashbackHistoryOpen(true)}
           pushPermission={g.pushPermission}
           pushSubscribing={g.pushSubscribing}
           pushSubscribed={g.pushSubscribed}
@@ -112,6 +114,11 @@ const GarageContent = () => {
           saveCarName={g.saveCarName}
         />
       </div>
+      <CashbackHistoryDialog
+        history={g.cashbackHistory}
+        open={g.cashbackHistoryOpen}
+        onOpenChange={g.setCashbackHistoryOpen}
+      />
     </div>
     </PageBackground>
   );

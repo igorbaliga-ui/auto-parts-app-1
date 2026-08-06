@@ -10,6 +10,7 @@ import {
   STORAGE_KEY,
   PASSWORD_VERIFIED_KEY,
   Order,
+  CashbackHistoryItem,
 } from './garageTypes';
 
 /**
@@ -27,6 +28,8 @@ export const useGarageState = () => {
   const [error, setError] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
   const [cashbackDeducted, setCashbackDeducted] = useState(0);
+  const [cashbackHistory, setCashbackHistory] = useState<CashbackHistoryItem[]>([]);
+  const [cashbackHistoryOpen, setCashbackHistoryOpen] = useState(false);
   const [carNameDrafts, setCarNameDrafts] = useState<Record<number, string>>({});
   const [savedCarNames, setSavedCarNames] = useState<Record<number, string>>({});
   const [savingCarId, setSavingCarId] = useState<number | null>(null);
@@ -81,6 +84,7 @@ export const useGarageState = () => {
       }
       setOrders(list);
       setCashbackDeducted(typeof data.cashback_deducted === 'number' ? data.cashback_deducted : 0);
+      setCashbackHistory(Array.isArray(data.cashback_history) ? data.cashback_history : []);
       const names = Object.fromEntries(list.map((o) => [o.id, o.car_name || '']));
       setCarNameDrafts(names);
       setSavedCarNames(names);
@@ -397,6 +401,9 @@ export const useGarageState = () => {
     savePasswordSettings,
     removePasswordSettings,
     totalCashback,
+    cashbackHistory,
+    cashbackHistoryOpen,
+    setCashbackHistoryOpen,
     inProgressOrders,
     doneOrders,
     visibleOrders,

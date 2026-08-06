@@ -49,14 +49,14 @@ def handler(event: dict, context) -> dict:
         )
         rows = cur.fetchall()
 
-        # Сумма списаний кэшбэка менеджером — вычитается из общей суммы, видной клиенту
+        # Списания кэшбэка менеджером — вычитаются из общей суммы, видной клиенту
         cur.execute(
-            f"SELECT COALESCE(SUM(amount), 0) AS deducted FROM {schema}.client_cashback_deductions "
-            f"WHERE phone_last10 = %s",
+            f"SELECT id, amount, created_at FROM {schema}.client_cashback_deductions "
+            f"WHERE phone_last10 = %s ORDER BY created_at DESC",
             (phone_last10,),
         )
-        deducted_row = cur.fetchone()
-        cashback_deducted = float(deducted_row['deducted']) if deducted_row else 0
+        deduction_rows = cur.fetchall()
+        cashback_deducted = sum(float(d['amount']) for d in deduction_rows)
         cur.close()
     finally:
         conn.close()
@@ -83,8 +83,33 @@ def handler(event: dict, context) -> dict:
             'arrived': bool(r['arrived']),
         })
 
+    # Подробная история операций с кэшбэком: начисления за выполненные заказы + списания менеджером
+    cashback_history = []
+    for r in rows:
+        if r['status'] == 'done' and r['cashback'] is not None:
+            car_label = r['car_name'] or r['vin'] or 'заказ'
+            cashback_history.append({
+                'type': 'accrual',
+                'amount': float(r['cashback']),
+                'label': f'Начислено за заказ: {car_label}',
+                'created_at': (r['completed_at'] or r['created_at']).isoformat()
+                if (r['completed_at'] or r['created_at']) else None,
+            })
+    for d in deduction_rows:
+        cashback_history.append({
+            'type': 'deduction',
+            'amount': float(d['amount']),
+            'label': 'Списание',
+            'created_at': d['created_at'].isoformat() if d['created_at'] else None,
+        })
+    cashback_history.sort(key=lambda h: h['created_at'] or '', reverse=True)
+
     return {
         'statusCode': 200,
         'headers': headers,
-        'body': json.dumps({'orders': orders, 'cashback_deducted': cashback_deducted}),
+        'body': json.dumps({
+            'orders': orders,
+            'cashback_deducted': cashback_deducted,
+            'cashback_history': cashback_history,
+        }),
     }

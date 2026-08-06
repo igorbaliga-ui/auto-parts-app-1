@@ -8,6 +8,7 @@ import { Order, messengerLabel, formatDate, formatMoney } from "./garageTypes";
 type GarageOrdersListProps = {
   orders: Order[];
   totalCashback: number;
+  onShowCashbackHistory: () => void;
   pushPermission: NotificationPermission | "unsupported";
   pushSubscribing: boolean;
   pushSubscribed: boolean;
@@ -30,6 +31,7 @@ type GarageOrdersListProps = {
 const GarageOrdersList = ({
   orders,
   totalCashback,
+  onShowCashbackHistory,
   pushPermission,
   pushSubscribing,
   pushSubscribed,
@@ -50,13 +52,25 @@ const GarageOrdersList = ({
     <>
       {orders.length > 0 && (
         <div className="mb-8 mt-6">
-          <div className="bg-card border border-primary/40 rounded-sm p-6">
-            <span className="text-muted-foreground text-xs uppercase tracking-[0.12em]">
-              Накопленный кэшбэк
-            </span>
-            <div className="font-head text-3xl mt-1 text-primary">
-              {formatMoney(totalCashback)}
+          <div className="bg-card border border-primary/40 rounded-sm p-6 flex items-end justify-between gap-3">
+            <div>
+              <span className="text-muted-foreground text-xs uppercase tracking-[0.12em]">
+                Накопленный кэшбэк
+              </span>
+              <div className="font-head text-3xl mt-1 text-primary">
+                {formatMoney(totalCashback)}
+              </div>
             </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onShowCashbackHistory}
+              className="shrink-0 text-muted-foreground hover:text-foreground"
+              title="История начислений и списаний"
+            >
+              <Icon name="History" size={16} className="mr-1.5" />
+              История
+            </Button>
           </div>
         </div>
       )}
