@@ -16,6 +16,17 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import Icon from '@/components/ui/icon';
 import ExpandableText from '@/components/shared/ExpandableText';
 import ColumnSearchInput from './ColumnSearchInput';
@@ -39,6 +50,7 @@ type AdminLeadsTableProps = {
   saveLead: (id: number) => void;
   toggleStatus: (id: number) => void;
   toggleArrived: (id: number) => void;
+  resetGaragePassword: (id: number) => void;
   onRefresh: () => void;
   statusTab: 'in_progress' | 'done' | 'all';
   setStatusTab: (tab: 'in_progress' | 'done' | 'all') => void;
@@ -64,6 +76,7 @@ const AdminLeadsTable = ({
   saveLead,
   toggleStatus,
   toggleArrived,
+  resetGaragePassword,
   onRefresh,
   statusTab,
   setStatusTab,
@@ -202,9 +215,37 @@ const AdminLeadsTable = ({
                     {isColumnVisible('name') && <TableCell>{l.name}</TableCell>}
                     {isColumnVisible('phone') && (
                       <TableCell>
-                        <a href={`tel:${l.phone}`} className="hover:text-primary">
-                          {l.phone}
-                        </a>
+                        <div className="flex items-center gap-1.5">
+                          <a href={`tel:${l.phone}`} className="hover:text-primary whitespace-nowrap">
+                            {l.phone}
+                          </a>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                title="Сбросить пароль от «Гаража» для этого клиента"
+                                disabled={savingId === l.id}
+                                className="shrink-0 flex items-center justify-center w-6 h-6 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                              >
+                                <Icon name="KeyRound" size={13} />
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Сбросить пароль клиента?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Клиент {l.name} ({l.phone}) сможет войти в «Гараж» по одному телефону,
+                                  без пароля, и при желании задать новый.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => resetGaragePassword(l.id)}>
+                                  Сбросить пароль
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     )}
                     {isColumnVisible('city') && (

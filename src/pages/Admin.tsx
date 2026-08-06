@@ -6,6 +6,7 @@ import { Lead, ColumnKey, columns } from './admin/adminTypes';
 
 const LEADS_ADMIN_URL = 'https://functions.poehali.dev/68ca5544-c377-4c79-ba1f-57ba286b33a9';
 const LEADS_UPDATE_URL = 'https://functions.poehali.dev/1612bdca-502b-46a9-b0ea-8d6d93876dc6';
+const GARAGE_AUTH_URL = 'https://functions.poehali.dev/d92ac11d-c6d2-4430-b948-a767c0048442';
 
 const Admin = () => {
   const [password, setPassword] = useState('');
@@ -141,6 +142,24 @@ const Admin = () => {
     }
   };
 
+  const resetGaragePassword = async (id: number) => {
+    const lead = leads.find((l) => l.id === id);
+    if (!lead) return;
+    setSavingId(id);
+    try {
+      const res = await fetch(GARAGE_AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
+        body: JSON.stringify({ action: 'admin_reset_password', phone: lead.phone }),
+      });
+      if (!res.ok) throw new Error('request failed');
+    } catch {
+      setError('Не удалось сбросить пароль. Попробуйте ещё раз.');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const isColumnVisible = (key: ColumnKey) => !hiddenColumns.has(key);
 
   const toggleColumn = (key: ColumnKey) => {
@@ -227,6 +246,7 @@ const Admin = () => {
         saveLead={saveLead}
         toggleStatus={toggleStatus}
         toggleArrived={toggleArrived}
+        resetGaragePassword={resetGaragePassword}
         onRefresh={() => load(password)}
         statusTab={statusTab}
         setStatusTab={setStatusTab}

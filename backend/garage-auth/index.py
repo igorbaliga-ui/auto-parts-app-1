@@ -21,7 +21,7 @@ def handler(event: dict, context) -> dict:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Password',
                 'Access-Control-Max-Age': '86400',
             },
             'body': '',
@@ -55,6 +55,9 @@ def handler(event: dict, context) -> dict:
 
     if method != 'POST':
         return {'statusCode': 405, 'headers': headers, 'body': json.dumps({'error': 'Method not allowed'})}
+
+    req_headers = event.get('headers') or {}
+    admin_password_env = os.environ.get('ADMIN_PASSWORD')
 
     body = json.loads(event.get('body') or '{}')
     action = body.get('action')
@@ -124,6 +127,19 @@ def handler(event: dict, context) -> dict:
                 f"VALUES (%s, %s, now()) "
                 f"ON CONFLICT (phone_last10) DO UPDATE SET password_hash = EXCLUDED.password_hash, updated_at = now()",
                 (phone_last10, new_hash),
+            )
+            conn.commit()
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+
+        if action == 'admin_reset_password':
+            # Принудительный сброс пароля клиента менеджером из /admin —
+            # для случаев, когда клиент забыл и пароль, и имя из первой заявки
+            admin_password = req_headers.get('X-Admin-Password') or req_headers.get('x-admin-password')
+            if not admin_password_env or admin_password != admin_password_env:
+                return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный пароль администратора'})}
+            cur.execute(
+                f"UPDATE {schema}.garage_accounts SET password_hash = NULL, updated_at = now() WHERE phone_last10 = %s",
+                (phone_last10,),
             )
             conn.commit()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
