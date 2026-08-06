@@ -155,8 +155,8 @@ const Hero = () => {
             )}
 
             <div className="mt-4 flex flex-col items-start gap-2 text-muted-foreground text-sm">
-              <i className="w-1.5 h-1.5 bg-primary inline-block rotate-45" />
               <span className="flex items-center gap-2">
+                <i className="w-1.5 h-1.5 bg-primary inline-block rotate-45" />
                 Все запчасти проверены на подлинность
               </span>
               <span className="flex items-center gap-2">
