@@ -1,5 +1,5 @@
-const CACHE_NAME = 'zap-optom-v1';
-const PRECACHE_URLS = ['/', '/manifest.webmanifest', '/pwa-192.png', '/pwa-512.png'];
+const CACHE_NAME = 'zap-optom-v2';
+const PRECACHE_URLS = ['/pwa-192.png', '/pwa-512.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -22,6 +22,19 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  // HTML-навигация и манифесты — всегда сначала из сети (network-first), без кэша.
+  // Иначе установленное на телефон приложение может годами открывать старую
+  // закэшированную страницу /admin (например, без нужного <link rel="manifest">),
+  // из-за чего ярлык на главном экране ведёт не туда, куда нужно.
+  const isNavigation = request.mode === 'navigate' || request.destination === 'document';
+  const isManifest = url.pathname.endsWith('.webmanifest');
+  if (isNavigation || isManifest) {
+    event.respondWith(
+      fetch(request).catch(() => caches.match(request))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(request).then((cached) => {
