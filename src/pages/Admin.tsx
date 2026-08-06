@@ -75,14 +75,15 @@ const Admin = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Пока пользователь на /admin — подменяем манифест, чтобы «Установить на главный экран»
-  // ставило именно админку (со своим именем/иконкой и запуском сразу в /admin), а не весь сайт
+  // Манифест для /admin уже подставлен синхронно в index.html (до загрузки React) —
+  // это нужно, чтобы браузер сразу видел манифест админки при установке на главный экран.
+  // Здесь только подстраховка для перехода на /admin кликом внутри SPA (без полной перезагрузки),
+  // и обязательный возврат к манифесту сайта при уходе со страницы.
   useEffect(() => {
     const link = document.querySelector('link[rel="manifest"]');
-    const prevHref = link?.getAttribute('href') ?? '/manifest.webmanifest';
     link?.setAttribute('href', '/admin-manifest.webmanifest');
     return () => {
-      link?.setAttribute('href', prevHref);
+      link?.setAttribute('href', '/manifest.webmanifest');
     };
   }, []);
 
