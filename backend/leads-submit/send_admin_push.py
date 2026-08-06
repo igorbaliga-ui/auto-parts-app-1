@@ -29,7 +29,7 @@ def send_push_to_admins(dsn: str, schema: str, title: str, body: str, url: str =
                     subscription_info=subscription_info,
                     data=json.dumps({'title': title, 'body': body, 'url': url}),
                     vapid_private_key=private_key,
-                    vapid_claims={'sub': 'mailto:zakaz@zapoptom.ru'},
+                    vapid_claims={'sub': 'mailto:zapoptom@bk.ru'},
                 )
             except WebPushException as e:
                 status_code = getattr(e.response, 'status_code', None)
