@@ -1,5 +1,6 @@
 import json
 import os
+
 import psycopg2
 import psycopg2.extras
 
@@ -9,6 +10,13 @@ FIELD_LABEL = {
     'status': 'Статус',
     'arrived': 'Поступил',
     'internal_note': 'Заметка',
+    'vin': 'VIN',
+    'name': 'Имя',
+    'phone': 'Телефон',
+    'city': 'Город',
+    'messenger': 'Мессенджер',
+    'parts': 'Запчасти',
+    'car_name': 'Авто',
 }
 
 

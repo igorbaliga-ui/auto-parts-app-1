@@ -45,6 +45,7 @@ const Admin = () => {
         pushSubscribing={a.pushSubscribing}
         subscribePush={a.subscribePush}
         saveLead={a.saveLead}
+        saveLeadField={a.saveLeadField}
         toggleStatus={a.toggleStatus}
         toggleArrived={a.toggleArrived}
         resetGaragePassword={a.resetGaragePassword}

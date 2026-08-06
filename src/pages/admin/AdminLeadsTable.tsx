@@ -32,6 +32,7 @@ type AdminLeadsTableProps = {
   pushSubscribing: boolean;
   subscribePush: () => void;
   saveLead: (id: number) => void;
+  saveLeadField: (id: number, field: string, value: string) => Promise<void>;
   toggleStatus: (id: number) => void;
   toggleArrived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
@@ -65,6 +66,7 @@ const AdminLeadsTable = ({
   pushSubscribing,
   subscribePush,
   saveLead,
+  saveLeadField,
   toggleStatus,
   toggleArrived,
   resetGaragePassword,
@@ -120,6 +122,7 @@ const AdminLeadsTable = ({
               setPrepaymentDraft={setPrepaymentDraft}
               setNoteDraft={setNoteDraft}
               saveLead={saveLead}
+              saveLeadField={saveLeadField}
               toggleStatus={toggleStatus}
               toggleArrived={toggleArrived}
               resetGaragePassword={resetGaragePassword}
@@ -137,6 +140,7 @@ const AdminLeadsTable = ({
               setPrepaymentDraft={setPrepaymentDraft}
               setNoteDraft={setNoteDraft}
               saveLead={saveLead}
+              saveLeadField={saveLeadField}
               toggleStatus={toggleStatus}
               toggleArrived={toggleArrived}
               resetGaragePassword={resetGaragePassword}

@@ -21,9 +21,15 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import Icon from '@/components/ui/icon';
-import ExpandableText from '@/components/shared/ExpandableText';
 import ColumnSearchInput from './ColumnSearchInput';
+import InlineEditableCell from './InlineEditableCell';
 import { Lead, ColumnKey, columns, messengerLabel, statusLabel, formatDate } from './adminTypes';
+
+const MESSENGER_OPTIONS = [
+  { value: 'telegram', label: 'Telegram' },
+  { value: 'max', label: 'MAX' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+];
 
 type AdminLeadsDesktopTableProps = {
   filteredLeads: Lead[];
@@ -37,6 +43,7 @@ type AdminLeadsDesktopTableProps = {
   setPrepaymentDraft: (id: number, value: string) => void;
   setNoteDraft: (id: number, value: string) => void;
   saveLead: (id: number) => void;
+  saveLeadField: (id: number, field: string, value: string) => Promise<void>;
   toggleStatus: (id: number) => void;
   toggleArrived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
@@ -55,6 +62,7 @@ const AdminLeadsDesktopTable = ({
   setPrepaymentDraft,
   setNoteDraft,
   saveLead,
+  saveLeadField,
   toggleStatus,
   toggleArrived,
   resetGaragePassword,
@@ -97,18 +105,55 @@ const AdminLeadsDesktopTable = ({
                 </TableCell>
               )}
               {isColumnVisible('vin') && (
-                <TableCell className="font-head tracking-[0.1em]">{l.vin || '—'}</TableCell>
+                <TableCell className="font-head tracking-[0.1em]">
+                  <InlineEditableCell
+                    value={l.vin || ''}
+                    displayLabel="VIN"
+                    onSave={(v) => saveLeadField(l.id, 'vin', v)}
+                    inputClassName="w-40"
+                  />
+                </TableCell>
               )}
               {isColumnVisible('car') && (
-                <TableCell className="text-muted-foreground">{l.car_name || '—'}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  <InlineEditableCell
+                    value={l.car_name || ''}
+                    displayLabel="Авто"
+                    onSave={(v) => saveLeadField(l.id, 'car_name', v)}
+                    inputClassName="w-32"
+                  />
+                </TableCell>
               )}
-              {isColumnVisible('name') && <TableCell>{l.name}</TableCell>}
+              {isColumnVisible('name') && (
+                <TableCell>
+                  <InlineEditableCell
+                    value={l.name}
+                    displayLabel="Имя"
+                    required
+                    onSave={(v) => saveLeadField(l.id, 'name', v)}
+                    inputClassName="w-32"
+                  />
+                </TableCell>
+              )}
               {isColumnVisible('phone') && (
                 <TableCell>
                   <div className="flex items-center gap-1.5">
-                    <a href={`tel:${l.phone}`} className="hover:text-primary whitespace-nowrap">
-                      {l.phone}
-                    </a>
+                    <InlineEditableCell
+                      value={l.phone}
+                      displayLabel="Телефон"
+                      required
+                      onSave={(v) => saveLeadField(l.id, 'phone', v)}
+                      inputClassName="w-32"
+                      renderValue={(v) => (
+                        <a
+                          href={`tel:${v}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:text-primary whitespace-nowrap"
+                        >
+                          {v}
+                        </a>
+                      )}
+                    />
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <button
@@ -139,16 +184,37 @@ const AdminLeadsDesktopTable = ({
                 </TableCell>
               )}
               {isColumnVisible('city') && (
-                <TableCell className="text-muted-foreground">{l.city || '—'}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  <InlineEditableCell
+                    value={l.city || ''}
+                    displayLabel="Город"
+                    onSave={(v) => saveLeadField(l.id, 'city', v)}
+                    inputClassName="w-28"
+                  />
+                </TableCell>
               )}
               {isColumnVisible('messenger') && (
                 <TableCell>
-                  {l.messenger ? messengerLabel[l.messenger] ?? l.messenger : '—'}
+                  <InlineEditableCell
+                    value={l.messenger || ''}
+                    displayLabel="Мессенджер"
+                    options={MESSENGER_OPTIONS}
+                    onSave={(v) => saveLeadField(l.id, 'messenger', v)}
+                    inputClassName="w-28"
+                    renderValue={(v) => messengerLabel[v] ?? v}
+                  />
                 </TableCell>
               )}
               {isColumnVisible('parts') && (
                 <TableCell className="text-muted-foreground">
-                  <ExpandableText text={l.parts} label="Интересующие запчасти" />
+                  <InlineEditableCell
+                    value={l.parts || ''}
+                    displayLabel="Запчасти"
+                    multiline
+                    onSave={(v) => saveLeadField(l.id, 'parts', v)}
+                    inputClassName="w-48"
+                    className="max-w-[220px] line-clamp-3 whitespace-pre-wrap align-top"
+                  />
                 </TableCell>
               )}
               {isColumnVisible('photo') && (

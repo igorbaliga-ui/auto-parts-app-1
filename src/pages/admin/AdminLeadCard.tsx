@@ -13,8 +13,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import Icon from '@/components/ui/icon';
-import ExpandableText from '@/components/shared/ExpandableText';
+import InlineEditableCell from './InlineEditableCell';
 import { Lead, messengerLabel, statusLabel, formatDate } from './adminTypes';
+
+const MESSENGER_OPTIONS = [
+  { value: 'telegram', label: 'Telegram' },
+  { value: 'max', label: 'MAX' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+];
 
 type AdminLeadCardProps = {
   lead: Lead;
@@ -24,6 +30,7 @@ type AdminLeadCardProps = {
   setPrepaymentDraft: (id: number, value: string) => void;
   setNoteDraft: (id: number, value: string) => void;
   saveLead: (id: number) => void;
+  saveLeadField: (id: number, field: string, value: string) => Promise<void>;
   toggleStatus: (id: number) => void;
   toggleArrived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
@@ -45,6 +52,7 @@ const AdminLeadCard = ({
   setPrepaymentDraft,
   setNoteDraft,
   saveLead,
+  saveLeadField,
   toggleStatus,
   toggleArrived,
   resetGaragePassword,
@@ -53,19 +61,48 @@ const AdminLeadCard = ({
   return (
     <div className="bg-card border border-steel rounded-sm p-4 flex flex-col gap-1">
       <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="font-head tracking-[0.08em] text-base truncate">{l.name}</span>
+        <InlineEditableCell
+          value={l.name}
+          displayLabel="Имя"
+          required
+          onSave={(v) => saveLeadField(l.id, 'name', v)}
+          className="font-head tracking-[0.08em] text-base truncate"
+        />
         <span className="text-muted-foreground text-xs shrink-0">{formatDate(l.created_at)}</span>
       </div>
 
       <Row label="VIN">
-        <span className="font-head tracking-[0.08em]">{l.vin || '—'}</span>
+        <InlineEditableCell
+          value={l.vin || ''}
+          displayLabel="VIN"
+          onSave={(v) => saveLeadField(l.id, 'vin', v)}
+          className="font-head tracking-[0.08em]"
+        />
       </Row>
-      {l.car_name && <Row label="Авто">{l.car_name}</Row>}
+      <Row label="Авто">
+        <InlineEditableCell
+          value={l.car_name || ''}
+          displayLabel="Авто"
+          onSave={(v) => saveLeadField(l.id, 'car_name', v)}
+        />
+      </Row>
       <Row label="Телефон">
         <div className="flex items-center gap-1.5 justify-end">
-          <a href={`tel:${l.phone}`} className="hover:text-primary whitespace-nowrap">
-            {l.phone}
-          </a>
+          <InlineEditableCell
+            value={l.phone}
+            displayLabel="Телефон"
+            required
+            onSave={(v) => saveLeadField(l.id, 'phone', v)}
+            renderValue={(v) => (
+              <a
+                href={`tel:${v}`}
+                onClick={(e) => e.stopPropagation()}
+                className="hover:text-primary whitespace-nowrap"
+              >
+                {v}
+              </a>
+            )}
+          />
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <button
@@ -94,15 +131,31 @@ const AdminLeadCard = ({
           </AlertDialog>
         </div>
       </Row>
-      {l.city && <Row label="Город">{l.city}</Row>}
-      {l.messenger && (
-        <Row label="Мессенджер">{messengerLabel[l.messenger] ?? l.messenger}</Row>
-      )}
-      {l.parts && (
-        <Row label="Запчасти">
-          <ExpandableText text={l.parts} label="Интересующие запчасти" className="text-left" />
-        </Row>
-      )}
+      <Row label="Город">
+        <InlineEditableCell
+          value={l.city || ''}
+          displayLabel="Город"
+          onSave={(v) => saveLeadField(l.id, 'city', v)}
+        />
+      </Row>
+      <Row label="Мессенджер">
+        <InlineEditableCell
+          value={l.messenger || ''}
+          displayLabel="Мессенджер"
+          options={MESSENGER_OPTIONS}
+          onSave={(v) => saveLeadField(l.id, 'messenger', v)}
+          renderValue={(v) => messengerLabel[v] ?? v}
+        />
+      </Row>
+      <Row label="Запчасти">
+        <InlineEditableCell
+          value={l.parts || ''}
+          displayLabel="Запчасти"
+          multiline
+          onSave={(v) => saveLeadField(l.id, 'parts', v)}
+          className="text-left whitespace-pre-wrap"
+        />
+      </Row>
       {l.photo_url && (
         <Row label="Фото СТС">
           <a href={l.photo_url} target="_blank" rel="noreferrer">

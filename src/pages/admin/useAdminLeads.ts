@@ -163,6 +163,26 @@ export const useAdminLeads = () => {
     }
   };
 
+  // Точечное сохранение одного текстового поля (VIN, имя, телефон, город, мессенджер, запчасти, авто) —
+  // используется для клик-редактирования прямо в ячейке таблицы
+  const saveLeadField = async (id: number, field: string, value: string) => {
+    setSavingId(id);
+    try {
+      const res = await fetch(LEADS_UPDATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
+        body: JSON.stringify({ id, [field]: value, admin_name: adminName }),
+      });
+      if (!res.ok) throw new Error('request failed');
+      setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, [field]: value || null } : l)));
+    } catch {
+      setError('Не удалось сохранить. Попробуйте ещё раз.');
+      throw new Error('save failed');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const toggleStatus = async (id: number) => {
     const lead = leads.find((l) => l.id === id);
     if (!lead) return;
@@ -325,6 +345,7 @@ export const useAdminLeads = () => {
     setPrepaymentDraft,
     setNoteDraft,
     saveLead,
+    saveLeadField,
     toggleStatus,
     toggleArrived,
     resetGaragePassword,

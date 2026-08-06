@@ -9,6 +9,7 @@ type AdminLeadsMobileListProps = {
   setPrepaymentDraft: (id: number, value: string) => void;
   setNoteDraft: (id: number, value: string) => void;
   saveLead: (id: number) => void;
+  saveLeadField: (id: number, field: string, value: string) => Promise<void>;
   toggleStatus: (id: number) => void;
   toggleArrived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
@@ -23,6 +24,7 @@ const AdminLeadsMobileList = ({
   setPrepaymentDraft,
   setNoteDraft,
   saveLead,
+  saveLeadField,
   toggleStatus,
   toggleArrived,
   resetGaragePassword,
@@ -43,6 +45,7 @@ const AdminLeadsMobileList = ({
             setPrepaymentDraft={setPrepaymentDraft}
             setNoteDraft={setNoteDraft}
             saveLead={saveLead}
+            saveLeadField={saveLeadField}
             toggleStatus={toggleStatus}
             toggleArrived={toggleArrived}
             resetGaragePassword={resetGaragePassword}

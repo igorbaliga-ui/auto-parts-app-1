@@ -5,6 +5,12 @@ from send_push import send_push_to_phone
 
 STATUS_LABEL = {'in_progress': 'В работе', 'done': 'Выполнен'}
 
+# Текстовые поля, которые можно частично обновлять по одному (клик-редактирование в /admin)
+TEXT_FIELDS = ['vin', 'name', 'phone', 'city', 'messenger', 'parts', 'car_name']
+
+# Поля, для которых пустая строка означает «очистить» (сохраняем NULL, а не '')
+NULLABLE_TEXT_FIELDS = ['vin', 'city', 'messenger', 'parts', 'car_name']
+
 
 def fmt_amount(v):
     return None if v is None else str(float(v))
@@ -20,6 +26,17 @@ def fmt_arrived(v):
     return 'Да' if v else 'Нет'
 
 
+def normalize_text_field(field: str, value):
+    if value is None:
+        return None
+    value = value.strip()
+    if field == 'vin':
+        value = value.upper()
+    if not value and field in NULLABLE_TEXT_FIELDS:
+        return None
+    return value
+
+
 def log_change(cur, schema: str, lead_id: int, admin_name: str, field: str, old_value, new_value):
     if old_value == new_value:
         return
@@ -31,9 +48,11 @@ def log_change(cur, schema: str, lead_id: int, admin_name: str, field: str, old_
 
 
 def handler(event: dict, context) -> dict:
-    """Обновляет сумму заказа, предоплату, статус и пометку «Поступил» по заявке (для менеджера в /admin).
-    Остаток (сумма заказа минус предоплата) считается автоматически в БД.
-    Каждое изменение суммы, предоплаты и статуса записывается в журнал lead_changes (кто и когда менял).
+    """Частично обновляет заявку по id (для менеджера в /admin): сумму заказа, предоплату, статус,
+    пометку «Поступил», внутреннюю заметку, а также VIN, имя, телефон, город, мессенджер,
+    запчасти и название авто. Обновляются только те поля, что реально переданы в запросе.
+    Остаток и кэшбэк — вычисляемые колонки в БД, пересчитываются автоматически.
+    Каждое изменение записывается в журнал lead_changes (кто и когда менял).
     При простановке пометки «Поступил» или переводе в статус «Выполнен» отправляет клиенту Web Push уведомление."""
     method = event.get('httpMethod', 'GET')
 
@@ -63,20 +82,20 @@ def handler(event: dict, context) -> dict:
 
     body = json.loads(event.get('body') or '{}')
     lead_id = body.get('id')
-    order_amount = body.get('order_amount')
-    prepayment = body.get('prepayment')
-    status = body.get('status')
-    arrived = body.get('arrived')
-    internal_note = body.get('internal_note')
     admin_name = (body.get('admin_name') or '').strip() or 'Менеджер'
 
     if not isinstance(lead_id, int):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный id заявки'})}
 
+    status = body.get('status')
     if status is not None and status not in ('in_progress', 'done'):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный статус'})}
 
-    # Кэшбэк и остаток — вычисляемые колонки в БД, пересчитываются автоматически
+    if 'name' in body and not (body.get('name') or '').strip():
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Имя не может быть пустым'})}
+
+    if 'phone' in body and not (body.get('phone') or '').strip():
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Телефон не может быть пустым'})}
 
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']
@@ -86,63 +105,92 @@ def handler(event: dict, context) -> dict:
 
         # Читаем текущие значения для журнала изменений
         cur.execute(
-            f"SELECT order_amount, prepayment, status, arrived, internal_note FROM {schema}.leads WHERE id = %s",
+            f"SELECT order_amount, prepayment, status, arrived, internal_note, "
+            f"vin, name, phone, city, messenger, parts, car_name "
+            f"FROM {schema}.leads WHERE id = %s",
             (lead_id,),
         )
         prev = cur.fetchone()
-        prev_amount, prev_prepayment, prev_status, prev_arrived, prev_note = prev if prev else (None, None, None, None, None)
+        if not prev:
+            return {'statusCode': 404, 'headers': headers, 'body': json.dumps({'error': 'Заявка не найдена'})}
+        (prev_amount, prev_prepayment, prev_status, prev_arrived, prev_note,
+         prev_vin, prev_name, prev_phone, prev_city, prev_messenger, prev_parts, prev_car_name) = prev
+
+        set_clauses = []
+        params = []
+        text_values = {}
+        note_value = None
+
+        if 'order_amount' in body:
+            set_clauses.append("order_amount = %s")
+            params.append(body['order_amount'])
+        if 'prepayment' in body:
+            set_clauses.append("prepayment = %s")
+            params.append(body['prepayment'])
+        if 'internal_note' in body:
+            raw_note = body['internal_note']
+            note_value = raw_note.strip() if isinstance(raw_note, str) and raw_note.strip() else None
+            set_clauses.append("internal_note = %s")
+            params.append(note_value)
+
+        for field in TEXT_FIELDS:
+            if field in body:
+                value = normalize_text_field(field, body[field])
+                text_values[field] = value
+                set_clauses.append(f"{field} = %s")
+                params.append(value)
+
+        arrived = body.get('arrived')
 
         if status is not None:
-            # При переводе в «Выполнен» фиксируем дату/время выполнения.
-            # При возврате в «В работе» — сбрасываем её.
+            set_clauses.append("status = %s")
+            params.append(status)
             if status == 'done':
-                cur.execute(
-                    f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, status = %s, "
-                    f"internal_note = %s, completed_at = COALESCE(completed_at, now()) WHERE id = %s "
-                    f"RETURNING cashback, remaining, completed_at, phone, car_name, vin",
-                    (order_amount, prepayment, status, internal_note, lead_id),
-                )
+                set_clauses.append("completed_at = COALESCE(completed_at, now())")
             else:
-                cur.execute(
-                    f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, status = %s, "
-                    f"internal_note = %s, completed_at = NULL "
-                    f"WHERE id = %s RETURNING cashback, remaining, completed_at, phone, car_name, vin",
-                    (order_amount, prepayment, status, internal_note, lead_id),
-                )
-        elif arrived is not None:
+                set_clauses.append("completed_at = NULL")
+
+        if arrived is not None:
+            set_clauses.append("arrived = %s")
+            params.append(arrived)
             if arrived:
-                cur.execute(
-                    f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, arrived = true, "
-                    f"internal_note = %s, arrived_at = COALESCE(arrived_at, now()) WHERE id = %s "
-                    f"RETURNING cashback, remaining, completed_at, phone, car_name, vin",
-                    (order_amount, prepayment, internal_note, lead_id),
-                )
+                set_clauses.append("arrived_at = COALESCE(arrived_at, now())")
             else:
-                cur.execute(
-                    f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, arrived = false, "
-                    f"internal_note = %s, arrived_at = NULL "
-                    f"WHERE id = %s RETURNING cashback, remaining, completed_at, phone, car_name, vin",
-                    (order_amount, prepayment, internal_note, lead_id),
-                )
-        else:
-            cur.execute(
-                f"UPDATE {schema}.leads SET order_amount = %s, prepayment = %s, internal_note = %s WHERE id = %s "
-                f"RETURNING cashback, remaining, completed_at, phone, car_name, vin",
-                (order_amount, prepayment, internal_note, lead_id),
-            )
+                set_clauses.append("arrived_at = NULL")
+
+        if not set_clauses:
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Нечего сохранять'})}
+
+        params.append(lead_id)
+        cur.execute(
+            f"UPDATE {schema}.leads SET {', '.join(set_clauses)} WHERE id = %s "
+            f"RETURNING cashback, remaining, completed_at, phone, car_name, vin",
+            params,
+        )
         row = cur.fetchone()
         cashback = float(row[0]) if row and row[0] is not None else None
         remaining = float(row[1]) if row and row[1] is not None else None
         completed_at = row[2].isoformat() if row and row[2] else None
 
         # Записываем изменения в журнал
-        log_change(cur, schema, lead_id, admin_name, 'order_amount', fmt_amount(prev_amount), fmt_amount(order_amount))
-        log_change(cur, schema, lead_id, admin_name, 'prepayment', fmt_amount(prev_prepayment), fmt_amount(prepayment))
+        if 'order_amount' in body:
+            log_change(cur, schema, lead_id, admin_name, 'order_amount', fmt_amount(prev_amount), fmt_amount(body['order_amount']))
+        if 'prepayment' in body:
+            log_change(cur, schema, lead_id, admin_name, 'prepayment', fmt_amount(prev_prepayment), fmt_amount(body['prepayment']))
+        if 'internal_note' in body:
+            log_change(cur, schema, lead_id, admin_name, 'internal_note', prev_note, note_value)
         if status is not None:
             log_change(cur, schema, lead_id, admin_name, 'status', fmt_status(prev_status), fmt_status(status))
         if arrived is not None:
             log_change(cur, schema, lead_id, admin_name, 'arrived', fmt_arrived(prev_arrived), fmt_arrived(arrived))
-        log_change(cur, schema, lead_id, admin_name, 'internal_note', prev_note, internal_note)
+
+        text_prev = {
+            'vin': prev_vin, 'name': prev_name, 'phone': prev_phone, 'city': prev_city,
+            'messenger': prev_messenger, 'parts': prev_parts, 'car_name': prev_car_name,
+        }
+        for field in TEXT_FIELDS:
+            if field in body:
+                log_change(cur, schema, lead_id, admin_name, field, text_prev[field], text_values[field])
 
         conn.commit()
         cur.close()
