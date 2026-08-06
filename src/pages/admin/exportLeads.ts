@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import { Lead, ColumnKey, columns, messengerLabel, statusLabel, formatDate } from './adminTypes';
 
 const cellValue = (l: Lead, key: ColumnKey): string | number => {
@@ -43,11 +42,15 @@ const cellValue = (l: Lead, key: ColumnKey): string | number => {
 /**
  * Выгружает переданный список заявок в файл Excel (.xlsx), учитывая только видимые столбцы
  * (те, что сейчас не скрыты в таблице админки через «Столбцы»).
+ *
+ * Библиотека xlsx весит несколько мегабайт, поэтому подгружается динамически —
+ * только в момент нажатия кнопки выгрузки, а не при открытии страницы.
  */
-export const exportLeadsToExcel = (
+export const exportLeadsToExcel = async (
   leads: Lead[],
   isColumnVisible: (key: ColumnKey) => boolean,
 ) => {
+  const XLSX = await import('xlsx');
   const visibleColumns = columns.filter((c) => isColumnVisible(c.key));
 
   const header = visibleColumns.map((c) => c.label);
