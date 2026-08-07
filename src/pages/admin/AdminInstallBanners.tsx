@@ -46,7 +46,7 @@ const AdminInstallBanners = ({
             onClick={handleShare}
             aria-label="Поделиться приложением"
             title="Поделиться приложением"
-            className="shrink-0 flex items-center justify-center w-9 h-9 rounded-full border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-share-bounce"
+            className="shrink-0 flex items-center justify-center w-9 h-9 rounded-full border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-share-glow"
           >
             <Icon name="Share2" size={16} />
           </button>

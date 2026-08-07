@@ -67,7 +67,7 @@ const Header = () => {
             onClick={handleShare}
             aria-label="Поделиться приложением"
             title="Поделиться приложением"
-            className="flex items-center justify-center w-9 h-9 ml-4 rounded-full border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-share-bounce"
+            className="flex items-center justify-center w-9 h-9 ml-4 rounded-full border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-share-glow"
           >
             <Icon name="Share2" size={16} />
           </button>
