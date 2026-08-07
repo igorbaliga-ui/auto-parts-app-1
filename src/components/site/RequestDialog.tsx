@@ -249,7 +249,12 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     return (
       <RequestContext.Provider value={{ open }}>
         {children}
-        <Drawer open={isOpen} onOpenChange={setIsOpen} repositionInputs={false}>
+        <Drawer
+          open={isOpen}
+          onOpenChange={setIsOpen}
+          repositionInputs={false}
+          shouldScaleBackground={false}
+        >
           <DrawerContent className="bg-card border-border max-h-[85vh]">
             <div className="overflow-y-auto px-4 pb-6">
               {sent ? (
