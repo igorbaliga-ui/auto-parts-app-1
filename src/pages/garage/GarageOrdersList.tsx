@@ -150,24 +150,24 @@ const GarageOrdersList = ({
                       Поступило
                     </span>
                   )}
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <span
+                    className={`absolute right-3 text-[0.65rem] font-head uppercase tracking-wide px-2 py-1 rounded-sm ${
+                      o.status !== "done" && o.arrived ? "top-8" : "top-3"
+                    } ${
+                      o.status === "done"
+                        ? "bg-primary/15 text-primary"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {o.status === "done" ? "Выполнен" : "В работе"}
+                  </span>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pr-20">
                     <span className="font-head tracking-[0.1em] text-lg">
                       {o.vin || "VIN не указан (по фото)"}
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[0.65rem] font-head uppercase tracking-wide px-2 py-1 rounded-sm ${
-                          o.status === "done"
-                            ? "bg-primary/15 text-primary"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {o.status === "done" ? "Выполнен" : "В работе"}
-                      </span>
-                      <span className="text-muted-foreground text-xs">
-                        {formatDate(o.created_at)}
-                      </span>
-                    </div>
+                    <span className="text-muted-foreground text-xs">
+                      {formatDate(o.created_at)}
+                    </span>
                   </div>
                   {o.status === "done" && o.completed_at && (
                     <p className="text-primary/80 text-xs mb-3 -mt-2">
