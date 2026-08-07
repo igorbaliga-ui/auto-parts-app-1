@@ -11,7 +11,6 @@ import GarageHeader from './garage/GarageHeader';
 import GarageOrdersList from './garage/GarageOrdersList';
 import CashbackHistoryDialog from './garage/CashbackHistoryDialog';
 import GarageArchiveDialog from './garage/GarageArchiveDialog';
-import Icon from '@/components/ui/icon';
 
 const GarageContent = () => {
   const g = useGarageState();
@@ -70,14 +69,6 @@ const GarageContent = () => {
   return (
     <PageBackground>
     <div className="min-h-screen text-foreground px-5 sm:px-8 lg:px-12 py-10 relative">
-      <button
-        onClick={() => g.setArchiveDialogOpen(true)}
-        title="Архив заявок"
-        aria-label="Архив заявок"
-        className="absolute top-4 right-4 sm:top-6 sm:right-8 flex items-center justify-center w-8 h-8 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors z-10"
-      >
-        <Icon name="Archive" size={16} />
-      </button>
       <div className="max-w-[1000px] mx-auto">
         <GarageHeader
           city={g.city}
@@ -112,6 +103,7 @@ const GarageContent = () => {
           pushSubscribed={g.pushSubscribed}
           subscribePush={g.subscribePush}
           onNewRequest={g.onNewRequest}
+          onOpenArchive={() => g.setArchiveDialogOpen(true)}
           statusTab={g.statusTab}
           setStatusTab={g.setStatusTab}
           newOrders={g.newOrders}

@@ -14,6 +14,7 @@ type GarageOrdersListProps = {
   pushSubscribed: boolean;
   subscribePush: () => void;
   onNewRequest: () => void;
+  onOpenArchive: () => void;
   statusTab: "new" | "in_progress" | "done";
   setStatusTab: (tab: "new" | "in_progress" | "done") => void;
   newOrders: Order[];
@@ -38,6 +39,7 @@ const GarageOrdersList = ({
   pushSubscribed,
   subscribePush,
   onNewRequest,
+  onOpenArchive,
   statusTab,
   setStatusTab,
   newOrders,
@@ -107,42 +109,52 @@ const GarageOrdersList = ({
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-1.5 sm:gap-2 mb-4">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-2 mb-4">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <button
+                onClick={() => setStatusTab("new")}
+                className={`shrink-0 h-8 sm:h-10 px-2 sm:px-4 rounded-sm border text-[0.7rem] sm:text-sm font-head uppercase tracking-wide transition-colors flex items-center gap-1 sm:gap-1.5 ${
+                  statusTab === "new"
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-steel text-muted-foreground hover:border-primary/60"
+                }`}
+              >
+                {newOrders.length > 0 && (
+                  <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
+                    <span className="relative inline-flex h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-amber-500" />
+                  </span>
+                )}
+                Новые ({newOrders.length})
+              </button>
+              <button
+                onClick={() => setStatusTab("in_progress")}
+                className={`shrink-0 h-8 sm:h-10 px-2 sm:px-4 rounded-sm border text-[0.7rem] sm:text-sm font-head uppercase tracking-wide transition-colors ${
+                  statusTab === "in_progress"
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-steel text-muted-foreground hover:border-primary/60"
+                }`}
+              >
+                В работе ({inProgressOrders.length})
+              </button>
+              <button
+                onClick={() => setStatusTab("done")}
+                className={`shrink-0 h-8 sm:h-10 px-2 sm:px-4 rounded-sm border text-[0.7rem] sm:text-sm font-head uppercase tracking-wide transition-colors ${
+                  statusTab === "done"
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-steel text-muted-foreground hover:border-primary/60"
+                }`}
+              >
+                Выполненные ({doneOrders.length})
+              </button>
+            </div>
             <button
-              onClick={() => setStatusTab("new")}
-              className={`shrink-0 h-8 sm:h-10 px-2 sm:px-4 rounded-sm border text-[0.7rem] sm:text-sm font-head uppercase tracking-wide transition-colors flex items-center gap-1 sm:gap-1.5 ${
-                statusTab === "new"
-                  ? "border-primary bg-primary/10 text-foreground"
-                  : "border-steel text-muted-foreground hover:border-primary/60"
-              }`}
+              onClick={onOpenArchive}
+              title="Архив заявок"
+              aria-label="Архив заявок"
+              className="shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
             >
-              {newOrders.length > 0 && (
-                <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-amber-500" />
-                </span>
-              )}
-              Новые ({newOrders.length})
-            </button>
-            <button
-              onClick={() => setStatusTab("in_progress")}
-              className={`shrink-0 h-8 sm:h-10 px-2 sm:px-4 rounded-sm border text-[0.7rem] sm:text-sm font-head uppercase tracking-wide transition-colors ${
-                statusTab === "in_progress"
-                  ? "border-primary bg-primary/10 text-foreground"
-                  : "border-steel text-muted-foreground hover:border-primary/60"
-              }`}
-            >
-              В работе ({inProgressOrders.length})
-            </button>
-            <button
-              onClick={() => setStatusTab("done")}
-              className={`shrink-0 h-8 sm:h-10 px-2 sm:px-4 rounded-sm border text-[0.7rem] sm:text-sm font-head uppercase tracking-wide transition-colors ${
-                statusTab === "done"
-                  ? "border-primary bg-primary/10 text-foreground"
-                  : "border-steel text-muted-foreground hover:border-primary/60"
-              }`}
-            >
-              Выполненные ({doneOrders.length})
+              <Icon name="Archive" size={16} />
             </button>
           </div>
 
