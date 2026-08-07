@@ -34,7 +34,7 @@ export const useGarageState = () => {
   const [savedCarNames, setSavedCarNames] = useState<Record<number, string>>({});
   const [savingCarId, setSavingCarId] = useState<number | null>(null);
   const [city, setCity] = useState(() => getStoredCity());
-  const [statusTab, setStatusTab] = useState<'new' | 'in_progress' | 'done'>('in_progress');
+  const [statusTab, setStatusTab] = useState<'new' | 'in_progress' | 'done'>('new');
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [passwordRequired, setPasswordRequired] = useState(false);
@@ -86,6 +86,11 @@ export const useGarageState = () => {
       setOrders(list);
       setCashbackDeducted(typeof data.cashback_deducted === 'number' ? data.cashback_deducted : 0);
       setCashbackHistory(Array.isArray(data.cashback_history) ? data.cashback_history : []);
+      // По умолчанию открываем «Новые», но если там пусто — сразу показываем «В работе»
+      const activeList = list.filter((o) => !o.archived);
+      if (!activeList.some((o) => o.status === 'new') && activeList.some((o) => o.status === 'in_progress')) {
+        setStatusTab('in_progress');
+      }
       const names = Object.fromEntries(list.map((o) => [o.id, o.car_name || '']));
       setCarNameDrafts(names);
       setSavedCarNames(names);
