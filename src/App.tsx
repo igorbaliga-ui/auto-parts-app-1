@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazyWithReload } from "@/lib/lazyWithReload";
+import AppBackground from "@/components/site/AppBackground";
 import Index from "./pages/Index";
 
 // Админка и «Гараж» нужны не каждому посетителю, а их код (вместе с таблицами
@@ -23,7 +24,8 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <AppBackground />
+        <Suspense fallback={<div className="min-h-screen" />}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/admin" element={<Admin />} />

@@ -12,7 +12,7 @@ const PageContent = () => {
   const { tab } = useNav();
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-body">
+    <div className="min-h-screen text-foreground font-body">
       <Header />
       <main>
         {tab === 'home' && <Hero />}

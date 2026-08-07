@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { useRequest } from "./RequestDialog";
 import { useGarageAuth } from "@/hooks/use-garage-auth";
-import heroBg from "@/assets/hero-bg.webp";
 
 const Hero = () => {
   const { open } = useRequest();
@@ -24,17 +23,7 @@ const Hero = () => {
   };
 
   return (
-    <section
-      id="top"
-      className="relative min-h-screen overflow-hidden hero-vignette bg-background"
-    >
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${heroBg})` }}
-        aria-hidden="true"
-      />
-      <div className="absolute inset-0 bg-background/70" aria-hidden="true" />
-
+    <section id="top" className="relative min-h-screen overflow-hidden">
       <div className="relative z-20 max-w-[1400px] mx-auto min-h-screen flex items-center px-5 sm:px-8 lg:px-12 pt-28 pb-16">
         <div className="grid lg:grid-cols-[1.05fr_0.95fr] items-center gap-10 w-full">
           {/* copy */}
