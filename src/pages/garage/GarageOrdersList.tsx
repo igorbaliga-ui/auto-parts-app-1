@@ -267,16 +267,18 @@ const GarageOrdersList = ({
                         className="text-left"
                       />
                     </div>
-                    <div className="flex justify-between sm:block">
-                      <span className="text-muted-foreground">
-                        Сумма заказа:{" "}
-                      </span>
-                      <span>
-                        {o.order_amount != null
-                          ? formatMoney(o.order_amount)
-                          : "Уточняется"}
-                      </span>
-                    </div>
+                    {o.status !== "new" && (
+                      <div className="flex justify-between sm:block">
+                        <span className="text-muted-foreground">
+                          Сумма заказа:{" "}
+                        </span>
+                        <span>
+                          {o.order_amount != null
+                            ? formatMoney(o.order_amount)
+                            : "Уточняется"}
+                        </span>
+                      </div>
+                    )}
                     {o.status !== "done" && o.prepayment != null && (
                       <div className="flex justify-between sm:block">
                         <span className="text-muted-foreground">
@@ -291,12 +293,14 @@ const GarageOrdersList = ({
                         <span>{formatMoney(o.remaining)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between sm:block">
-                      <span className="text-muted-foreground">Кэшбэк: </span>
-                      <span className="text-primary">
-                        {o.cashback != null ? formatMoney(o.cashback) : "—"}
-                      </span>
-                    </div>
+                    {o.status !== "new" && (
+                      <div className="flex justify-between sm:block">
+                        <span className="text-muted-foreground">Кэшбэк: </span>
+                        <span className="text-primary">
+                          {o.cashback != null ? formatMoney(o.cashback) : "—"}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
