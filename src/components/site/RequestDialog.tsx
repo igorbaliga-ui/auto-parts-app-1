@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -37,6 +37,7 @@ export { useRequest } from './request-dialog/RequestContext';
 export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const location = useLocation();
   const { authed: garageAuthed, phone: garagePhone } = useGarageAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [sent, setSent] = useState(false);
@@ -213,7 +214,16 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const successContent = <RequestSuccessMessage onClose={() => setIsOpen(false)} />;
+  const closeAfterSuccess = () => {
+    setIsOpen(false);
+    // Если заявка оставлена прямо со страницы «Мой гараж» — обновляем её,
+    // чтобы новая заявка сразу появилась в списке
+    if (location.pathname === '/garage') {
+      window.location.reload();
+    }
+  };
+
+  const successContent = <RequestSuccessMessage onClose={closeAfterSuccess} />;
 
   const formContent = (
     <RequestFormFields
