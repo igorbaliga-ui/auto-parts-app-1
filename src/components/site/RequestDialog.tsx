@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/drawer';
 import { useSubmitLead } from '@/hooks/use-submit-lead';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from '@/hooks/use-toast';
 import { useGarageAuth, GARAGE_PHONE_KEY, notifyGarageAuthChanged, notifyGarageOrdersChanged } from '@/hooks/use-garage-auth';
 import { preparePhotoForUpload } from '@/lib/image';
 import { getStoredCity } from '@/lib/garage-city';
@@ -29,7 +30,6 @@ import {
   loadDraft,
   GarageCar,
 } from './request-dialog/RequestContext';
-import RequestSuccessMessage from './request-dialog/RequestSuccessMessage';
 import RequestFormFields from './request-dialog/RequestFormFields';
 
 export { useRequest } from './request-dialog/RequestContext';
@@ -40,7 +40,6 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const { authed: garageAuthed, phone: garagePhone } = useGarageAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [sent, setSent] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [messenger, setMessenger] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -125,7 +124,6 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   }, [form.phone, knownContact]);
 
   const open = (vin?: string, incomingPhoto?: File | null, phone?: string, name?: string, history?: string[], city?: string) => {
-    setSent(false);
     setErrors({});
     setForm((f) => ({
       ...f,
@@ -183,16 +181,18 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const { submitLead, submitting } = useSubmitLead(() => {
-    setSent(true);
+    setIsOpen(false);
+    toast({
+      title: 'Заявка отправлена',
+      description: 'Спасибо! Свяжемся с Вами в ближайшее время.',
+    });
     // Неавторизованный в «Гараже» клиент после успешной заявки сразу попадает в свой личный кабинет
     if (!garageAuthed && form.phone) {
       localStorage.setItem(GARAGE_PHONE_KEY, form.phone);
       notifyGarageAuthChanged();
-      setIsOpen(false);
       navigate('/garage');
     } else if (location.pathname === '/garage') {
-      // Уже в «Моём гараже» — тихо обновляем список в фоне, не закрывая окно
-      // «Заявка отправлена» и не перезагружая страницу
+      // Уже в «Моём гараже» — тихо обновляем список в фоне
       notifyGarageOrdersChanged();
     }
     setForm(emptyForm);
@@ -217,12 +217,6 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       photo: photoBase64,
     });
   };
-
-  const closeAfterSuccess = () => {
-    setIsOpen(false);
-  };
-
-  const successContent = <RequestSuccessMessage onClose={closeAfterSuccess} />;
 
   const formContent = (
     <RequestFormFields
@@ -256,21 +250,15 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
         >
           <DrawerContent className="bg-card border-border max-h-[85vh]">
             <div className="overflow-y-auto px-4 pb-6">
-              {sent ? (
-                successContent
-              ) : (
-                <>
-                  <DrawerHeader className="px-0 text-left">
-                    <DrawerTitle className="font-head uppercase tracking-wide text-2xl">
-                      Заявка на подбор
-                    </DrawerTitle>
-                    <DrawerDescription className="text-muted-foreground">
-                      Оставьте VIN и контакты — найдём деталь и сообщим цену.
-                    </DrawerDescription>
-                  </DrawerHeader>
-                  {formContent}
-                </>
-              )}
+              <DrawerHeader className="px-0 text-left">
+                <DrawerTitle className="font-head uppercase tracking-wide text-2xl">
+                  Заявка на подбор
+                </DrawerTitle>
+                <DrawerDescription className="text-muted-foreground">
+                  Оставьте VIN и контакты — найдём деталь и сообщим цену.
+                </DrawerDescription>
+              </DrawerHeader>
+              {formContent}
             </div>
           </DrawerContent>
         </Drawer>
@@ -283,21 +271,15 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       {children}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="bg-card border-border sm:max-w-[460px]">
-          {sent ? (
-            successContent
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle className="font-head uppercase tracking-wide text-2xl">
-                  Заявка на подбор
-                </DialogTitle>
-                <DialogDescription className="text-muted-foreground">
-                  Оставьте VIN и контакты — найдём деталь и сообщим цену.
-                </DialogDescription>
-              </DialogHeader>
-              {formContent}
-            </>
-          )}
+          <DialogHeader>
+            <DialogTitle className="font-head uppercase tracking-wide text-2xl">
+              Заявка на подбор
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Оставьте VIN и контакты — найдём деталь и сообщим цену.
+            </DialogDescription>
+          </DialogHeader>
+          {formContent}
         </DialogContent>
       </Dialog>
     </RequestContext.Provider>
