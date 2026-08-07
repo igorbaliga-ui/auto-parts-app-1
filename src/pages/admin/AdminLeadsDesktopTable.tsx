@@ -46,6 +46,7 @@ type AdminLeadsDesktopTableProps = {
   saveLeadField: (id: number, field: string, value: string) => Promise<void>;
   toggleStatus: (id: number) => void;
   toggleArrived: (id: number) => void;
+  toggleArchived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
   onShowHistory: (id: number) => void;
 };
@@ -65,6 +66,7 @@ const AdminLeadsDesktopTable = ({
   saveLeadField,
   toggleStatus,
   toggleArrived,
+  toggleArchived,
   resetGaragePassword,
   onShowHistory,
 }: AdminLeadsDesktopTableProps) => {
@@ -270,12 +272,21 @@ const AdminLeadsDesktopTable = ({
                     <button
                       onClick={() => toggleStatus(l.id)}
                       disabled={savingId === l.id}
-                      className={`whitespace-nowrap text-[0.65rem] font-head uppercase tracking-wide px-2 py-1.5 rounded-sm transition-colors ${
+                      title={l.status === 'new' ? 'Новая заявка — нажмите, чтобы взять в работу' : undefined}
+                      className={`relative whitespace-nowrap text-[0.65rem] font-head uppercase tracking-wide px-2 py-1.5 rounded-sm transition-colors ${
                         l.status === 'done'
                           ? 'bg-primary/15 text-primary hover:bg-primary/25'
-                          : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                          : l.status === 'new'
+                            ? 'bg-amber-500/15 text-amber-500 hover:bg-amber-500/25'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/70'
                       }`}
                     >
+                      {l.status === 'new' && (
+                        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+                        </span>
+                      )}
                       {statusLabel[l.status]}
                     </button>
                     {l.status === 'in_progress' && (
@@ -293,6 +304,18 @@ const AdminLeadsDesktopTable = ({
                         Поступило
                       </button>
                     )}
+                    <button
+                      onClick={() => toggleArchived(l.id)}
+                      disabled={savingId === l.id}
+                      title={l.archived ? 'Вернуть из архива' : 'Отправить в архив'}
+                      className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-sm transition-colors ${
+                        l.archived
+                          ? 'bg-primary/15 text-primary hover:bg-primary/25'
+                          : 'text-muted-foreground hover:text-primary hover:bg-muted'
+                      }`}
+                    >
+                      <Icon name={l.archived ? 'ArchiveRestore' : 'Archive'} size={13} />
+                    </button>
                   </div>
                 </TableCell>
               )}

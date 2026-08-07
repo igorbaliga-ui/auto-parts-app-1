@@ -12,6 +12,7 @@ type AdminLeadsMobileListProps = {
   saveLeadField: (id: number, field: string, value: string) => Promise<void>;
   toggleStatus: (id: number) => void;
   toggleArrived: (id: number) => void;
+  toggleArchived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
   onShowHistory: (id: number) => void;
 };
@@ -27,6 +28,7 @@ const AdminLeadsMobileList = ({
   saveLeadField,
   toggleStatus,
   toggleArrived,
+  toggleArchived,
   resetGaragePassword,
   onShowHistory,
 }: AdminLeadsMobileListProps) => {
@@ -48,6 +50,7 @@ const AdminLeadsMobileList = ({
             saveLeadField={saveLeadField}
             toggleStatus={toggleStatus}
             toggleArrived={toggleArrived}
+            toggleArchived={toggleArchived}
             resetGaragePassword={resetGaragePassword}
             onShowHistory={onShowHistory}
           />

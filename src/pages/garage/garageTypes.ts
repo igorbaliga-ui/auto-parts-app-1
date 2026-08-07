@@ -18,9 +18,10 @@ export type Order = {
   created_at: string;
   car_name: string | null;
   city: string | null;
-  status: 'in_progress' | 'done';
+  status: 'new' | 'in_progress' | 'done';
   completed_at: string | null;
   arrived: boolean;
+  archived: boolean;
 };
 
 export type CashbackHistoryItem = {

@@ -20,10 +20,12 @@ type AdminToolbarProps = {
   toggleColumn: (key: ColumnKey) => void;
   clearFilters: () => void;
   onRefresh: () => void;
-  statusTab: 'in_progress' | 'done' | 'all';
-  setStatusTab: (tab: 'in_progress' | 'done' | 'all') => void;
+  statusTab: 'new' | 'in_progress' | 'done' | 'all' | 'archived';
+  setStatusTab: (tab: 'new' | 'in_progress' | 'done' | 'all' | 'archived') => void;
+  newCount: number;
   inProgressCount: number;
   doneCount: number;
+  archivedCount: number;
   onOpenCashback: () => void;
 };
 
@@ -38,8 +40,10 @@ const AdminToolbar = ({
   onRefresh,
   statusTab,
   setStatusTab,
+  newCount,
   inProgressCount,
   doneCount,
+  archivedCount,
   onOpenCashback,
 }: AdminToolbarProps) => {
   return (
@@ -112,6 +116,22 @@ const AdminToolbar = ({
 
       <div className="flex items-center gap-2 mb-6 overflow-x-auto -mx-5 px-5 sm:mx-0 sm:px-0">
         <button
+          onClick={() => setStatusTab('new')}
+          className={`shrink-0 h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            statusTab === 'new'
+              ? 'border-primary bg-primary/10 text-foreground'
+              : 'border-steel text-muted-foreground hover:border-primary/60'
+          }`}
+        >
+          {newCount > 0 && (
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+            </span>
+          )}
+          Новые ({newCount})
+        </button>
+        <button
           onClick={() => setStatusTab('in_progress')}
           className={`shrink-0 h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors whitespace-nowrap ${
             statusTab === 'in_progress'
@@ -139,7 +159,18 @@ const AdminToolbar = ({
               : 'border-steel text-muted-foreground hover:border-primary/60'
           }`}
         >
-          Все ({inProgressCount + doneCount})
+          Все ({newCount + inProgressCount + doneCount})
+        </button>
+        <button
+          onClick={() => setStatusTab('archived')}
+          className={`shrink-0 h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            statusTab === 'archived'
+              ? 'border-primary bg-primary/10 text-foreground'
+              : 'border-steel text-muted-foreground hover:border-primary/60'
+          }`}
+        >
+          <Icon name="Archive" size={14} />
+          Архив ({archivedCount})
         </button>
       </div>
     </>

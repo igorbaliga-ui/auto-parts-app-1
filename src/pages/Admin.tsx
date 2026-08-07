@@ -48,12 +48,15 @@ const Admin = () => {
         saveLeadField={a.saveLeadField}
         toggleStatus={a.toggleStatus}
         toggleArrived={a.toggleArrived}
+        toggleArchived={a.toggleArchived}
         resetGaragePassword={a.resetGaragePassword}
         onRefresh={a.onRefresh}
         statusTab={a.statusTab}
         setStatusTab={a.setStatusTab}
+        newCount={a.newCount}
         inProgressCount={a.inProgressCount}
         doneCount={a.doneCount}
+        archivedCount={a.archivedCount}
       />
     </PageBackground>
   );

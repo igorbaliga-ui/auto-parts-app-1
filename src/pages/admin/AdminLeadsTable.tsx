@@ -35,12 +35,15 @@ type AdminLeadsTableProps = {
   saveLeadField: (id: number, field: string, value: string) => Promise<void>;
   toggleStatus: (id: number) => void;
   toggleArrived: (id: number) => void;
+  toggleArchived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
   onRefresh: () => void;
-  statusTab: 'in_progress' | 'done' | 'all';
-  setStatusTab: (tab: 'in_progress' | 'done' | 'all') => void;
+  statusTab: 'new' | 'in_progress' | 'done' | 'all' | 'archived';
+  setStatusTab: (tab: 'new' | 'in_progress' | 'done' | 'all' | 'archived') => void;
+  newCount: number;
   inProgressCount: number;
   doneCount: number;
+  archivedCount: number;
 };
 
 const AdminLeadsTable = ({
@@ -69,12 +72,15 @@ const AdminLeadsTable = ({
   saveLeadField,
   toggleStatus,
   toggleArrived,
+  toggleArchived,
   resetGaragePassword,
   onRefresh,
   statusTab,
   setStatusTab,
+  newCount,
   inProgressCount,
   doneCount,
+  archivedCount,
 }: AdminLeadsTableProps) => {
   const [historyLeadId, setHistoryLeadId] = useState<number | null>(null);
   const historyLead = leads.find((l) => l.id === historyLeadId) || null;
@@ -105,8 +111,10 @@ const AdminLeadsTable = ({
           onRefresh={onRefresh}
           statusTab={statusTab}
           setStatusTab={setStatusTab}
+          newCount={newCount}
           inProgressCount={inProgressCount}
           doneCount={doneCount}
+          archivedCount={archivedCount}
           onOpenCashback={() => setCashbackDialogOpen(true)}
         />
 
@@ -125,6 +133,7 @@ const AdminLeadsTable = ({
               saveLeadField={saveLeadField}
               toggleStatus={toggleStatus}
               toggleArrived={toggleArrived}
+              toggleArchived={toggleArchived}
               resetGaragePassword={resetGaragePassword}
               onShowHistory={setHistoryLeadId}
             />
@@ -143,6 +152,7 @@ const AdminLeadsTable = ({
               saveLeadField={saveLeadField}
               toggleStatus={toggleStatus}
               toggleArrived={toggleArrived}
+              toggleArchived={toggleArchived}
               resetGaragePassword={resetGaragePassword}
               onShowHistory={setHistoryLeadId}
             />

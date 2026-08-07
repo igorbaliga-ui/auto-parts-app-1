@@ -5,7 +5,9 @@ import psycopg2.extras
 
 
 def handler(event: dict, context) -> dict:
-    """Отдаёт список заявок с сайта по паролю (для страницы /admin)"""
+    """Отдаёт список заявок с сайта по паролю (для страницы /admin).
+    Перед выдачей автоматически переносит в архив заявки со статусом «Новая» (new),
+    которые провисели без действий менеджера дольше 14 дней."""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -37,8 +39,16 @@ def handler(event: dict, context) -> dict:
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        # Автоархивация: заявки в статусе «Новая», которые за 14 дней так и не взяли в работу
         cur.execute(
-            f"SELECT id, vin, name, phone, parts, messenger, photo_url, order_amount, prepayment, remaining, cashback, created_at, car_name, city, status, completed_at, arrived, internal_note "
+            f"UPDATE {schema}.leads SET archived = true, archived_at = now() "
+            f"WHERE status = 'new' AND archived = false AND created_at < now() - INTERVAL '14 days'"
+        )
+        conn.commit()
+
+        cur.execute(
+            f"SELECT id, vin, name, phone, parts, messenger, photo_url, order_amount, prepayment, remaining, cashback, created_at, car_name, city, status, completed_at, arrived, internal_note, archived "
             f"FROM {schema}.leads ORDER BY created_at DESC LIMIT 500"
         )
         rows = cur.fetchall()
@@ -67,6 +77,7 @@ def handler(event: dict, context) -> dict:
             'completed_at': r['completed_at'].isoformat() if r['completed_at'] else None,
             'arrived': bool(r['arrived']),
             'internal_note': r['internal_note'],
+            'archived': bool(r['archived']),
         })
 
     return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'leads': leads})}

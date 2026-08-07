@@ -34,7 +34,8 @@ export const useGarageState = () => {
   const [savedCarNames, setSavedCarNames] = useState<Record<number, string>>({});
   const [savingCarId, setSavingCarId] = useState<number | null>(null);
   const [city, setCity] = useState(() => getStoredCity());
-  const [statusTab, setStatusTab] = useState<'in_progress' | 'done'>('in_progress');
+  const [statusTab, setStatusTab] = useState<'new' | 'in_progress' | 'done'>('in_progress');
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [passwordRequired, setPasswordRequired] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
@@ -304,9 +305,13 @@ export const useGarageState = () => {
   const totalCashback = orders.reduce((sum, o) => sum + (o.cashback || 0), 0) - cashbackDeducted;
   const knownName = orders[0]?.name;
   const vinHistory = Array.from(new Set(orders.map((o) => o.vin).filter((v): v is string => !!v)));
-  const inProgressOrders = orders.filter((o) => o.status !== 'done');
-  const doneOrders = orders.filter((o) => o.status === 'done');
-  const visibleOrders = statusTab === 'in_progress' ? inProgressOrders : doneOrders;
+  const activeOrders = orders.filter((o) => !o.archived);
+  const archivedOrders = orders.filter((o) => o.archived);
+  const newOrders = activeOrders.filter((o) => o.status === 'new');
+  const inProgressOrders = activeOrders.filter((o) => o.status === 'in_progress');
+  const doneOrders = activeOrders.filter((o) => o.status === 'done');
+  const visibleOrders =
+    statusTab === 'new' ? newOrders : statusTab === 'in_progress' ? inProgressOrders : doneOrders;
 
   const saveCarName = async (order: Order) => {
     if (!order.vin) return;
@@ -405,9 +410,13 @@ export const useGarageState = () => {
     cashbackHistory,
     cashbackHistoryOpen,
     setCashbackHistoryOpen,
+    newOrders,
     inProgressOrders,
     doneOrders,
+    archivedOrders,
     visibleOrders,
+    archiveDialogOpen,
+    setArchiveDialogOpen,
     saveCarName,
     onNewRequest,
   };

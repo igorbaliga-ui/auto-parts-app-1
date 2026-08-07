@@ -13,10 +13,11 @@ export type Lead = {
   created_at: string;
   car_name: string | null;
   city: string | null;
-  status: 'in_progress' | 'done';
+  status: 'new' | 'in_progress' | 'done';
   completed_at: string | null;
   arrived: boolean;
   internal_note: string | null;
+  archived: boolean;
 };
 
 export const messengerLabel: Record<string, string> = {
@@ -26,6 +27,7 @@ export const messengerLabel: Record<string, string> = {
 };
 
 export const statusLabel: Record<Lead['status'], string> = {
+  new: 'Новая',
   in_progress: 'В работе',
   done: 'Выполнен',
 };

@@ -3,7 +3,7 @@ import os
 import psycopg2
 from send_push import send_push_to_phone
 
-STATUS_LABEL = {'in_progress': 'В работе', 'done': 'Выполнен'}
+STATUS_LABEL = {'new': 'Новая', 'in_progress': 'В работе', 'done': 'Выполнен'}
 
 # Текстовые поля, которые можно частично обновлять по одному (клик-редактирование в /admin)
 TEXT_FIELDS = ['vin', 'name', 'phone', 'city', 'messenger', 'parts', 'car_name']
@@ -48,10 +48,10 @@ def log_change(cur, schema: str, lead_id: int, admin_name: str, field: str, old_
 
 
 def handler(event: dict, context) -> dict:
-    """Частично обновляет заявку по id (для менеджера в /admin): сумму заказа, предоплату, статус,
-    пометку «Поступил», внутреннюю заметку, а также VIN, имя, телефон, город, мессенджер,
-    запчасти и название авто. Обновляются только те поля, что реально переданы в запросе.
-    Остаток и кэшбэк — вычисляемые колонки в БД, пересчитываются автоматически.
+    """Частично обновляет заявку по id (для менеджера в /admin): сумму заказа, предоплату, статус
+    (new/in_progress/done), пометку «Поступил», признак архива, внутреннюю заметку, а также VIN,
+    имя, телефон, город, мессенджер, запчасти и название авто. Обновляются только те поля, что
+    реально переданы в запросе. Остаток и кэшбэк — вычисляемые колонки в БД, пересчитываются автоматически.
     Каждое изменение записывается в журнал lead_changes (кто и когда менял).
     При простановке пометки «Поступил» или переводе в статус «Выполнен» отправляет клиенту Web Push уведомление."""
     method = event.get('httpMethod', 'GET')
@@ -88,8 +88,12 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный id заявки'})}
 
     status = body.get('status')
-    if status is not None and status not in ('in_progress', 'done'):
+    if status is not None and status not in ('new', 'in_progress', 'done'):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный статус'})}
+
+    archived = body.get('archived')
+    if archived is not None and not isinstance(archived, bool):
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректное значение архива'})}
 
     if 'name' in body and not (body.get('name') or '').strip():
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Имя не может быть пустым'})}
@@ -106,7 +110,7 @@ def handler(event: dict, context) -> dict:
         # Читаем текущие значения для журнала изменений
         cur.execute(
             f"SELECT order_amount, prepayment, status, arrived, internal_note, "
-            f"vin, name, phone, city, messenger, parts, car_name "
+            f"vin, name, phone, city, messenger, parts, car_name, archived "
             f"FROM {schema}.leads WHERE id = %s",
             (lead_id,),
         )
@@ -114,7 +118,8 @@ def handler(event: dict, context) -> dict:
         if not prev:
             return {'statusCode': 404, 'headers': headers, 'body': json.dumps({'error': 'Заявка не найдена'})}
         (prev_amount, prev_prepayment, prev_status, prev_arrived, prev_note,
-         prev_vin, prev_name, prev_phone, prev_city, prev_messenger, prev_parts, prev_car_name) = prev
+         prev_vin, prev_name, prev_phone, prev_city, prev_messenger, prev_parts, prev_car_name,
+         prev_archived) = prev
 
         set_clauses = []
         params = []
@@ -158,6 +163,14 @@ def handler(event: dict, context) -> dict:
             else:
                 set_clauses.append("arrived_at = NULL")
 
+        if archived is not None:
+            set_clauses.append("archived = %s")
+            params.append(archived)
+            if archived:
+                set_clauses.append("archived_at = now()")
+            else:
+                set_clauses.append("archived_at = NULL")
+
         if not set_clauses:
             return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Нечего сохранять'})}
 
@@ -183,6 +196,8 @@ def handler(event: dict, context) -> dict:
             log_change(cur, schema, lead_id, admin_name, 'status', fmt_status(prev_status), fmt_status(status))
         if arrived is not None:
             log_change(cur, schema, lead_id, admin_name, 'arrived', fmt_arrived(prev_arrived), fmt_arrived(arrived))
+        if archived is not None:
+            log_change(cur, schema, lead_id, admin_name, 'archived', fmt_arrived(prev_archived), fmt_arrived(archived))
 
         text_prev = {
             'vin': prev_vin, 'name': prev_name, 'phone': prev_phone, 'city': prev_city,

@@ -14,8 +14,9 @@ type GarageOrdersListProps = {
   pushSubscribed: boolean;
   subscribePush: () => void;
   onNewRequest: () => void;
-  statusTab: "in_progress" | "done";
-  setStatusTab: (tab: "in_progress" | "done") => void;
+  statusTab: "new" | "in_progress" | "done";
+  setStatusTab: (tab: "new" | "in_progress" | "done") => void;
+  newOrders: Order[];
   inProgressOrders: Order[];
   doneOrders: Order[];
   visibleOrders: Order[];
@@ -39,6 +40,7 @@ const GarageOrdersList = ({
   onNewRequest,
   statusTab,
   setStatusTab,
+  newOrders,
   inProgressOrders,
   doneOrders,
   visibleOrders,
@@ -105,10 +107,26 @@ const GarageOrdersList = ({
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4 overflow-x-auto">
+            <button
+              onClick={() => setStatusTab("new")}
+              className={`shrink-0 h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors flex items-center gap-1.5 ${
+                statusTab === "new"
+                  ? "border-primary bg-primary/10 text-foreground"
+                  : "border-steel text-muted-foreground hover:border-primary/60"
+              }`}
+            >
+              {newOrders.length > 0 && (
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                </span>
+              )}
+              Новые ({newOrders.length})
+            </button>
             <button
               onClick={() => setStatusTab("in_progress")}
-              className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
+              className={`shrink-0 h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
                 statusTab === "in_progress"
                   ? "border-primary bg-primary/10 text-foreground"
                   : "border-steel text-muted-foreground hover:border-primary/60"
@@ -118,7 +136,7 @@ const GarageOrdersList = ({
             </button>
             <button
               onClick={() => setStatusTab("done")}
-              className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
+              className={`shrink-0 h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors ${
                 statusTab === "done"
                   ? "border-primary bg-primary/10 text-foreground"
                   : "border-steel text-muted-foreground hover:border-primary/60"
@@ -130,7 +148,9 @@ const GarageOrdersList = ({
 
           {visibleOrders.length === 0 ? (
             <p className="text-muted-foreground mt-4">
-              {statusTab === "in_progress"
+              {statusTab === "new"
+                ? "Нет новых заявок."
+                : statusTab === "in_progress"
                 ? "Нет заказов в работе."
                 : "Нет выполненных заказов."}
             </p>
@@ -156,10 +176,12 @@ const GarageOrdersList = ({
                     } ${
                       o.status === "done"
                         ? "bg-primary/15 text-primary"
+                        : o.status === "new"
+                        ? "bg-amber-500/15 text-amber-500"
                         : "bg-muted text-muted-foreground"
                     }`}
                   >
-                    {o.status === "done" ? "Выполнен" : "В работе"}
+                    {o.status === "done" ? "Выполнен" : o.status === "new" ? "Новая" : "В работе"}
                   </span>
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pr-20">
                     <span className="font-head tracking-[0.1em] text-lg">

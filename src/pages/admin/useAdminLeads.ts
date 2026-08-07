@@ -25,7 +25,7 @@ export const useAdminLeads = () => {
   const [savingId, setSavingId] = useState<number | null>(null);
   const [hiddenColumns, setHiddenColumns] = useState<Set<ColumnKey>>(new Set());
   const [columnFilters, setColumnFilters] = useState<Partial<Record<ColumnKey, string>>>({});
-  const [statusTab, setStatusTab] = useState<'in_progress' | 'done' | 'all'>('in_progress');
+  const [statusTab, setStatusTab] = useState<'new' | 'in_progress' | 'done' | 'all' | 'archived'>('new');
   const {
     permission: pushPermission,
     subscribing: pushSubscribing,
@@ -186,7 +186,8 @@ export const useAdminLeads = () => {
   const toggleStatus = async (id: number) => {
     const lead = leads.find((l) => l.id === id);
     if (!lead) return;
-    const nextStatus = lead.status === 'done' ? 'in_progress' : 'done';
+    // Клик по метке статуса: «Новая»/«Выполнен» → «В работе»; «В работе» → «Выполнен»
+    const nextStatus = lead.status === 'in_progress' ? 'done' : 'in_progress';
     setSavingId(id);
     try {
       const amount = drafts[id]?.amount ? Number(drafts[id].amount) : lead.order_amount;
@@ -250,6 +251,27 @@ export const useAdminLeads = () => {
     }
   };
 
+  // Ручной перенос заявки в архив и обратно (администратор может это делать в любой момент)
+  const toggleArchived = async (id: number) => {
+    const lead = leads.find((l) => l.id === id);
+    if (!lead) return;
+    const nextArchived = !lead.archived;
+    setSavingId(id);
+    try {
+      const res = await fetch(LEADS_UPDATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
+        body: JSON.stringify({ id, archived: nextArchived, admin_name: adminName }),
+      });
+      if (!res.ok) throw new Error('request failed');
+      setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, archived: nextArchived } : l)));
+    } catch {
+      setError('Не удалось изменить архив. Попробуйте ещё раз.');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const resetGaragePassword = async (id: number) => {
     const lead = leads.find((l) => l.id === id);
     if (!lead) return;
@@ -299,12 +321,16 @@ export const useAdminLeads = () => {
   }, [leads]);
 
   const statusFilteredLeads = useMemo(() => {
-    if (statusTab === 'all') return leads;
-    return leads.filter((l) => l.status === statusTab);
+    if (statusTab === 'archived') return leads.filter((l) => l.archived);
+    const active = leads.filter((l) => !l.archived);
+    if (statusTab === 'all') return active;
+    return active.filter((l) => l.status === statusTab);
   }, [leads, statusTab]);
 
-  const inProgressCount = useMemo(() => leads.filter((l) => l.status === 'in_progress').length, [leads]);
-  const doneCount = useMemo(() => leads.filter((l) => l.status === 'done').length, [leads]);
+  const newCount = useMemo(() => leads.filter((l) => l.status === 'new' && !l.archived).length, [leads]);
+  const inProgressCount = useMemo(() => leads.filter((l) => l.status === 'in_progress' && !l.archived).length, [leads]);
+  const doneCount = useMemo(() => leads.filter((l) => l.status === 'done' && !l.archived).length, [leads]);
+  const archivedCount = useMemo(() => leads.filter((l) => l.archived).length, [leads]);
 
   const filteredLeads = useMemo(() => {
     const activeFilters = Object.entries(columnFilters).filter(([, v]) => v && v.trim());
@@ -348,13 +374,16 @@ export const useAdminLeads = () => {
     saveLeadField,
     toggleStatus,
     toggleArrived,
+    toggleArchived,
     resetGaragePassword,
     isColumnVisible,
     toggleColumn,
     setColumnFilter,
     suggestionsByColumn,
+    newCount,
     inProgressCount,
     doneCount,
+    archivedCount,
     filteredLeads,
     hasActiveFilters,
     clearFilters,
