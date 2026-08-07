@@ -15,6 +15,7 @@ export type Order = {
   prepayment: number | null;
   remaining: number | null;
   cashback: number | null;
+  pending_cashback: number | null;
   created_at: string;
   car_name: string | null;
   city: string | null;

@@ -290,7 +290,19 @@ const GarageOrdersList = ({
                         <span>{formatMoney(o.remaining)}</span>
                       </div>
                     )}
-                    {o.status !== "new" && (
+                    {o.status === "in_progress" && (
+                      <div className="flex justify-between sm:block">
+                        <span className="text-muted-foreground">
+                          Кэшбэк начислим:{" "}
+                        </span>
+                        <span className="text-primary">
+                          {o.pending_cashback != null
+                            ? formatMoney(o.pending_cashback)
+                            : "—"}
+                        </span>
+                      </div>
+                    )}
+                    {o.status === "done" && (
                       <div className="flex justify-between sm:block">
                         <span className="text-muted-foreground">Кэшбэк: </span>
                         <span className="text-primary">

@@ -85,6 +85,8 @@ def handler(event: dict, context) -> dict:
             'remaining': float(r['remaining']) if r['remaining'] is not None else None,
             # Кэшбэк начисляется только после того, как заказ переведён в статус «Выполнен»
             'cashback': float(r['cashback']) if r['cashback'] is not None and r['status'] == 'done' else None,
+            # Предварительный расчёт кэшбэка для заказов «В работе» — покажем клиенту, сколько начислим по завершении
+            'pending_cashback': float(r['cashback']) if r['cashback'] is not None and r['status'] == 'in_progress' else None,
             'created_at': r['created_at'].isoformat() if r['created_at'] else None,
             'car_name': r['car_name'],
             'city': r['city'],
