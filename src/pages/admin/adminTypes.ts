@@ -28,7 +28,7 @@ export const messengerLabel: Record<string, string> = {
 
 export const statusLabel: Record<Lead['status'], string> = {
   new: 'Новая',
-  in_progress: 'В работе',
+  in_progress: 'Выполнено',
   done: 'Выполнен',
 };
 
