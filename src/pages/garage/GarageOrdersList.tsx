@@ -269,16 +269,14 @@ const GarageOrdersList = ({
                         className="text-left"
                       />
                     </div>
-                    <div className="flex justify-between sm:block">
-                      <span className="text-muted-foreground">
-                        Сумма заказа:{" "}
-                      </span>
-                      <span>
-                        {o.order_amount != null
-                          ? formatMoney(o.order_amount)
-                          : "Уточняется"}
-                      </span>
-                    </div>
+                    {o.order_amount != null && o.order_amount !== 0 && (
+                      <div className="flex justify-between sm:block">
+                        <span className="text-muted-foreground">
+                          Сумма заказа:{" "}
+                        </span>
+                        <span>{formatMoney(o.order_amount)}</span>
+                      </div>
+                    )}
                     {o.status === "in_progress" && o.prepayment != null && (
                       <div className="flex justify-between sm:block">
                         <span className="text-muted-foreground">
