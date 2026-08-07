@@ -135,6 +135,8 @@ const GarageContent = () => {
           onOpenArchive={() => g.setArchiveDialogOpen(true)}
           statusTab={g.statusTab}
           setStatusTab={g.setStatusTab}
+          searchQuery={g.searchQuery}
+          setSearchQuery={g.setSearchQuery}
           newOrders={g.newOrders}
           inProgressOrders={g.inProgressOrders}
           doneOrders={g.doneOrders}

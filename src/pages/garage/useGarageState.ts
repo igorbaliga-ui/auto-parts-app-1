@@ -35,6 +35,7 @@ export const useGarageState = () => {
   const [savingCarId, setSavingCarId] = useState<number | null>(null);
   const [city, setCity] = useState(() => getStoredCity());
   const [statusTab, setStatusTab] = useState<'new' | 'in_progress' | 'done'>('new');
+  const [searchQuery, setSearchQuery] = useState('');
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [passwordRequired, setPasswordRequired] = useState(false);
@@ -312,9 +313,18 @@ export const useGarageState = () => {
   const vinHistory = Array.from(new Set(orders.map((o) => o.vin).filter((v): v is string => !!v)));
   const activeOrders = orders.filter((o) => !o.archived);
   const archivedOrders = orders.filter((o) => o.archived);
-  const newOrders = activeOrders.filter((o) => o.status === 'new');
-  const inProgressOrders = activeOrders.filter((o) => o.status === 'in_progress');
-  const doneOrders = activeOrders.filter((o) => o.status === 'done');
+  const matchesSearch = (o: Order) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      (o.vin || '').toLowerCase().includes(q) ||
+      (o.car_name || '').toLowerCase().includes(q)
+    );
+  };
+  const searchedOrders = activeOrders.filter(matchesSearch);
+  const newOrders = searchedOrders.filter((o) => o.status === 'new');
+  const inProgressOrders = searchedOrders.filter((o) => o.status === 'in_progress');
+  const doneOrders = searchedOrders.filter((o) => o.status === 'done');
   const visibleOrders =
     statusTab === 'new' ? newOrders : statusTab === 'in_progress' ? inProgressOrders : doneOrders;
 
@@ -391,6 +401,8 @@ export const useGarageState = () => {
     setCity,
     statusTab,
     setStatusTab,
+    searchQuery,
+    setSearchQuery,
     logoutConfirmOpen,
     setLogoutConfirmOpen,
     passwordRequired,

@@ -18,6 +18,8 @@ type GarageOrdersListProps = {
   onOpenArchive: () => void;
   statusTab: "new" | "in_progress" | "done";
   setStatusTab: (tab: "new" | "in_progress" | "done") => void;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
   newOrders: Order[];
   inProgressOrders: Order[];
   doneOrders: Order[];
@@ -43,6 +45,8 @@ const GarageOrdersList = ({
   onOpenArchive,
   statusTab,
   setStatusTab,
+  searchQuery,
+  setSearchQuery,
   newOrders,
   inProgressOrders,
   doneOrders,
@@ -110,6 +114,29 @@ const GarageOrdersList = ({
         </div>
       ) : (
         <>
+          <div className="relative mb-4">
+            <Icon
+              name="Search"
+              size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Поиск по VIN или названию авто"
+              className="h-9 pl-9 pr-9 bg-background text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                aria-label="Очистить поиск"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Icon name="X" size={14} />
+              </button>
+            )}
+          </div>
+
           <div className="flex items-center justify-between gap-1.5 sm:gap-2 mb-4">
             <div className="flex items-center gap-1.5 sm:gap-2">
               <button
@@ -161,7 +188,9 @@ const GarageOrdersList = ({
 
           {visibleOrders.length === 0 ? (
             <p className="text-muted-foreground mt-4">
-              {statusTab === "new"
+              {searchQuery
+                ? "Ничего не найдено по вашему запросу."
+                : statusTab === "new"
                 ? "Нет новых заявок."
                 : statusTab === "in_progress"
                 ? "Нет заказов в работе."
