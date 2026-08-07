@@ -2,6 +2,8 @@ import { Lead, ColumnKey, columns, messengerLabel, statusLabel, formatDate } fro
 
 const cellValue = (l: Lead, key: ColumnKey): string | number => {
   switch (key) {
+    case 'number':
+      return l.id;
     case 'date':
       return formatDate(l.created_at);
     case 'vin':

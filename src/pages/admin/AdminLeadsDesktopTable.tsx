@@ -101,6 +101,11 @@ const AdminLeadsDesktopTable = ({
         <TableBody>
           {filteredLeads.map((l) => (
             <TableRow key={l.id}>
+              {isColumnVisible('number') && (
+                <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
+                  {l.id}
+                </TableCell>
+              )}
               {isColumnVisible('date') && (
                 <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
                   {formatDate(l.created_at)}

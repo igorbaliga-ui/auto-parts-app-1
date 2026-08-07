@@ -63,13 +63,16 @@ const AdminLeadCard = ({
   return (
     <div className="bg-card border border-steel rounded-sm p-4 flex flex-col gap-1">
       <div className="flex items-center justify-between gap-2 mb-2">
-        <InlineEditableCell
-          value={l.name}
-          displayLabel="Имя"
-          required
-          onSave={(v) => saveLeadField(l.id, 'name', v)}
-          className="font-head tracking-[0.08em] text-base truncate"
-        />
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-muted-foreground text-xs shrink-0">№{l.id}</span>
+          <InlineEditableCell
+            value={l.name}
+            displayLabel="Имя"
+            required
+            onSave={(v) => saveLeadField(l.id, 'name', v)}
+            className="font-head tracking-[0.08em] text-base truncate"
+          />
+        </div>
         <span className="text-muted-foreground text-xs shrink-0">{formatDate(l.created_at)}</span>
       </div>
 

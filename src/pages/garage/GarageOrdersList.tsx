@@ -174,6 +174,9 @@ const GarageOrdersList = ({
                   key={o.id}
                   className="relative bg-card border border-steel rounded-sm p-6"
                 >
+                  <span className="absolute top-1.5 left-2 text-[0.6rem] text-muted-foreground/30 select-none">
+                    №{o.id}
+                  </span>
                   {o.status !== "done" && o.arrived && (
                     <span
                       title="Деталь поступила"

@@ -44,6 +44,7 @@ export const formatDate = (iso: string) => {
 };
 
 export type ColumnKey =
+  | 'number'
   | 'date'
   | 'vin'
   | 'car'
@@ -69,6 +70,7 @@ export type ColumnDef = {
 };
 
 export const columns: ColumnDef[] = [
+  { key: 'number', label: '№', searchable: true, getSearchValue: (l) => String(l.id) },
   { key: 'date', label: 'Дата', searchable: true, getSearchValue: (l) => formatDate(l.created_at) },
   { key: 'vin', label: 'VIN', searchable: true, getSearchValue: (l) => l.vin || '' },
   { key: 'car', label: 'Авто', searchable: true, getSearchValue: (l) => l.car_name || '' },
