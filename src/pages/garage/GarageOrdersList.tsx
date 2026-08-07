@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
@@ -57,6 +58,7 @@ const GarageOrdersList = ({
   savingCarId,
   saveCarName,
 }: GarageOrdersListProps) => {
+  const [searchOpen, setSearchOpen] = useState(() => !!searchQuery);
   return (
     <>
       {orders.length > 0 && (
@@ -114,31 +116,8 @@ const GarageOrdersList = ({
         </div>
       ) : (
         <>
-          <div className="relative mb-4">
-            <Icon
-              name="Search"
-              size={15}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Поиск по VIN или названию авто"
-              className="h-9 pl-9 pr-9 bg-background text-sm"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                aria-label="Очистить поиск"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Icon name="X" size={14} />
-              </button>
-            )}
-          </div>
-
           <div className="flex items-center justify-between gap-1.5 sm:gap-2 mb-4">
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <button
                 onClick={() => setStatusTab("new")}
                 className={`shrink-0 h-8 sm:h-10 px-2 sm:px-4 rounded-sm border text-[0.7rem] sm:text-sm font-head uppercase tracking-wide transition-colors flex items-center gap-1 sm:gap-1.5 ${
@@ -175,6 +154,34 @@ const GarageOrdersList = ({
               >
                 Выполненные ({doneOrders.length})
               </button>
+              <div className="flex items-center">
+                {searchOpen && (
+                  <Input
+                    autoFocus
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onBlur={() => {
+                      if (!searchQuery) setSearchOpen(false);
+                    }}
+                    placeholder="VIN или название авто"
+                    className="h-8 sm:h-10 w-32 sm:w-44 bg-transparent border-0 border-b border-steel rounded-none text-[0.7rem] sm:text-sm focus-visible:ring-0 focus-visible:border-primary px-1"
+                  />
+                )}
+                <button
+                  onClick={() => {
+                    if (searchOpen && searchQuery) {
+                      setSearchQuery("");
+                      setSearchOpen(false);
+                    } else {
+                      setSearchOpen((v) => !v);
+                    }
+                  }}
+                  aria-label={searchOpen ? "Закрыть поиск" : "Поиск по VIN или названию авто"}
+                  className="shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Icon name={searchOpen && searchQuery ? "X" : "Search"} size={15} />
+                </button>
+              </div>
             </div>
             <button
               onClick={onOpenArchive}
