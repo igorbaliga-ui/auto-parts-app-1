@@ -154,6 +154,8 @@ def handler(event: dict, context) -> dict:
                 set_clauses.append("completed_at = COALESCE(completed_at, now())")
             else:
                 set_clauses.append("completed_at = NULL")
+            if status == 'in_progress':
+                set_clauses.append("in_progress_at = COALESCE(in_progress_at, now())")
 
         if arrived is not None:
             set_clauses.append("arrived = %s")

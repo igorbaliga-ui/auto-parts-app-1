@@ -22,6 +22,8 @@ export type Order = {
   completed_at: string | null;
   arrived: boolean;
   archived: boolean;
+  in_progress_at: string | null;
+  arrived_at: string | null;
 };
 
 export type CashbackHistoryItem = {

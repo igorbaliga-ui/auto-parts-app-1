@@ -52,7 +52,7 @@ def handler(event: dict, context) -> dict:
         conn.commit()
 
         cur.execute(
-            f"SELECT id, vin, name, phone, parts, messenger, order_amount, prepayment, remaining, cashback, created_at, car_name, city, status, completed_at, arrived, archived "
+            f"SELECT id, vin, name, phone, parts, messenger, order_amount, prepayment, remaining, cashback, created_at, car_name, city, status, completed_at, arrived, archived, in_progress_at, arrived_at "
             f"FROM {schema}.leads WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s "
             f"ORDER BY created_at DESC LIMIT 100",
             (phone_last10,),
@@ -92,6 +92,8 @@ def handler(event: dict, context) -> dict:
             'completed_at': r['completed_at'].isoformat() if r['completed_at'] else None,
             'arrived': bool(r['arrived']),
             'archived': bool(r['archived']),
+            'in_progress_at': r['in_progress_at'].isoformat() if r['in_progress_at'] else None,
+            'arrived_at': r['arrived_at'].isoformat() if r['arrived_at'] else None,
         })
 
     # Подробная история операций с кэшбэком: начисления за выполненные заказы + списания менеджером

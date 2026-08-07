@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 import ExpandableText from "@/components/shared/ExpandableText";
 import { isPushSupported } from "@/hooks/use-push-subscription";
+import GarageOrderHistory from "./GarageOrderHistory";
 import { Order, messengerLabel, formatDate, formatMoney } from "./garageTypes";
 
 type GarageOrdersListProps = {
@@ -199,9 +200,12 @@ const GarageOrdersList = ({
                     <span className="font-head tracking-[0.1em] text-lg">
                       {o.vin || "VIN не указан (по фото)"}
                     </span>
-                    <span className="text-muted-foreground text-xs">
-                      {formatDate(o.created_at)}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground text-xs">
+                        {formatDate(o.created_at)}
+                      </span>
+                      <GarageOrderHistory order={o} />
+                    </div>
                   </div>
                   {o.status === "done" && o.completed_at && (
                     <p className="text-primary/80 text-xs mb-3 -mt-2">
