@@ -1,6 +1,8 @@
 import { RequestProvider } from '@/components/site/RequestDialog';
 import PageBackground from '@/components/site/PageBackground';
+import Icon from '@/components/ui/icon';
 import { useGarageState } from './garage/useGarageState';
+import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import {
   CheckingSavedView,
   ResetPasswordView,
@@ -14,6 +16,10 @@ import GarageArchiveDialog from './garage/GarageArchiveDialog';
 
 const GarageContent = () => {
   const g = useGarageState();
+  const { pullDistance, refreshing, threshold } = usePullToRefresh(
+    g.refresh,
+    !g.authed,
+  );
 
   if (g.checkingSaved) {
     return <CheckingSavedView />;
@@ -69,7 +75,30 @@ const GarageContent = () => {
   return (
     <PageBackground>
     <div className="min-h-screen text-foreground px-5 sm:px-8 lg:px-12 py-10 relative">
-      <div className="max-w-[1000px] mx-auto">
+      {(pullDistance > 0 || refreshing) && (
+        <div
+          className="fixed left-0 right-0 top-0 z-30 flex items-start justify-center pointer-events-none"
+          style={{ height: Math.max(pullDistance, refreshing ? threshold : 0) }}
+        >
+          <Icon
+            name="Loader2"
+            size={22}
+            className={`text-primary mt-4 ${refreshing ? "animate-spin" : ""}`}
+            style={{
+              transform: refreshing
+                ? undefined
+                : `rotate(${Math.min((pullDistance / threshold) * 360, 360)}deg)`,
+              opacity: Math.min(pullDistance / threshold, 1),
+            }}
+          />
+        </div>
+      )}
+      <div
+        className="max-w-[1000px] mx-auto transition-transform"
+        style={{
+          transform: `translateY(${refreshing ? threshold : pullDistance}px)`,
+        }}
+      >
         <GarageHeader
           city={g.city}
           setCity={g.setCity}

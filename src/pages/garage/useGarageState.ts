@@ -355,6 +355,25 @@ export const useGarageState = () => {
 
   const onNewRequest = () => open(undefined, undefined, phone, knownName, vinHistory, city);
 
+  const refresh = async () => {
+    if (!phone) return;
+    try {
+      const res = await fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(phone)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const list: Order[] = data.orders || [];
+      if (list.length === 0) return;
+      setOrders(list);
+      setCashbackDeducted(typeof data.cashback_deducted === 'number' ? data.cashback_deducted : 0);
+      setCashbackHistory(Array.isArray(data.cashback_history) ? data.cashback_history : []);
+      const names = Object.fromEntries(list.map((o) => [o.id, o.car_name || '']));
+      setCarNameDrafts(names);
+      setSavedCarNames(names);
+    } catch {
+      // тихо игнорируем — свайп для обновления не должен показывать ошибки
+    }
+  };
+
   return {
     phone,
     setPhone,
@@ -411,6 +430,7 @@ export const useGarageState = () => {
     openPasswordSettings,
     savePasswordSettings,
     removePasswordSettings,
+    refresh,
     totalCashback,
     cashbackHistory,
     cashbackHistoryOpen,
