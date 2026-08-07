@@ -207,11 +207,6 @@ const GarageOrdersList = ({
                       <GarageOrderHistory order={o} />
                     </div>
                   </div>
-                  {o.status === "done" && o.completed_at && (
-                    <p className="text-primary/80 text-xs mb-3 -mt-2">
-                      Выполнен: {formatDate(o.completed_at)}
-                    </p>
-                  )}
                   {o.vin && (
                     <div className="flex items-center gap-2 mb-4">
                       <Input
