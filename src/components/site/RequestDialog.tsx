@@ -190,6 +190,10 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       notifyGarageAuthChanged();
       setIsOpen(false);
       navigate('/garage');
+    } else if (location.pathname === '/garage') {
+      // Уже в «Моём гараже» — сразу обновляем список, не дожидаясь закрытия окна,
+      // чтобы новая заявка появилась в списке к моменту, когда клиент закроет диалог
+      window.location.reload();
     }
     setForm(emptyForm);
     setMessenger(null);
@@ -216,11 +220,6 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
 
   const closeAfterSuccess = () => {
     setIsOpen(false);
-    // Если заявка оставлена прямо со страницы «Мой гараж» — обновляем её,
-    // чтобы новая заявка сразу появилась в списке
-    if (location.pathname === '/garage') {
-      window.location.reload();
-    }
   };
 
   const successContent = <RequestSuccessMessage onClose={closeAfterSuccess} />;

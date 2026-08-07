@@ -41,10 +41,6 @@ export const useSubmitLead = (onSuccess: () => void) => {
         err.serverMessage = serverMessage;
         throw err;
       }
-      toast({
-        title: "Заявка принята",
-        description: "Менеджер свяжется с вами в ближайшее время.",
-      });
       onSuccess();
     } catch (err) {
       console.error("leads-submit error", err);
