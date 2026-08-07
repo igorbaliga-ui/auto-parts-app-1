@@ -32,7 +32,10 @@ const GarageArchiveDialog = ({ orders, open, onOpenChange }: GarageArchiveDialog
         ) : (
           <div className="flex flex-col gap-3 py-2">
             {orders.map((o) => (
-              <div key={o.id} className="border border-steel rounded-sm p-3">
+              <div key={o.id} className="relative border border-steel rounded-sm p-3">
+                <span className="absolute top-1.5 left-2 text-[0.6rem] text-muted-foreground/30 select-none">
+                  №{o.id}
+                </span>
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <span className="font-head tracking-[0.08em] text-sm">
                     {o.vin || o.car_name || 'VIN не указан'}
