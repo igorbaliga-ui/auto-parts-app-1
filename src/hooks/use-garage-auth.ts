@@ -8,6 +8,12 @@ export const notifyGarageAuthChanged = () => {
   window.dispatchEvent(new Event('garage-auth-changed'));
 };
 
+// Отдельное событие: заявка отправлена, но пользователь остался авторизован —
+// список заказов в «Гараже» нужно тихо обновить, без полной перезагрузки страницы
+export const notifyGarageOrdersChanged = () => {
+  window.dispatchEvent(new Event('garage-orders-changed'));
+};
+
 export const useGarageAuth = () => {
   const [phone, setPhone] = useState<string | null>(() => getStoredPhone());
 

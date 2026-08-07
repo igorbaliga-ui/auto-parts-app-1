@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/drawer';
 import { useSubmitLead } from '@/hooks/use-submit-lead';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useGarageAuth, GARAGE_PHONE_KEY, notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
+import { useGarageAuth, GARAGE_PHONE_KEY, notifyGarageAuthChanged, notifyGarageOrdersChanged } from '@/hooks/use-garage-auth';
 import { preparePhotoForUpload } from '@/lib/image';
 import { getStoredCity } from '@/lib/garage-city';
 import {
@@ -191,9 +191,9 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       setIsOpen(false);
       navigate('/garage');
     } else if (location.pathname === '/garage') {
-      // Уже в «Моём гараже» — сразу обновляем список, не дожидаясь закрытия окна,
-      // чтобы новая заявка появилась в списке к моменту, когда клиент закроет диалог
-      window.location.reload();
+      // Уже в «Моём гараже» — тихо обновляем список в фоне, не закрывая окно
+      // «Заявка отправлена» и не перезагружая страницу
+      notifyGarageOrdersChanged();
     }
     setForm(emptyForm);
     setMessenger(null);

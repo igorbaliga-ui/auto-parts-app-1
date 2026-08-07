@@ -384,6 +384,18 @@ export const useGarageState = () => {
     }
   };
 
+  // Заявка отправлена прямо из «Гаража» (форма поверх этой же страницы) — тихо
+  // подгружаем список заказов в фоне, не закрывая диалог и не перезагружая страницу
+  useEffect(() => {
+    if (!authed) return;
+    const onOrdersChanged = () => {
+      refresh();
+    };
+    window.addEventListener('garage-orders-changed', onOrdersChanged);
+    return () => window.removeEventListener('garage-orders-changed', onOrdersChanged);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed, phone]);
+
   return {
     phone,
     setPhone,
