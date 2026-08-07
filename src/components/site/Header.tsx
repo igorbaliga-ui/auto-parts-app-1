@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
+import { useIsStandalone } from "@/hooks/use-standalone";
 import { useNav, Tab } from "@/components/site/NavContext";
 import { useGarageAuth } from "@/hooks/use-garage-auth";
 import { useGarageArrived } from "@/hooks/use-garage-arrived";
@@ -16,6 +17,7 @@ const links: { label: string; tab: Tab }[] = [
 const Header = () => {
   const [open, setOpen] = useState(false);
   const { canInstall, promptInstall } = usePwaInstall();
+  const isStandalone = useIsStandalone();
   const [guideOpen, setGuideOpen] = useState(false);
   const [guideTab, setGuideTab] = useState<"ios" | "android">("ios");
   const { goTo } = useNav();
@@ -33,6 +35,24 @@ const Header = () => {
     goTo(tab);
   };
 
+  const handleShare = async () => {
+    setOpen(false);
+    const shareData = {
+      title: "ЗАП ОПТОМ",
+      text: "Подбор автозапчастей по VIN-коду — ЗАП ОПТОМ",
+      url: window.location.origin,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // пользователь отменил — ничего не делаем
+      }
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(shareData.url);
+    }
+  };
+
   return (
     <header className="absolute top-0 left-0 right-0 z-30">
       <div className="max-w-[1400px] mx-auto flex items-center px-5 sm:px-8 lg:px-12 py-6">
@@ -42,37 +62,50 @@ const Header = () => {
           </span>
         </button>
 
-        <div
-          className="flex items-center gap-0.5 ml-4 px-1.5 py-1 rounded-full border border-border/60 bg-card/40"
-          style={{
-            boxShadow:
-              "inset 0 2px 4px rgba(0,0,0,0.55), inset 0 -1px 0 rgba(255,255,255,0.04)",
-          }}
-        >
+        {isStandalone ? (
           <button
-            onClick={() => openGuide("ios")}
-            aria-label="Установить на iPhone"
-            title="Установить на iPhone"
-            className="flex items-center justify-center w-8 h-8 text-slate-200 hover:text-white hover:scale-110 transition-all"
+            onClick={handleShare}
+            aria-label="Поделиться приложением"
+            title="Поделиться приложением"
+            className="flex items-center justify-center w-9 h-9 ml-4 rounded-full border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-share-bounce"
           >
-            <Icon name="Apple" size={17} />
+            <Icon name="Share2" size={16} />
           </button>
-          <button
-            onClick={() => openGuide("android")}
-            aria-label="Установить на Android"
-            title="Установить на Android"
-            className="flex items-center justify-center w-8 h-8 text-[#3DDC84] hover:brightness-125 hover:scale-110 transition-all"
+        ) : (
+          <div
+            className="flex items-center gap-0.5 ml-4 px-1.5 py-1 rounded-full border border-border/60 bg-card/40"
+            style={{
+              boxShadow:
+                "inset 0 2px 4px rgba(0,0,0,0.55), inset 0 -1px 0 rgba(255,255,255,0.04)",
+            }}
           >
-            <Icon name="Smartphone" size={17} />
-          </button>
-        </div>
+            <button
+              onClick={() => openGuide("ios")}
+              aria-label="Установить на iPhone"
+              title="Установить на iPhone"
+              className="flex items-center justify-center w-8 h-8 text-slate-200 hover:text-white hover:scale-110 transition-all"
+            >
+              <Icon name="Apple" size={17} />
+            </button>
+            <button
+              onClick={() => openGuide("android")}
+              aria-label="Установить на Android"
+              title="Установить на Android"
+              className="flex items-center justify-center w-8 h-8 text-[#3DDC84] hover:brightness-125 hover:scale-110 transition-all"
+            >
+              <Icon name="Smartphone" size={17} />
+            </button>
+          </div>
+        )}
 
-        <InstallGuide
-          key={guideTab}
-          open={guideOpen}
-          onOpenChange={setGuideOpen}
-          defaultTab={guideTab}
-        />
+        {!isStandalone && (
+          <InstallGuide
+            key={guideTab}
+            open={guideOpen}
+            onOpenChange={setGuideOpen}
+            defaultTab={guideTab}
+          />
+        )}
         {canInstall && (
           <button
             onClick={promptInstall}

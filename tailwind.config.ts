@@ -114,6 +114,10 @@ export default {
 					'40%': { transform: 'rotate(-7deg)' },
 					'50%': { transform: 'rotate(4deg)' },
 					'60%, 100%': { transform: 'rotate(0deg)' }
+				},
+				'share-bounce': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-3px)' }
 				}
 			},
 			animation: {
@@ -122,7 +126,8 @@ export default {
 				'fade-in': 'fade-in 0.6s ease-out both',
 				'scale-in': 'scale-in 0.4s ease-out both',
 				'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
-				'bell-ring': 'bell-ring 2.5s ease-in-out infinite'
+				'bell-ring': 'bell-ring 2.5s ease-in-out infinite',
+				'share-bounce': 'share-bounce 1.6s ease-in-out infinite'
 			}
 		}
 	},

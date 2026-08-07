@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
+import { useIsStandalone } from '@/hooks/use-standalone';
 
 type AdminInstallBannersProps = {
   canInstall: boolean;
@@ -18,9 +19,43 @@ const AdminInstallBanners = ({
   pushSubscribing,
   subscribePush,
 }: AdminInstallBannersProps) => {
+  const isStandalone = useIsStandalone();
+
+  const handleShare = async () => {
+    const shareData = {
+      title: 'ЗАП ОПТОМ — Заявки',
+      text: 'Админка заявок ЗАП ОПТОМ',
+      url: window.location.origin + '/admin-install.html',
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // пользователь отменил — ничего не делаем
+      }
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(shareData.url);
+    }
+  };
+
   return (
     <>
-      {canInstall && (
+      {isStandalone && (
+        <div className="mb-4 flex items-center gap-3 bg-card border border-primary/40 rounded-sm p-3">
+          <button
+            onClick={handleShare}
+            aria-label="Поделиться приложением"
+            title="Поделиться приложением"
+            className="shrink-0 flex items-center justify-center w-9 h-9 rounded-full border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-share-bounce"
+          >
+            <Icon name="Share2" size={16} />
+          </button>
+          <p className="text-sm text-muted-foreground">
+            Поделитесь приложением с коллегами.
+          </p>
+        </div>
+      )}
+      {!isStandalone && canInstall && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 bg-card border border-primary/40 rounded-sm p-4">
           <div className="flex items-center gap-3">
             <span className="w-9 h-9 shrink-0 rounded-full bg-primary/15 flex items-center justify-center">
@@ -39,7 +74,7 @@ const AdminInstallBanners = ({
           </Button>
         </div>
       )}
-      {isIosInstallable && (
+      {!isStandalone && isIosInstallable && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 bg-card border border-primary/40 rounded-sm p-4">
           <div className="flex items-center gap-3">
             <span className="w-9 h-9 shrink-0 rounded-full bg-primary/15 flex items-center justify-center">
