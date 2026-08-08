@@ -118,6 +118,10 @@ export default {
 				'share-glow': {
 					'0%, 100%': { boxShadow: '0 0 0 0 hsl(var(--primary) / 0.45)' },
 					'50%': { boxShadow: '0 0 10px 3px hsl(var(--primary) / 0.45)' }
+				},
+				'shimmer-sweep': {
+					from: { transform: 'translateX(-100%)' },
+					to: { transform: 'translateX(100%)' }
 				}
 			},
 			animation: {
@@ -127,7 +131,8 @@ export default {
 				'scale-in': 'scale-in 0.4s ease-out both',
 				'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
 				'bell-ring': 'bell-ring 2.5s ease-in-out infinite',
-				'share-glow': 'share-glow 2.2s ease-in-out infinite'
+				'share-glow': 'share-glow 2.2s ease-in-out infinite',
+				'shimmer-sweep': 'shimmer-sweep 1.6s ease-in-out infinite'
 			}
 		}
 	},
