@@ -51,7 +51,7 @@ export const useGarageState = () => {
   const [passwordSettingsLoading, setPasswordSettingsLoading] = useState(false);
   const [passwordSettingsSuccess, setPasswordSettingsSuccess] = useState('');
   const [resetPasswordMode, setResetPasswordMode] = useState(false);
-  const [resetNameInput, setResetNameInput] = useState('');
+  const [resetVinInput, setResetVinInput] = useState('');
   const [resetPasswordInput, setResetPasswordInput] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
@@ -185,6 +185,10 @@ export const useGarageState = () => {
   const submitResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetError('');
+    if (resetVinInput.trim().length < 11) {
+      setResetError('Укажите корректный VIN из заявки');
+      return;
+    }
     if (resetPasswordInput.trim().length !== 4) {
       setResetError('Пароль — ровно 4 символа');
       return;
@@ -197,7 +201,7 @@ export const useGarageState = () => {
         body: JSON.stringify({
           action: 'reset_password',
           phone,
-          name: resetNameInput,
+          vin: resetVinInput,
           password: resetPasswordInput.trim(),
         }),
       });
@@ -209,7 +213,7 @@ export const useGarageState = () => {
       }
       // Пароль сброшен — сразу входим с новым паролем
       setResetPasswordMode(false);
-      setResetNameInput('');
+      setResetVinInput('');
       setPasswordInput(resetPasswordInput.trim());
       setResetPasswordInput('');
       setPasswordRequired(false);
@@ -444,8 +448,8 @@ export const useGarageState = () => {
     passwordSettingsSuccess,
     resetPasswordMode,
     setResetPasswordMode,
-    resetNameInput,
-    setResetNameInput,
+    resetVinInput,
+    setResetVinInput,
     resetPasswordInput,
     setResetPasswordInput,
     resetLoading,

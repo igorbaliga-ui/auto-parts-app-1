@@ -109,20 +109,19 @@ def handler(event: dict, context) -> dict:
 
         if action == 'reset_password':
             # Восстановление забытого пароля: для подтверждения, что это владелец номера,
-            # просим ввести имя, указанное в самой первой заявке с этим телефоном
-            entered_name = (body.get('name') or '').strip().lower()
-            if not entered_name:
-                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите имя, указанное в заявке'})}
+            # просим ввести VIN любого автомобиля из истории заявок с этим телефоном
+            entered_vin = (body.get('vin') or '').strip().upper()
+            if not entered_vin:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите VIN автомобиля из заявки'})}
             cur.execute(
-                f"SELECT name FROM {schema}.leads "
-                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s "
-                f"ORDER BY created_at ASC LIMIT 1",
-                (phone_last10,),
+                f"SELECT 1 FROM {schema}.leads "
+                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s AND vin = %s "
+                f"LIMIT 1",
+                (phone_last10, entered_vin),
             )
-            name_row = cur.fetchone()
-            actual_name = (name_row[0] or '').strip().lower() if name_row else ''
-            if not actual_name or actual_name != entered_name:
-                return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Имя не совпадает с указанным в заявке'})}
+            vin_row = cur.fetchone()
+            if not vin_row:
+                return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'VIN не совпадает ни с одной заявкой этого номера'})}
 
             new_password = (body.get('password') or '').strip()
             if len(new_password) != 4:

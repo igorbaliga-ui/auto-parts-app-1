@@ -29,8 +29,8 @@ const GarageContent = () => {
     return (
       <ResetPasswordView
         phone={g.phone}
-        resetNameInput={g.resetNameInput}
-        setResetNameInput={g.setResetNameInput}
+        resetVinInput={g.resetVinInput}
+        setResetVinInput={g.setResetVinInput}
         resetPasswordInput={g.resetPasswordInput}
         setResetPasswordInput={g.setResetPasswordInput}
         resetError={g.resetError}

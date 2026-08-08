@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 import PageBackground from "@/components/site/PageBackground";
 import { normalizePhoneInput } from "@/lib/phone";
+import { sanitizeVinInput } from "@/lib/vin";
 
 type CheckingSavedViewProps = Record<string, never>;
 
@@ -19,8 +20,8 @@ export const CheckingSavedView = (_props: CheckingSavedViewProps) => (
 
 type ResetPasswordViewProps = {
   phone: string;
-  resetNameInput: string;
-  setResetNameInput: (v: string) => void;
+  resetVinInput: string;
+  setResetVinInput: (v: string) => void;
   resetPasswordInput: string;
   setResetPasswordInput: (v: string) => void;
   resetError: string;
@@ -32,8 +33,8 @@ type ResetPasswordViewProps = {
 
 export const ResetPasswordView = ({
   phone,
-  resetNameInput,
-  setResetNameInput,
+  resetVinInput,
+  setResetVinInput,
   resetPasswordInput,
   setResetPasswordInput,
   resetError,
@@ -57,14 +58,20 @@ export const ResetPasswordView = ({
           Восстановление пароля
         </h1>
         <p className="text-muted-foreground text-sm text-center">
-          Введите имя, которое указывали в самой первой заявке с номера {phone},
+          Введите VIN любого автомобиля из заявок с номера {phone},
           и задайте новый пароль.
         </p>
         <Input
-          value={resetNameInput}
-          onChange={(e) => setResetNameInput(e.target.value)}
-          maxLength={30}
-          placeholder="Имя из заявки"
+          value={resetVinInput}
+          onChange={(e) => setResetVinInput(sanitizeVinInput(e.target.value))}
+          maxLength={17}
+          inputMode="text"
+          autoCapitalize="characters"
+          autoCorrect="off"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="VIN автомобиля"
+          className="uppercase tracking-[0.14em]"
           autoFocus
         />
         <Input
@@ -88,7 +95,7 @@ export const ResetPasswordView = ({
           type="button"
           onClick={() => {
             setResetPasswordMode(false);
-            setResetNameInput("");
+            setResetVinInput("");
             setResetPasswordInput("");
             setResetError("");
           }}
