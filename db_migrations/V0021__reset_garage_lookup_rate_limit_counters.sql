@@ -1,0 +1,1 @@
+UPDATE rate_limits SET request_count = 0, window_start = now() - INTERVAL '1 hour' WHERE bucket_key LIKE 'garage-lookup:%';

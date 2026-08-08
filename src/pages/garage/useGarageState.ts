@@ -73,6 +73,10 @@ export const useGarageState = () => {
     setError('');
     try {
       const res = await fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(ph)}`);
+      if (res.status === 429) {
+        setError('Слишком много запросов. Подождите немного и попробуйте снова.');
+        return;
+      }
       if (!res.ok) throw new Error('request failed');
       const data = await res.json();
       const list: Order[] = data.orders || [];

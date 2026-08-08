@@ -32,9 +32,11 @@ def handler(event: dict, context) -> dict:
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']
 
-    # Защита от перебора чужих номеров телефона: не более 30 запросов с одного IP за 5 минут
+    # Защита от перебора чужих номеров телефона: не более 120 запросов с одного IP за 5 минут.
+    # Лимит выше, чем у других публичных функций, так как этот эндпоинт легитимно
+    # вызывается несколько раз за одну сессию (шапка сайта, форма заявки, сама страница «Гараж»)
     client_ip = get_client_ip(event)
-    if not check_rate_limit(dsn, schema, client_ip, 'garage-lookup', max_requests=30, window_seconds=300):
+    if not check_rate_limit(dsn, schema, client_ip, 'garage-lookup', max_requests=120, window_seconds=300):
         return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Слишком много запросов. Попробуйте позже'})}
 
     params = event.get('queryStringParameters') or {}
