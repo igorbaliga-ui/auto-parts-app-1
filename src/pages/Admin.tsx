@@ -50,6 +50,7 @@ const Admin = () => {
         toggleArrived={a.toggleArrived}
         toggleArchived={a.toggleArchived}
         resetGaragePassword={a.resetGaragePassword}
+        toggleGarageBlock={a.toggleGarageBlock}
         onRefresh={a.onRefresh}
         statusTab={a.statusTab}
         setStatusTab={a.setStatusTab}

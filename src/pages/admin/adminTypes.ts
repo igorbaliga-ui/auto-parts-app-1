@@ -18,6 +18,7 @@ export type Lead = {
   arrived: boolean;
   internal_note: string | null;
   archived: boolean;
+  garage_blocked: boolean;
 };
 
 export const messengerLabel: Record<string, string> = {

@@ -290,6 +290,28 @@ export const useAdminLeads = () => {
     }
   };
 
+  // Временная блокировка/разблокировка доступа клиента в личный кабинет «Гараж» —
+  // заблокированный клиент не сможет войти по телефону, даже без пароля
+  const toggleGarageBlock = async (id: number) => {
+    const lead = leads.find((l) => l.id === id);
+    if (!lead) return;
+    const nextBlocked = !lead.garage_blocked;
+    setSavingId(id);
+    try {
+      const res = await fetch(GARAGE_AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
+        body: JSON.stringify({ action: 'admin_toggle_block', phone: lead.phone, blocked: nextBlocked }),
+      });
+      if (!res.ok) throw new Error('request failed');
+      setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, garage_blocked: nextBlocked } : l)));
+    } catch {
+      setError('Не удалось изменить блокировку. Попробуйте ещё раз.');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const isColumnVisible = (key: ColumnKey) => !hiddenColumns.has(key);
 
   const toggleColumn = (key: ColumnKey) => {
@@ -376,6 +398,7 @@ export const useAdminLeads = () => {
     toggleArrived,
     toggleArchived,
     resetGaragePassword,
+    toggleGarageBlock,
     isColumnVisible,
     toggleColumn,
     setColumnFilter,

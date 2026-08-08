@@ -59,12 +59,18 @@ def handler(event: dict, context) -> dict:
             f"FROM {schema}.leads ORDER BY created_at DESC LIMIT 500"
         )
         rows = cur.fetchall()
+
+        # Номера, заблокированные в «Гараже» — чтобы отметить их в таблице заявок без
+        # отдельного запроса на каждую строку
+        cur.execute(f"SELECT phone_last10 FROM {schema}.garage_accounts WHERE is_blocked = true")
+        blocked_phones = {r['phone_last10'] for r in cur.fetchall()}
         cur.close()
     finally:
         conn.close()
 
     leads = []
     for r in rows:
+        phone_last10 = ''.join(ch for ch in (r['phone'] or '') if ch.isdigit())[-10:]
         leads.append({
             'id': r['id'],
             'vin': r['vin'],
@@ -85,6 +91,7 @@ def handler(event: dict, context) -> dict:
             'arrived': bool(r['arrived']),
             'internal_note': r['internal_note'],
             'archived': bool(r['archived']),
+            'garage_blocked': phone_last10 in blocked_phones,
         })
 
     return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'leads': leads})}

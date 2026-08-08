@@ -38,6 +38,7 @@ type AdminLeadsTableProps = {
   toggleArrived: (id: number) => void;
   toggleArchived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
+  toggleGarageBlock: (id: number) => void;
   onRefresh: () => void;
   statusTab: 'new' | 'in_progress' | 'done' | 'all' | 'archived';
   setStatusTab: (tab: 'new' | 'in_progress' | 'done' | 'all' | 'archived') => void;
@@ -75,6 +76,7 @@ const AdminLeadsTable = ({
   toggleArrived,
   toggleArchived,
   resetGaragePassword,
+  toggleGarageBlock,
   onRefresh,
   statusTab,
   setStatusTab,
@@ -137,6 +139,7 @@ const AdminLeadsTable = ({
               toggleArrived={toggleArrived}
               toggleArchived={toggleArchived}
               resetGaragePassword={resetGaragePassword}
+              toggleGarageBlock={toggleGarageBlock}
               onShowHistory={setHistoryLeadId}
               onShowLoginHistory={(phone, name) => setLoginHistoryClient({ phone, name })}
             />
@@ -157,6 +160,7 @@ const AdminLeadsTable = ({
               toggleArrived={toggleArrived}
               toggleArchived={toggleArchived}
               resetGaragePassword={resetGaragePassword}
+              toggleGarageBlock={toggleGarageBlock}
               onShowHistory={setHistoryLeadId}
               onShowLoginHistory={(phone, name) => setLoginHistoryClient({ phone, name })}
             />

@@ -53,6 +53,17 @@ def handler(event: dict, context) -> dict:
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+        # Клиент, заблокированный менеджером, не должен видеть заказы, даже если у него
+        # не задан пароль (в этом случае форма входа не запрашивает пароль вовсе)
+        cur.execute(
+            f"SELECT is_blocked FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+            (phone_last10,),
+        )
+        account_row = cur.fetchone()
+        if account_row and account_row['is_blocked']:
+            cur.close()
+            return {'statusCode': 403, 'headers': headers, 'body': json.dumps({'error': 'Доступ в «Гараж» временно заблокирован. Обратитесь к менеджеру'})}
+
         # Автоархивация: заявки в статусе «Новая», которые за 14 дней так и не взяли в работу
         cur.execute(
             f"UPDATE {schema}.leads SET archived = true, archived_at = now() "

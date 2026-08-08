@@ -48,6 +48,7 @@ type AdminLeadsDesktopTableProps = {
   toggleArrived: (id: number) => void;
   toggleArchived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
+  toggleGarageBlock: (id: number) => void;
   onShowHistory: (id: number) => void;
   onShowLoginHistory: (phone: string, name: string) => void;
 };
@@ -69,6 +70,7 @@ const AdminLeadsDesktopTable = ({
   toggleArrived,
   toggleArchived,
   resetGaragePassword,
+  toggleGarageBlock,
   onShowHistory,
   onShowLoginHistory,
 }: AdminLeadsDesktopTableProps) => {
@@ -198,6 +200,43 @@ const AdminLeadsDesktopTable = ({
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+                    {l.garage_blocked ? (
+                      <button
+                        title="Разблокировать доступ в «Гараж»"
+                        disabled={savingId === l.id}
+                        onClick={() => toggleGarageBlock(l.id)}
+                        className="shrink-0 flex items-center justify-center w-6 h-6 rounded-sm text-destructive hover:text-primary hover:bg-muted transition-colors"
+                      >
+                        <Icon name="Lock" size={13} />
+                      </button>
+                    ) : (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            title="Заблокировать доступ в «Гараж»"
+                            disabled={savingId === l.id}
+                            className="shrink-0 flex items-center justify-center w-6 h-6 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                          >
+                            <Icon name="LockOpen" size={13} />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Заблокировать клиента в «Гараже»?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Клиент {l.name} ({l.phone}) временно не сможет войти в личный кабинет
+                              «Гараж» по этому номеру телефона. Разблокировать можно в любой момент.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Отмена</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => toggleGarageBlock(l.id)}>
+                              Заблокировать
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </TableCell>
               )}

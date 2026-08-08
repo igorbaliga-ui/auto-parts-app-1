@@ -14,6 +14,7 @@ type AdminLeadsMobileListProps = {
   toggleArrived: (id: number) => void;
   toggleArchived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
+  toggleGarageBlock: (id: number) => void;
   onShowHistory: (id: number) => void;
   onShowLoginHistory: (phone: string, name: string) => void;
 };
@@ -31,6 +32,7 @@ const AdminLeadsMobileList = ({
   toggleArrived,
   toggleArchived,
   resetGaragePassword,
+  toggleGarageBlock,
   onShowHistory,
   onShowLoginHistory,
 }: AdminLeadsMobileListProps) => {
@@ -54,6 +56,7 @@ const AdminLeadsMobileList = ({
             toggleArrived={toggleArrived}
             toggleArchived={toggleArchived}
             resetGaragePassword={resetGaragePassword}
+            toggleGarageBlock={toggleGarageBlock}
             onShowHistory={onShowHistory}
             onShowLoginHistory={onShowLoginHistory}
           />

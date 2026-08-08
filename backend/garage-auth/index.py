@@ -82,7 +82,7 @@ def handler(event: dict, context) -> dict:
         try:
             cur = conn.cursor()
             cur.execute(
-                f"SELECT password_hash FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+                f"SELECT password_hash, is_blocked FROM {schema}.garage_accounts WHERE phone_last10 = %s",
                 (phone_last10,),
             )
             row = cur.fetchone()
@@ -91,7 +91,8 @@ def handler(event: dict, context) -> dict:
             conn.close()
 
         has_password = bool(row and row[0])
-        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'has_password': has_password})}
+        is_blocked = bool(row and row[1])
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'has_password': has_password, 'is_blocked': is_blocked})}
 
     if method != 'POST':
         return {'statusCode': 405, 'headers': headers, 'body': json.dumps({'error': 'Method not allowed'})}
@@ -112,13 +113,16 @@ def handler(event: dict, context) -> dict:
     try:
         cur = conn.cursor()
         cur.execute(
-            f"SELECT password_hash FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+            f"SELECT password_hash, is_blocked FROM {schema}.garage_accounts WHERE phone_last10 = %s",
             (phone_last10,),
         )
         row = cur.fetchone()
         current_hash = row[0] if row else None
+        is_blocked = bool(row[1]) if row else False
 
         if action == 'login':
+            if is_blocked:
+                return {'statusCode': 403, 'headers': headers, 'body': json.dumps({'error': 'Доступ в «Гараж» временно заблокирован. Обратитесь к менеджеру'})}
             password = body.get('password') or ''
             if current_hash:
                 if not password or not bcrypt.checkpw(password.encode(), current_hash.encode()):
@@ -147,6 +151,8 @@ def handler(event: dict, context) -> dict:
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
 
         if action == 'reset_password':
+            if is_blocked:
+                return {'statusCode': 403, 'headers': headers, 'body': json.dumps({'error': 'Доступ в «Гараж» временно заблокирован. Обратитесь к менеджеру'})}
             # Восстановление забытого пароля: для подтверждения, что это владелец номера,
             # просим ввести VIN любого автомобиля из истории заявок с этим телефоном
             entered_vin = (body.get('vin') or '').strip().upper()
@@ -189,6 +195,23 @@ def handler(event: dict, context) -> dict:
             )
             conn.commit()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+
+        if action == 'admin_toggle_block':
+            # Временная блокировка/разблокировка доступа клиента в «Гараж» менеджером из /admin —
+            # заблокированный клиент не может войти по телефону, даже без пароля
+            admin_password = req_headers.get('X-Admin-Password') or req_headers.get('x-admin-password')
+            if not admin_password_env or admin_password != admin_password_env:
+                return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный пароль администратора'})}
+            new_blocked = bool(body.get('blocked'))
+            cur.execute(
+                f"INSERT INTO {schema}.garage_accounts (phone_last10, is_blocked, blocked_at, updated_at) "
+                f"VALUES (%s, %s, {'now()' if new_blocked else 'NULL'}, now()) "
+                f"ON CONFLICT (phone_last10) DO UPDATE SET is_blocked = EXCLUDED.is_blocked, "
+                f"blocked_at = {'now()' if new_blocked else 'NULL'}, updated_at = now()",
+                (phone_last10, new_blocked),
+            )
+            conn.commit()
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True, 'is_blocked': new_blocked})}
 
         if action == 'remove_password':
             old_password = body.get('old_password') or ''

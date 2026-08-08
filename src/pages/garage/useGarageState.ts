@@ -78,6 +78,15 @@ export const useGarageState = () => {
         setError('Слишком много запросов. Подождите немного и попробуйте снова.');
         return;
       }
+      if (res.status === 403) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || 'Доступ в «Гараж» временно заблокирован. Обратитесь к менеджеру');
+        setAuthed(false);
+        setPasswordRequired(false);
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(PASSWORD_VERIFIED_KEY);
+        return;
+      }
       if (!res.ok) throw new Error('request failed');
       const data = await res.json();
       const list: Order[] = data.orders || [];
