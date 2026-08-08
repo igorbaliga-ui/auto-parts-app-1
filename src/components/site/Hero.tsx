@@ -4,6 +4,7 @@ import Icon from "@/components/ui/icon";
 import { useRequest } from "./RequestDialog";
 import { useGarageAuth } from "@/hooks/use-garage-auth";
 import { sanitizeVinInput } from "@/lib/vin";
+import { PHOTO_ACCEPT } from "@/lib/image";
 
 const Hero = () => {
   const { open } = useRequest();
@@ -92,7 +93,7 @@ const Hero = () => {
                     <input
                       ref={photoInputRef}
                       type="file"
-                      accept="image/*"
+                      accept={PHOTO_ACCEPT}
                       onChange={handlePhotoChange}
                       className="hidden"
                     />
