@@ -3,12 +3,23 @@ import os
 import re
 import bcrypt
 import psycopg2
+import psycopg2.extras
 from rate_limit import get_client_ip, check_rate_limit
+from device_info import parse_device
 
 
 def normalize_phone(phone: str) -> str:
     digits = re.sub(r'\D', '', phone or '')
     return digits[-10:]
+
+
+def log_login(cur, schema: str, phone_last10: str, login_type: str, user_agent: str, ip: str) -> None:
+    """Записывает факт входа/восстановления пароля в журнал истории входов."""
+    cur.execute(
+        f"INSERT INTO {schema}.garage_login_history (phone_last10, login_type, user_agent, ip) "
+        f"VALUES (%s, %s, %s, %s)",
+        (phone_last10, login_type, user_agent or '', ip or ''),
+    )
 
 
 def handler(event: dict, context) -> dict:
@@ -38,6 +49,28 @@ def handler(event: dict, context) -> dict:
         phone_last10 = normalize_phone(params.get('phone') or '')
         if len(phone_last10) < 10:
             return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите корректный телефон'})}
+
+        if params.get('history') == '1':
+            # История входов в личный кабинет: дата, устройство, обычный вход или восстановление пароля
+            conn = psycopg2.connect(dsn)
+            try:
+                cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cur.execute(
+                    f"SELECT login_type, user_agent, created_at FROM {schema}.garage_login_history "
+                    f"WHERE phone_last10 = %s ORDER BY created_at DESC LIMIT 50",
+                    (phone_last10,),
+                )
+                rows = cur.fetchall()
+                cur.close()
+            finally:
+                conn.close()
+
+            history = [{
+                'login_type': r['login_type'],
+                'device': parse_device(r['user_agent']),
+                'created_at': r['created_at'].isoformat() if r['created_at'] else None,
+            } for r in rows]
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'history': history})}
 
         conn = psycopg2.connect(dsn)
         try:
@@ -87,6 +120,9 @@ def handler(event: dict, context) -> dict:
             if current_hash:
                 if not password or not bcrypt.checkpw(password.encode(), current_hash.encode()):
                     return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный пароль'})}
+            user_agent = req_headers.get('User-Agent') or req_headers.get('user-agent') or ''
+            log_login(cur, schema, phone_last10, 'login', user_agent, client_ip)
+            conn.commit()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
 
         if action == 'set_password':
@@ -133,6 +169,8 @@ def handler(event: dict, context) -> dict:
                 f"ON CONFLICT (phone_last10) DO UPDATE SET password_hash = EXCLUDED.password_hash, updated_at = now()",
                 (phone_last10, new_hash),
             )
+            user_agent = req_headers.get('User-Agent') or req_headers.get('user-agent') or ''
+            log_login(cur, schema, phone_last10, 'reset_password', user_agent, client_ip)
             conn.commit()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
 

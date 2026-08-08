@@ -44,6 +44,7 @@ type GarageHeaderProps = {
   removePasswordSettings: () => void;
   logoutConfirmOpen: boolean;
   logout: () => void;
+  onOpenLoginHistory: () => void;
 };
 
 const GarageHeader = ({
@@ -68,6 +69,7 @@ const GarageHeader = ({
   removePasswordSettings,
   logoutConfirmOpen,
   logout,
+  onOpenLoginHistory,
 }: GarageHeaderProps) => {
   return (
     <>
@@ -138,6 +140,15 @@ const GarageHeader = ({
               <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-primary" />
             </span>
           )}
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={onOpenLoginHistory}
+          className="h-10 w-10 shrink-0"
+          title="История входов"
+        >
+          <Icon name="History" size={16} />
         </Button>
         <Button
           variant="secondary"

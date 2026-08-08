@@ -12,6 +12,7 @@ import {
 import GarageHeader from './garage/GarageHeader';
 import GarageOrdersList from './garage/GarageOrdersList';
 import CashbackHistoryDialog from './garage/CashbackHistoryDialog';
+import LoginHistoryDialog from './garage/LoginHistoryDialog';
 import GarageArchiveDialog from './garage/GarageArchiveDialog';
 
 const GarageContent = () => {
@@ -121,6 +122,7 @@ const GarageContent = () => {
           removePasswordSettings={g.removePasswordSettings}
           logoutConfirmOpen={g.logoutConfirmOpen}
           logout={g.logout}
+          onOpenLoginHistory={g.openLoginHistory}
         />
 
         <GarageOrdersList
@@ -152,6 +154,12 @@ const GarageContent = () => {
         history={g.cashbackHistory}
         open={g.cashbackHistoryOpen}
         onOpenChange={g.setCashbackHistoryOpen}
+      />
+      <LoginHistoryDialog
+        history={g.loginHistory}
+        loading={g.loginHistoryLoading}
+        open={g.loginHistoryOpen}
+        onOpenChange={g.setLoginHistoryOpen}
       />
       <GarageArchiveDialog
         orders={g.archivedOrders}
