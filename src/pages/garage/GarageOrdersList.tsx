@@ -117,33 +117,35 @@ const GarageOrdersList = ({
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-1.5 sm:gap-2 mb-3">
-            {searchOpen && (
-              <Input
-                autoFocus
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onBlur={() => {
-                  if (!searchQuery) setSearchOpen(false);
+          <div className="flex items-center justify-between gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {searchOpen && (
+                <Input
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onBlur={() => {
+                    if (!searchQuery) setSearchOpen(false);
+                  }}
+                  placeholder="VIN или название авто"
+                  className="h-8 sm:h-10 w-40 sm:w-56 bg-transparent border-0 border-b border-steel rounded-none text-[0.7rem] sm:text-sm focus-visible:ring-0 focus-visible:border-primary px-1"
+                />
+              )}
+              <button
+                onClick={() => {
+                  if (searchOpen && searchQuery) {
+                    setSearchQuery("");
+                    setSearchOpen(false);
+                  } else {
+                    setSearchOpen((v) => !v);
+                  }
                 }}
-                placeholder="VIN или название авто"
-                className="h-8 sm:h-10 w-40 sm:w-56 bg-transparent border-0 border-b border-steel rounded-none text-[0.7rem] sm:text-sm focus-visible:ring-0 focus-visible:border-primary px-1"
-              />
-            )}
-            <button
-              onClick={() => {
-                if (searchOpen && searchQuery) {
-                  setSearchQuery("");
-                  setSearchOpen(false);
-                } else {
-                  setSearchOpen((v) => !v);
-                }
-              }}
-              aria-label={searchOpen ? "Закрыть поиск" : "Поиск по VIN или названию авто"}
-              className="shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              <Icon name={searchOpen && searchQuery ? "X" : "Search"} size={15} />
-            </button>
+                aria-label={searchOpen ? "Закрыть поиск" : "Поиск по VIN или названию авто"}
+                className="shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Icon name={searchOpen && searchQuery ? "X" : "Search"} size={15} />
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center justify-between gap-1.5 sm:gap-2 mb-4">
