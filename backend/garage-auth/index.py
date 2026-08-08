@@ -3,6 +3,7 @@ import os
 import re
 import bcrypt
 import psycopg2
+from rate_limit import get_client_ip, check_rate_limit
 
 
 def normalize_phone(phone: str) -> str:
@@ -55,6 +56,11 @@ def handler(event: dict, context) -> dict:
 
     if method != 'POST':
         return {'statusCode': 405, 'headers': headers, 'body': json.dumps({'error': 'Method not allowed'})}
+
+    # Защита от подбора пароля: не более 20 попыток входа/смены пароля с одного IP за 10 минут
+    client_ip = get_client_ip(event)
+    if not check_rate_limit(dsn, schema, client_ip, 'garage-auth', max_requests=20, window_seconds=600):
+        return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Слишком много попыток. Попробуйте позже'})}
 
     req_headers = event.get('headers') or {}
     admin_password_env = os.environ.get('ADMIN_PASSWORD')

@@ -2,6 +2,7 @@ import json
 import os
 import re
 import psycopg2
+from rate_limit import get_client_ip, check_rate_limit
 
 def normalize_phone(phone: str) -> str:
     digits = re.sub(r'\D', '', phone or '')
@@ -35,6 +36,14 @@ def handler(event: dict, context) -> dict:
     if method != 'POST':
         return {'statusCode': 405, 'headers': headers, 'body': json.dumps({'error': 'Method not allowed'})}
 
+    dsn = os.environ['DATABASE_URL']
+    schema = os.environ['MAIN_DB_SCHEMA']
+
+    # Защита от спама подписками: не более 20 запросов с одного IP за 10 минут
+    client_ip = get_client_ip(event)
+    if not check_rate_limit(dsn, schema, client_ip, 'push-subscribe', max_requests=20, window_seconds=600):
+        return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Слишком много запросов. Попробуйте позже'})}
+
     body = json.loads(event.get('body') or '{}')
     action = body.get('action', 'subscribe')
     phone_last10 = normalize_phone(body.get('phone') or '')
@@ -42,8 +51,6 @@ def handler(event: dict, context) -> dict:
     if len(phone_last10) < 10:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите корректный телефон'})}
 
-    dsn = os.environ['DATABASE_URL']
-    schema = os.environ['MAIN_DB_SCHEMA']
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor()

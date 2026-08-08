@@ -2,6 +2,7 @@ import json
 import os
 import re
 import psycopg2
+from rate_limit import get_client_ip, check_rate_limit
 
 
 def handler(event: dict, context) -> dict:
@@ -25,6 +26,14 @@ def handler(event: dict, context) -> dict:
     if method != 'POST':
         return {'statusCode': 405, 'headers': headers, 'body': json.dumps({'error': 'Method not allowed'})}
 
+    dsn = os.environ['DATABASE_URL']
+    schema = os.environ['MAIN_DB_SCHEMA']
+
+    # Защита от перебора чужих телефон+VIN: не более 20 запросов с одного IP за 5 минут
+    client_ip = get_client_ip(event)
+    if not check_rate_limit(dsn, schema, client_ip, 'garage-car-name', max_requests=20, window_seconds=300):
+        return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Слишком много запросов. Попробуйте позже'})}
+
     body = json.loads(event.get('body') or '{}')
     phone = (body.get('phone') or '').strip()
     vin = (body.get('vin') or '').strip().upper()
@@ -43,8 +52,6 @@ def handler(event: dict, context) -> dict:
 
     phone_last10 = phone_digits[-10:]
 
-    dsn = os.environ['DATABASE_URL']
-    schema = os.environ['MAIN_DB_SCHEMA']
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor()

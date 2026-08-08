@@ -6,6 +6,7 @@ import uuid
 import psycopg2
 import boto3
 from send_admin_push import send_push_to_admins
+from rate_limit import get_client_ip, check_rate_limit
 
 
 def upload_photo(photo_base64: str) -> str:
@@ -53,6 +54,14 @@ def handler(event: dict, context) -> dict:
 
     if method != 'POST':
         return {'statusCode': 405, 'headers': headers, 'body': json.dumps({'error': 'Method not allowed'})}
+
+    dsn = os.environ['DATABASE_URL']
+    schema = os.environ['MAIN_DB_SCHEMA']
+
+    # Защита от спама заявками с одного IP: не более 10 заявок за 10 минут
+    client_ip = get_client_ip(event)
+    if not check_rate_limit(dsn, schema, client_ip, 'leads-submit', max_requests=10, window_seconds=600):
+        return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Слишком много заявок. Попробуйте позже'})}
 
     body = json.loads(event.get('body') or '{}')
     vin = (body.get('vin') or '').strip().upper()
@@ -106,8 +115,6 @@ def handler(event: dict, context) -> dict:
 
     vin_to_save = vin if vin_valid else None
 
-    dsn = os.environ['DATABASE_URL']
-    schema = os.environ['MAIN_DB_SCHEMA']
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor()

@@ -1,6 +1,7 @@
 import json
 import os
 import psycopg2
+from rate_limit import get_client_ip, check_rate_limit
 
 
 def handler(event: dict, context) -> dict:
@@ -30,6 +31,14 @@ def handler(event: dict, context) -> dict:
     if method != 'POST':
         return {'statusCode': 405, 'headers': headers, 'body': json.dumps({'error': 'Method not allowed'})}
 
+    dsn = os.environ['DATABASE_URL']
+    schema = os.environ['MAIN_DB_SCHEMA']
+
+    # Защита от подбора пароля администратора: не более 30 запросов с одного IP за 5 минут
+    client_ip = get_client_ip(event)
+    if not check_rate_limit(dsn, schema, client_ip, 'admin-push-subscribe', max_requests=30, window_seconds=300):
+        return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Слишком много запросов. Попробуйте позже'})}
+
     req_headers = event.get('headers') or {}
     password = req_headers.get('X-Admin-Password') or req_headers.get('x-admin-password')
     admin_password = os.environ.get('ADMIN_PASSWORD')
@@ -40,8 +49,6 @@ def handler(event: dict, context) -> dict:
     body = json.loads(event.get('body') or '{}')
     action = body.get('action', 'subscribe')
 
-    dsn = os.environ['DATABASE_URL']
-    schema = os.environ['MAIN_DB_SCHEMA']
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor()
