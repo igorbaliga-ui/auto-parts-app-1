@@ -3,6 +3,7 @@ import { useRequest } from '@/components/site/RequestDialog';
 import { notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
 import { getStoredCity } from '@/lib/garage-city';
 import { usePushSubscription } from '@/hooks/use-push-subscription';
+import { toast } from '@/hooks/use-toast';
 import {
   GARAGE_LOOKUP_URL,
   GARAGE_CAR_NAME_URL,
@@ -279,11 +280,8 @@ export const useGarageState = () => {
       // Пароль только что задан в этой же сессии — сразу отмечаем его подтверждённым,
       // чтобы при возврате в «Гараж» не спрашивать его повторно
       localStorage.setItem(PASSWORD_VERIFIED_KEY, phone);
-      setPasswordSettingsSuccess('Пароль сохранён');
-      setTimeout(() => {
-        setPasswordSettingsOpen(false);
-        setPasswordSettingsSuccess('');
-      }, 1200);
+      setPasswordSettingsOpen(false);
+      toast({ title: 'Пароль сохранён' });
     } catch {
       setPasswordSettingsError('Не удалось сохранить пароль');
     } finally {
