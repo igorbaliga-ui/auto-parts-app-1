@@ -269,6 +269,9 @@ export const useGarageState = () => {
       setOldPasswordInput('');
       setNewPasswordInput('');
       setNewPasswordConfirmInput('');
+      // Пароль только что задан в этой же сессии — сразу отмечаем его подтверждённым,
+      // чтобы при возврате в «Гараж» не спрашивать его повторно
+      localStorage.setItem(PASSWORD_VERIFIED_KEY, phone);
       setPasswordSettingsSuccess('Пароль сохранён');
       setTimeout(() => {
         setPasswordSettingsOpen(false);
