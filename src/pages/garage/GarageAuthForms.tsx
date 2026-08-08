@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
@@ -234,12 +235,12 @@ export const PhoneEntryView = ({
         >
           {loading || checkingPassword ? "Загружаем…" : "Войти"}
         </Button>
-        <a
-          href="/"
+        <Link
+          to="/"
           className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           На главную
-        </a>
+        </Link>
       </form>
     </div>
   </PageBackground>
