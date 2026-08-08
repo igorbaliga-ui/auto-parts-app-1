@@ -97,9 +97,11 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [form, messenger]);
 
-  // Телефон привязан к одному имени: при вводе известного номера имя подставляется автоматически
+  // Телефон привязан к одному имени: при вводе известного номера имя подставляется автоматически.
+  // Только для клиента, уже вошедшего в свой «Гараж» — иначе по чужому номеру телефона
+  // можно было бы узнать имя другого человека, ранее оставившего заявку.
   useEffect(() => {
-    if (knownContact) return;
+    if (knownContact || !garageAuthed) return;
     const digits = form.phone.replace(/\D/g, '');
     if (digits.length < 10) return;
     if (lastLookupPhone.current === digits) return;
@@ -121,7 +123,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     }, 500);
 
     return () => clearTimeout(nameLookupTimer.current);
-  }, [form.phone, knownContact]);
+  }, [form.phone, knownContact, garageAuthed]);
 
   const open = (vin?: string, incomingPhoto?: File | null, phone?: string, name?: string, history?: string[], city?: string) => {
     setErrors({});
