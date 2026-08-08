@@ -71,10 +71,10 @@ const GarageHeader = ({
 }: GarageHeaderProps) => {
   return (
     <>
-      <div className="flex items-center justify-between mb-5 sm:mb-2 gap-2">
+      <div className="mb-5 sm:mb-2">
         <Link
           to="/"
-          className="sm:hidden flex items-center gap-2 text-muted-foreground text-sm font-head uppercase tracking-wide hover:text-primary transition-colors w-fit"
+          className="sm:hidden flex items-center gap-2 text-muted-foreground text-sm font-head uppercase tracking-wide hover:text-primary transition-colors w-fit mb-3"
         >
           <Icon name="ArrowLeft" size={16} />
           На главную
@@ -101,7 +101,7 @@ const GarageHeader = ({
             setCity(v);
             setStoredCity(v);
           }}
-          className="h-9 text-sm bg-transparent border-0 rounded-none px-0 shadow-none text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+          className="h-9 text-xs sm:text-sm bg-transparent border-0 rounded-none px-0 shadow-none text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </div>
 
