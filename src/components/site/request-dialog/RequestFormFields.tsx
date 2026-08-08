@@ -12,6 +12,7 @@ import {
 import CityInput from '@/components/shared/CityInput';
 import { setStoredCity } from '@/lib/garage-city';
 import { normalizePhoneInput } from '@/lib/phone';
+import { sanitizeVinInput } from '@/lib/vin';
 import { messengers, GarageCar } from './RequestContext';
 
 type FormState = { vin: string; name: string; phone: string; parts: string; city: string };
@@ -145,10 +146,16 @@ const RequestFormFields = ({
           <Input
             value={form.vin}
             onChange={(e) => {
-              set('vin')(e);
-              setVinSource(e.target.value ? 'manual' : null);
+              const value = sanitizeVinInput(e.target.value);
+              setForm((f) => ({ ...f, vin: value }));
+              setVinSource(value ? 'manual' : null);
             }}
             maxLength={17}
+            inputMode="text"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            autoComplete="off"
+            spellCheck={false}
             placeholder="XW8ZZZ• • • • • • •"
             className={`tracking-[0.14em] uppercase bg-background ${form.vin ? 'pr-9' : ''}`}
             list="vin-history-list"

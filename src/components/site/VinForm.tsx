@@ -11,6 +11,7 @@ import {
   notifyGarageAuthChanged,
 } from "@/hooks/use-garage-auth";
 import { normalizePhoneInput } from "@/lib/phone";
+import { sanitizeVinInput } from "@/lib/vin";
 
 const messengers = [
   { id: "telegram", label: "Telegram", icon: "Send" },
@@ -190,8 +191,15 @@ const VinForm = () => {
                 </div>
                 <Input
                   value={form.vin}
-                  onChange={set("vin")}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, vin: sanitizeVinInput(e.target.value) }))
+                  }
                   maxLength={17}
+                  inputMode="text"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  autoComplete="off"
+                  spellCheck={false}
                   placeholder="XW8ZZZ• • • • • • •"
                   className="mt-1.5 uppercase tracking-[0.14em] h-12"
                 />

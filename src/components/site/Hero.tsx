@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { useRequest } from "./RequestDialog";
 import { useGarageAuth } from "@/hooks/use-garage-auth";
+import { sanitizeVinInput } from "@/lib/vin";
 
 const Hero = () => {
   const { open } = useRequest();
@@ -99,9 +100,14 @@ const Hero = () => {
                       <input
                         form="hero-vin-form"
                         value={vin}
-                        onChange={(e) => setVin(e.target.value)}
+                        onChange={(e) => setVin(sanitizeVinInput(e.target.value))}
                         maxLength={17}
                         type="text"
+                        inputMode="text"
+                        autoCapitalize="characters"
+                        autoCorrect="off"
+                        autoComplete="off"
+                        spellCheck={false}
                         placeholder="XW8ZZZ • • • •"
                         aria-label="VIN-код автомобиля"
                         className="flex-1 min-w-0 bg-transparent text-foreground text-sm tracking-[0.1em] px-3 outline-none placeholder:text-steel"
@@ -118,9 +124,14 @@ const Hero = () => {
                     </span>
                     <input
                       value={vin}
-                      onChange={(e) => setVin(e.target.value)}
+                      onChange={(e) => setVin(sanitizeVinInput(e.target.value))}
                       maxLength={17}
                       type="text"
+                      inputMode="text"
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                      autoComplete="off"
+                      spellCheck={false}
                       placeholder="XW8ZZZ • • • •"
                       aria-label="VIN-код автомобиля"
                       className="flex-1 min-w-0 bg-transparent text-foreground text-sm tracking-[0.16em] px-4 outline-none placeholder:text-steel"

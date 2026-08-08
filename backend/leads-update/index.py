@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import psycopg2
 from send_push import send_push_to_phone
 
@@ -100,6 +101,11 @@ def handler(event: dict, context) -> dict:
 
     if 'phone' in body and not (body.get('phone') or '').strip():
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Телефон не может быть пустым'})}
+
+    if 'vin' in body:
+        raw_vin = (body.get('vin') or '').strip().upper()
+        if raw_vin and not re.fullmatch(r'[A-Z0-9]{11,17}', raw_vin):
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный VIN'})}
 
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']
