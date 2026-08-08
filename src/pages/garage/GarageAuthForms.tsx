@@ -5,6 +5,38 @@ import Icon from "@/components/ui/icon";
 import PageBackground from "@/components/site/PageBackground";
 import { normalizePhoneInput } from "@/lib/phone";
 import { sanitizeVinInput } from "@/lib/vin";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+const SUPPORT_PHONE = "+79324027937";
+
+const SupportHint = () => (
+  <Popover>
+    <PopoverTrigger asChild>
+      <button
+        type="button"
+        aria-label="Не получается восстановить доступ?"
+        title="Не получается восстановить доступ?"
+        className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full bg-muted text-muted-foreground hover:text-primary hover:bg-muted/80 transition-colors"
+      >
+        <Icon name="HelpCircle" size={15} />
+      </button>
+    </PopoverTrigger>
+    <PopoverContent
+      side="top"
+      align="end"
+      className="w-64 text-sm bg-card border-steel"
+    >
+      Обратитесь к менеджеру по телефону{" "}
+      <a href={`tel:${SUPPORT_PHONE}`} className="text-primary whitespace-nowrap">
+        {SUPPORT_PHONE}
+      </a>
+    </PopoverContent>
+  </Popover>
+);
 
 type CheckingSavedViewProps = Record<string, never>;
 
@@ -47,8 +79,9 @@ export const ResetPasswordView = ({
     <div className="min-h-screen flex items-center justify-center px-5">
       <form
         onSubmit={submitResetPassword}
-        className="w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4 animate-fade-in"
+        className="relative w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4 animate-fade-in"
       >
+        <SupportHint />
         <div className="flex justify-center mb-2">
           <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center">
             <Icon name="KeyRound" className="text-primary" size={28} />
