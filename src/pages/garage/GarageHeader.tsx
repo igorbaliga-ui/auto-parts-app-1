@@ -71,10 +71,10 @@ const GarageHeader = ({
 }: GarageHeaderProps) => {
   return (
     <>
-      <div className="mb-5 sm:mb-2">
+      <div className="flex items-center justify-between mb-5 sm:mb-2 gap-2">
         <Link
           to="/"
-          className="sm:hidden flex items-center gap-2 text-muted-foreground text-sm font-head uppercase tracking-wide hover:text-primary transition-colors w-fit mb-3"
+          className="sm:hidden flex items-center gap-2 text-muted-foreground text-sm font-head uppercase tracking-wide hover:text-primary transition-colors w-fit"
         >
           <Icon name="ArrowLeft" size={16} />
           На главную
@@ -94,14 +94,14 @@ const GarageHeader = ({
         </div>
       </div>
 
-      <div className="mb-4 sm:mb-6 w-full max-w-[220px]">
+      <div className="mb-4 sm:mb-6 w-full max-w-[220px] ml-auto sm:ml-0 sm:mr-auto">
         <CityInput
           value={city}
           onChange={(v) => {
             setCity(v);
             setStoredCity(v);
           }}
-          className="h-9 text-xs sm:text-sm bg-transparent border-0 rounded-none px-0 shadow-none text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+          className="h-9 text-xs sm:text-sm bg-transparent border-0 rounded-none px-0 shadow-none text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 text-right sm:text-left"
         />
       </div>
 
