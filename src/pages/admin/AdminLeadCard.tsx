@@ -36,6 +36,7 @@ type AdminLeadCardProps = {
   toggleArchived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
   toggleGarageBlock: (id: number) => void;
+  saveClientNote: (id: number, note: string) => Promise<void>;
   onShowHistory: (id: number) => void;
   onShowLoginHistory: (phone: string, name: string) => void;
 };
@@ -61,6 +62,7 @@ const AdminLeadCard = ({
   toggleArchived,
   resetGaragePassword,
   toggleGarageBlock,
+  saveClientNote,
   onShowHistory,
   onShowLoginHistory,
 }: AdminLeadCardProps) => {
@@ -266,6 +268,19 @@ const AdminLeadCard = ({
           onChange={(e) => setNoteDraft(l.id, e.target.value)}
           placeholder="Заметка для менеджеров"
           className="min-h-16 text-sm"
+        />
+      </div>
+
+      <div>
+        <label className="text-muted-foreground text-xs uppercase tracking-wide block mb-1 mt-2">
+          Заметка по клиенту (видна во всех его заявках)
+        </label>
+        <InlineEditableCell
+          value={l.phone_note || ''}
+          displayLabel="Заметка по клиенту"
+          multiline
+          onSave={(v) => saveClientNote(l.id, v)}
+          className="text-left whitespace-pre-wrap text-amber-500/90 block w-full"
         />
       </div>
 

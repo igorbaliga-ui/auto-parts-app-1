@@ -5,8 +5,11 @@ import { Lead, ColumnKey, columns } from './adminTypes';
 const LEADS_ADMIN_URL = 'https://functions.poehali.dev/68ca5544-c377-4c79-ba1f-57ba286b33a9';
 const LEADS_UPDATE_URL = 'https://functions.poehali.dev/1612bdca-502b-46a9-b0ea-8d6d93876dc6';
 const GARAGE_AUTH_URL = 'https://functions.poehali.dev/d92ac11d-c6d2-4430-b948-a767c0048442';
+const CLIENT_NOTES_URL = 'https://functions.poehali.dev/6db08252-18b5-4e2f-8d19-e0b07150e9d5';
 
 type Draft = { amount: string; prepayment: string; note: string };
+
+const phoneLast10 = (phone: string) => phone.replace(/\D/g, '').slice(-10);
 
 /**
  * Вся логика страницы /admin: авторизация менеджера, загрузка заявок, черновики
@@ -312,6 +315,30 @@ export const useAdminLeads = () => {
     }
   };
 
+  // Заметка привязана к номеру телефона, а не к конкретной заявке — сохраняется на бэкенде
+  // по телефону и сразу применяется ко всем заявкам этого клиента в списке (включая будущие)
+  const saveClientNote = async (id: number, note: string) => {
+    const lead = leads.find((l) => l.id === id);
+    if (!lead) return;
+    const phone10 = phoneLast10(lead.phone);
+    setSavingId(id);
+    try {
+      const res = await fetch(CLIENT_NOTES_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
+        body: JSON.stringify({ phone: lead.phone, note, admin_name: adminName }),
+      });
+      if (!res.ok) throw new Error('request failed');
+      const trimmed = note.trim() || null;
+      setLeads((ls) => ls.map((l) => (phoneLast10(l.phone) === phone10 ? { ...l, phone_note: trimmed } : l)));
+    } catch {
+      setError('Не удалось сохранить заметку. Попробуйте ещё раз.');
+      throw new Error('save failed');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const isColumnVisible = (key: ColumnKey) => !hiddenColumns.has(key);
 
   const toggleColumn = (key: ColumnKey) => {
@@ -399,6 +426,7 @@ export const useAdminLeads = () => {
     toggleArchived,
     resetGaragePassword,
     toggleGarageBlock,
+    saveClientNote,
     isColumnVisible,
     toggleColumn,
     setColumnFilter,

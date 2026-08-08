@@ -19,6 +19,7 @@ export type Lead = {
   internal_note: string | null;
   archived: boolean;
   garage_blocked: boolean;
+  phone_note: string | null;
 };
 
 export const messengerLabel: Record<string, string> = {
@@ -61,7 +62,8 @@ export type ColumnKey =
   | 'cashback'
   | 'status'
   | 'completed_at'
-  | 'internal_note';
+  | 'internal_note'
+  | 'phone_note';
 
 export type ColumnDef = {
   key: ColumnKey;
@@ -107,5 +109,11 @@ export const columns: ColumnDef[] = [
     label: 'Заметка',
     searchable: true,
     getSearchValue: (l) => l.internal_note || '',
+  },
+  {
+    key: 'phone_note',
+    label: 'Заметка по клиенту',
+    searchable: true,
+    getSearchValue: (l) => l.phone_note || '',
   },
 ];

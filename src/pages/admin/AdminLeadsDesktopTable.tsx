@@ -49,6 +49,7 @@ type AdminLeadsDesktopTableProps = {
   toggleArchived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
   toggleGarageBlock: (id: number) => void;
+  saveClientNote: (id: number, note: string) => Promise<void>;
   onShowHistory: (id: number) => void;
   onShowLoginHistory: (phone: string, name: string) => void;
 };
@@ -71,6 +72,7 @@ const AdminLeadsDesktopTable = ({
   toggleArchived,
   resetGaragePassword,
   toggleGarageBlock,
+  saveClientNote,
   onShowHistory,
   onShowLoginHistory,
 }: AdminLeadsDesktopTableProps) => {
@@ -387,6 +389,18 @@ const AdminLeadsDesktopTable = ({
                     placeholder="Заметка для менеджеров"
                     title="Видна только менеджерам, клиент её не видит"
                     className="w-48 min-h-9 h-9 text-xs resize-y"
+                  />
+                </TableCell>
+              )}
+              {isColumnVisible('phone_note') && (
+                <TableCell>
+                  <InlineEditableCell
+                    value={l.phone_note || ''}
+                    displayLabel="Заметка по клиенту"
+                    multiline
+                    onSave={(v) => saveClientNote(l.id, v)}
+                    inputClassName="w-48"
+                    className="max-w-[220px] line-clamp-3 whitespace-pre-wrap align-top text-amber-500/90"
                   />
                 </TableCell>
               )}
