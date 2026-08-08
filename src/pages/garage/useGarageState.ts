@@ -173,9 +173,13 @@ export const useGarageState = () => {
         return;
       }
       setPasswordInput('');
-      setPasswordRequired(false);
       localStorage.setItem(PASSWORD_VERIFIED_KEY, phone);
+      // passwordRequired специально сбрасываем только ПОСЛЕ загрузки заказов: пока идёт
+      // load(), authed ещё false, и если сбросить passwordRequired раньше, экран на
+      // мгновение провалится в форму ввода телефона (условие рендера в Garage.tsx) —
+      // получается заметное мигание между формой пароля и формой телефона
       await load(phone);
+      setPasswordRequired(false);
     } catch {
       setError('Не удалось войти. Попробуйте ещё раз.');
       setLoading(false);
@@ -211,14 +215,17 @@ export const useGarageState = () => {
         setResetLoading(false);
         return;
       }
-      // Пароль сброшен — сразу входим с новым паролем
-      setResetPasswordMode(false);
+      // Пароль сброшен — сразу входим с новым паролем.
+      // resetPasswordMode/passwordRequired сбрасываем только ПОСЛЕ load(), по той же
+      // причине, что и в submitPassword — иначе экран на мгновение проваливается
+      // в форму ввода телефона, пока authed ещё не стал true
       setResetVinInput('');
       setPasswordInput(resetPasswordInput.trim());
       setResetPasswordInput('');
-      setPasswordRequired(false);
       localStorage.setItem(PASSWORD_VERIFIED_KEY, phone);
       await load(phone);
+      setResetPasswordMode(false);
+      setPasswordRequired(false);
     } catch {
       setResetError('Не удалось восстановить пароль. Попробуйте ещё раз.');
     } finally {
