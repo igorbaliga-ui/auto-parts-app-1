@@ -98,17 +98,26 @@
     @apply border-border;
   }
 
+  /* Вертикальный скроллбар держим ВСЕГДА видимым (а не только зарезервированным
+     через scrollbar-gutter). Причина: scrollbar-gutter действует, только пока
+     computed overflow элемента остаётся auto/scroll. Когда открывается
+     Dialog/Drawer, react-remove-scroll ставит body overflow:hidden, это
+     значение по правилам пропагации переходит на viewport (html) — резерв
+     от scrollbar-gutter в этот момент перестаёт действовать, ширина документа
+     меняется, и весь контент/фон заметно "прыгает" при открытии и закрытии
+     модалки (например форма пароля в «Гараже»). overflow-y: scroll — это
+     явный overflow у html, пропагация от body больше не применяется (по
+     спецификации used overflow viewport берётся от html, если он не visible),
+     поэтому скроллбar остаётся на месте в любом состоянии и скачка нет. */
   html {
     touch-action: pan-x pan-y;
-    scrollbar-gutter: stable;
+    overflow-y: scroll;
   }
 
-  /* html уже резервирует место под скроллбар (scrollbar-gutter: stable), поэтому
-     когда открывается Dialog/Drawer и радикс блокирует прокрутку body, его
-     библиотека (react-remove-scroll-bar) не должна ДОПОЛНИТЕЛЬНО сдвигать
-     контент через margin-right — это и вызывало заметный скачок фона/блоков
-     при открытии и закрытии модалок (например форма пароля в «Гараже») */
-  body[data-scroll-locked] {
+  /* Страховка: раз скроллбар теперь всегда видим, у react-remove-scroll-bar
+     не должно оставаться "исчезнувшей" ширины скроллбара, которую нужно
+     компенсировать сдвигом — но на всякий случай гасим сам сдвиг. */
+  html body[data-scroll-locked] {
     margin-right: 0 !important;
   }
 
