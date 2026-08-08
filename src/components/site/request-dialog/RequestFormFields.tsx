@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import CityInput from '@/components/shared/CityInput';
 import { setStoredCity } from '@/lib/garage-city';
 import { normalizePhoneInput } from '@/lib/phone';
@@ -54,6 +61,9 @@ const RequestFormFields = ({
   submitting,
   onSubmit,
 }: RequestFormFieldsProps) => {
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
   const setPhone = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((f) => ({ ...f, phone: normalizePhoneInput(f.phone, e.target.value) }));
   };
@@ -125,20 +135,44 @@ const RequestFormFields = ({
               </button>
             </div>
           ) : (
-            <label
-              aria-label="Прикрепить фото СТС"
-              title="Прикрепить фото СТС"
-              className="shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground cursor-pointer hover:brightness-110 transition-all shadow-sm"
-            >
-              <Icon name="Camera" size={16} />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoSelect}
-                className="hidden"
-              />
-            </label>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Прикрепить фото СТС"
+                  title="Прикрепить фото СТС"
+                  className="shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground cursor-pointer hover:brightness-110 transition-all shadow-sm"
+                >
+                  <Icon name="Camera" size={16} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => cameraInputRef.current?.click()}>
+                  <Icon name="Camera" size={15} className="mr-2" />
+                  Сделать фото
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => galleryInputRef.current?.click()}>
+                  <Icon name="Image" size={15} className="mr-2" />
+                  Из галереи
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhotoSelect}
+            className="hidden"
+          />
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoSelect}
+            className="hidden"
+          />
         </div>
         <div className="relative mt-1.5">
           <Input

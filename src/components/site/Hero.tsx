@@ -1,6 +1,12 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Icon from "@/components/ui/icon";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useRequest } from "./RequestDialog";
 import { useGarageAuth } from "@/hooks/use-garage-auth";
 import { sanitizeVinInput } from "@/lib/vin";
@@ -10,7 +16,8 @@ const Hero = () => {
   const { authed: garageAuthed } = useGarageAuth();
   const [vin, setVin] = useState("");
   const [photoName, setPhotoName] = useState("");
-  const photoInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -80,17 +87,38 @@ const Hero = () => {
 
                 <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full max-w-[440px] sm:max-w-[520px]">
                   <div className="flex items-stretch gap-2 min-w-0">
-                    <button
-                      type="button"
-                      onClick={() => photoInputRef.current?.click()}
-                      aria-label="Прикрепить фото СТС"
-                      title="Прикрепить фото СТС"
-                      className="shrink-0 flex items-center justify-center w-11 sm:w-12 rounded-sm bg-primary text-primary-foreground hover:brightness-110 transition-all shadow-sm"
-                    >
-                      <Icon name="Camera" size={18} />
-                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label="Прикрепить фото СТС"
+                          title="Прикрепить фото СТС"
+                          className="shrink-0 flex items-center justify-center w-11 sm:w-12 rounded-sm bg-primary text-primary-foreground hover:brightness-110 transition-all shadow-sm"
+                        >
+                          <Icon name="Camera" size={18} />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem onClick={() => cameraInputRef.current?.click()}>
+                          <Icon name="Camera" size={15} className="mr-2" />
+                          Сделать фото
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => galleryInputRef.current?.click()}>
+                          <Icon name="Image" size={15} className="mr-2" />
+                          Из галереи
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <input
-                      ref={photoInputRef}
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                    <input
+                      ref={galleryInputRef}
                       type="file"
                       accept="image/*"
                       onChange={handlePhotoChange}
