@@ -103,6 +103,15 @@
     scrollbar-gutter: stable;
   }
 
+  /* html уже резервирует место под скроллбар (scrollbar-gutter: stable), поэтому
+     когда открывается Dialog/Drawer и радикс блокирует прокрутку body, его
+     библиотека (react-remove-scroll-bar) не должна ДОПОЛНИТЕЛЬНО сдвигать
+     контент через margin-right — это и вызывало заметный скачок фона/блоков
+     при открытии и закрытии модалок (например форма пароля в «Гараже») */
+  body[data-scroll-locked] {
+    margin-right: 0 !important;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: "Rubik", sans-serif;
