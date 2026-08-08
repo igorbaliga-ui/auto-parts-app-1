@@ -95,10 +95,13 @@ export const useGarageState = () => {
       const names = Object.fromEntries(list.map((o) => [o.id, o.car_name || '']));
       setCarNameDrafts(names);
       setSavedCarNames(names);
+      // Узнаём наличие пароля до показа страницы, чтобы иконка замка сразу
+      // отрисовалась в верном состоянии — без короткой вспышки индикатора
+      // «пароль не задан», пока идёт запрос
+      setHasPassword(await checkHasPassword(ph));
       setAuthed(true);
       localStorage.setItem(STORAGE_KEY, ph);
       notifyGarageAuthChanged();
-      checkHasPassword(ph).then(setHasPassword);
     } catch {
       setError('Не удалось загрузить заказы. Проверьте телефон и попробуйте снова.');
     } finally {
