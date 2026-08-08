@@ -94,7 +94,7 @@ const GarageContent = () => {
         </div>
       )}
       <div
-        className="max-w-[1000px] mx-auto transition-transform"
+        className="max-w-[1000px] mx-auto transition-transform animate-fade-in"
         style={{
           transform: `translateY(${refreshing ? threshold : pullDistance}px)`,
         }}
