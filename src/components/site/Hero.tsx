@@ -78,7 +78,7 @@ const Hero = () => {
                   </p>
                 )}
 
-                <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full max-w-[440px]">
+                <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full max-w-[440px] sm:max-w-[560px] lg:max-w-[620px]">
                   <div className="flex items-stretch gap-2 min-w-0">
                     <button
                       type="button"
