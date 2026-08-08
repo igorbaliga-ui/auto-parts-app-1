@@ -29,3 +29,16 @@ const ALLOWED_CITY_CHARS = /[^a-zA-Zа-яА-ЯёЁ\s-]/g;
 export function sanitizeCityInput(raw: string): string {
   return raw.replace(ALLOWED_CITY_CHARS, '').slice(0, CITY_MAX_LENGTH);
 }
+
+const CAR_NAME_MAX_LENGTH = 25;
+
+/**
+ * Приводит ввод поля «Название автомобиля» (личный кабинет «Гараж») к
+ * безопасному виду: обрезает до 25 символов (совпадает с ограничением на
+ * сервере) и вырезает символы, из которых можно собрать HTML/скрипт-
+ * инъекцию. Буквы, цифры и обычная пунктуация («Toyota Camry», «Ford Focus III»)
+ * сохраняются — это свободный текст.
+ */
+export function sanitizeCarNameInput(raw: string): string {
+  return raw.replace(DANGEROUS_CHARS, '').slice(0, CAR_NAME_MAX_LENGTH);
+}

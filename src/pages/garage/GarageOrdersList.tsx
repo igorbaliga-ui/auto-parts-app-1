@@ -6,6 +6,7 @@ import ExpandableText from "@/components/shared/ExpandableText";
 import { isPushSupported } from "@/hooks/use-push-subscription";
 import GarageOrderHistory from "./GarageOrderHistory";
 import { Order, messengerLabel, formatDate, formatMoney } from "./garageTypes";
+import { sanitizeCarNameInput } from "@/lib/text";
 
 type GarageOrdersListProps = {
   orders: Order[];
@@ -251,10 +252,15 @@ const GarageOrdersList = ({
                       <Input
                         value={carNameDrafts[o.id] ?? ""}
                         onChange={(e) => {
-                          const value = e.target.value;
+                          const value = sanitizeCarNameInput(e.target.value);
                           setCarNameDrafts((d) => ({ ...d, [o.id]: value }));
                         }}
                         maxLength={25}
+                        inputMode="text"
+                        autoCapitalize="words"
+                        autoCorrect="off"
+                        autoComplete="off"
+                        spellCheck={false}
                         placeholder="Название автомобиля"
                         className="h-9 text-sm bg-background max-w-xs"
                       />

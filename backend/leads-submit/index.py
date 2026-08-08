@@ -100,6 +100,9 @@ def handler(event: dict, context) -> dict:
     # Город: только буквы, пробел и дефис — как на клиенте
     if city and not re.fullmatch(r"[a-zA-Zа-яА-ЯёЁ\s-]{1,20}", city):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный город'})}
+    # Название авто: свободный текст, но без символов, из которых можно собрать HTML/скрипт-инъекцию
+    if car_name and (re.search(r'[<>{}`]', car_name) or len(car_name) > 25):
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректное название автомобиля'})}
 
     vin_to_save = vin if vin_valid else None
 
