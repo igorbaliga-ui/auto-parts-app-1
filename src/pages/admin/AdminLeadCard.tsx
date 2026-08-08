@@ -36,6 +36,7 @@ type AdminLeadCardProps = {
   toggleArchived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
   onShowHistory: (id: number) => void;
+  onShowLoginHistory: (phone: string, name: string) => void;
 };
 
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -59,6 +60,7 @@ const AdminLeadCard = ({
   toggleArchived,
   resetGaragePassword,
   onShowHistory,
+  onShowLoginHistory,
 }: AdminLeadCardProps) => {
   return (
     <div className="bg-card border border-steel rounded-sm p-4 flex flex-col gap-1">
@@ -72,6 +74,13 @@ const AdminLeadCard = ({
             onSave={(v) => saveLeadField(l.id, 'name', v)}
             className="font-head tracking-[0.08em] text-base truncate"
           />
+          <button
+            title="История входов в «Гараж»"
+            onClick={() => onShowLoginHistory(l.phone, l.name)}
+            className="shrink-0 flex items-center justify-center w-6 h-6 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+          >
+            <Icon name="History" size={13} />
+          </button>
         </div>
         <span className="text-muted-foreground text-xs shrink-0">{formatDate(l.created_at)}</span>
       </div>

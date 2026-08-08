@@ -15,6 +15,7 @@ type AdminLeadsMobileListProps = {
   toggleArchived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
   onShowHistory: (id: number) => void;
+  onShowLoginHistory: (phone: string, name: string) => void;
 };
 
 const AdminLeadsMobileList = ({
@@ -31,6 +32,7 @@ const AdminLeadsMobileList = ({
   toggleArchived,
   resetGaragePassword,
   onShowHistory,
+  onShowLoginHistory,
 }: AdminLeadsMobileListProps) => {
   return (
     <div className="md:hidden flex flex-col gap-3">
@@ -53,6 +55,7 @@ const AdminLeadsMobileList = ({
             toggleArchived={toggleArchived}
             resetGaragePassword={resetGaragePassword}
             onShowHistory={onShowHistory}
+            onShowLoginHistory={onShowLoginHistory}
           />
         ))
       )}

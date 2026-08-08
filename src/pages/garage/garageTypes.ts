@@ -34,12 +34,6 @@ export type CashbackHistoryItem = {
   created_at: string | null;
 };
 
-export type LoginHistoryItem = {
-  login_type: 'login' | 'reset_password';
-  device: string;
-  created_at: string | null;
-};
-
 export const messengerLabel: Record<string, string> = {
   telegram: 'Telegram',
   max: 'MAX',

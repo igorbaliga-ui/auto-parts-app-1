@@ -49,6 +49,7 @@ type AdminLeadsDesktopTableProps = {
   toggleArchived: (id: number) => void;
   resetGaragePassword: (id: number) => void;
   onShowHistory: (id: number) => void;
+  onShowLoginHistory: (phone: string, name: string) => void;
 };
 
 const AdminLeadsDesktopTable = ({
@@ -69,6 +70,7 @@ const AdminLeadsDesktopTable = ({
   toggleArchived,
   resetGaragePassword,
   onShowHistory,
+  onShowLoginHistory,
 }: AdminLeadsDesktopTableProps) => {
   return (
     <div className="hidden md:block bg-card border border-steel rounded-sm overflow-x-auto">
@@ -133,13 +135,22 @@ const AdminLeadsDesktopTable = ({
               )}
               {isColumnVisible('name') && (
                 <TableCell>
-                  <InlineEditableCell
-                    value={l.name}
-                    displayLabel="Имя"
-                    required
-                    onSave={(v) => saveLeadField(l.id, 'name', v)}
-                    inputClassName="w-32"
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <InlineEditableCell
+                      value={l.name}
+                      displayLabel="Имя"
+                      required
+                      onSave={(v) => saveLeadField(l.id, 'name', v)}
+                      inputClassName="w-32"
+                    />
+                    <button
+                      title="История входов в «Гараж»"
+                      onClick={() => onShowLoginHistory(l.phone, l.name)}
+                      className="shrink-0 flex items-center justify-center w-6 h-6 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                    >
+                      <Icon name="History" size={13} />
+                    </button>
+                  </div>
                 </TableCell>
               )}
               {isColumnVisible('phone') && (

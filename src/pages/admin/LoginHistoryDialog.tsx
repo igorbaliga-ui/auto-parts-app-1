@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -6,25 +7,56 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
-import { LoginHistoryItem, formatDate } from './garageTypes';
+import { formatDate } from './adminTypes';
+
+const GARAGE_AUTH_URL = 'https://functions.poehali.dev/d92ac11d-c6d2-4430-b948-a767c0048442';
+
+type LoginHistoryItem = {
+  login_type: 'login' | 'reset_password';
+  device: string;
+  created_at: string | null;
+};
 
 type LoginHistoryDialogProps = {
-  history: LoginHistoryItem[];
-  loading: boolean;
+  phone: string;
+  clientLabel: string;
+  adminPassword: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-const LoginHistoryDialog = ({ history, loading, open, onOpenChange }: LoginHistoryDialogProps) => {
+const LoginHistoryDialog = ({ phone, clientLabel, adminPassword, open, onOpenChange }: LoginHistoryDialogProps) => {
+  const [history, setHistory] = useState<LoginHistoryItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    setError('');
+    fetch(`${GARAGE_AUTH_URL}?phone=${encodeURIComponent(phone)}&history=1`, {
+      headers: { 'X-Admin-Password': adminPassword },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('request failed');
+        return res.json();
+      })
+      .then((data) => setHistory(Array.isArray(data.history) ? data.history : []))
+      .catch(() => setError('Не удалось загрузить историю входов'))
+      .finally(() => setLoading(false));
+  }, [open, phone, adminPassword]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>История входов</DialogTitle>
-          <DialogDescription>Когда и с какого устройства заходили в личный кабинет</DialogDescription>
+          <DialogDescription>{clientLabel}</DialogDescription>
         </DialogHeader>
         {loading ? (
           <p className="text-muted-foreground text-sm py-4">Загружаем…</p>
+        ) : error ? (
+          <p className="text-primary text-sm py-4">{error}</p>
         ) : history.length === 0 ? (
           <p className="text-muted-foreground text-sm py-4">Входов пока не было.</p>
         ) : (

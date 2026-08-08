@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Lead, ColumnKey } from './adminTypes';
 import LeadHistoryDialog from './LeadHistoryDialog';
+import LoginHistoryDialog from './LoginHistoryDialog';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
 import { useIsIosInstallable } from '@/hooks/use-ios-install-hint';
 import AdminInstallBanners from './AdminInstallBanners';
@@ -84,6 +85,7 @@ const AdminLeadsTable = ({
 }: AdminLeadsTableProps) => {
   const [historyLeadId, setHistoryLeadId] = useState<number | null>(null);
   const historyLead = leads.find((l) => l.id === historyLeadId) || null;
+  const [loginHistoryClient, setLoginHistoryClient] = useState<{ phone: string; name: string } | null>(null);
   const [cashbackDialogOpen, setCashbackDialogOpen] = useState(false);
   const { canInstall, promptInstall } = usePwaInstall();
   const isIosInstallable = useIsIosInstallable();
@@ -136,6 +138,7 @@ const AdminLeadsTable = ({
               toggleArchived={toggleArchived}
               resetGaragePassword={resetGaragePassword}
               onShowHistory={setHistoryLeadId}
+              onShowLoginHistory={(phone, name) => setLoginHistoryClient({ phone, name })}
             />
             <AdminLeadsDesktopTable
               filteredLeads={filteredLeads}
@@ -155,6 +158,7 @@ const AdminLeadsTable = ({
               toggleArchived={toggleArchived}
               resetGaragePassword={resetGaragePassword}
               onShowHistory={setHistoryLeadId}
+              onShowLoginHistory={(phone, name) => setLoginHistoryClient({ phone, name })}
             />
           </>
         )}
@@ -166,6 +170,15 @@ const AdminLeadsTable = ({
           adminPassword={adminPassword}
           open={historyLeadId !== null}
           onOpenChange={(open) => !open && setHistoryLeadId(null)}
+        />
+      )}
+      {loginHistoryClient && (
+        <LoginHistoryDialog
+          phone={loginHistoryClient.phone}
+          clientLabel={`${loginHistoryClient.name} — ${loginHistoryClient.phone}`}
+          adminPassword={adminPassword}
+          open={loginHistoryClient !== null}
+          onOpenChange={(open) => !open && setLoginHistoryClient(null)}
         />
       )}
       <ClientCashbackDialog

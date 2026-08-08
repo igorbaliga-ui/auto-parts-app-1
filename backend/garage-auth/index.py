@@ -43,6 +43,8 @@ def handler(event: dict, context) -> dict:
 
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']
+    req_headers = event.get('headers') or {}
+    admin_password_env = os.environ.get('ADMIN_PASSWORD')
 
     if method == 'GET':
         params = event.get('queryStringParameters') or {}
@@ -51,7 +53,11 @@ def handler(event: dict, context) -> dict:
             return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите корректный телефон'})}
 
         if params.get('history') == '1':
-            # История входов в личный кабинет: дата, устройство, обычный вход или восстановление пароля
+            # История входов в личный кабинет: дата, устройство, обычный вход или восстановление
+            # пароля — содержит IP и User-Agent клиента, поэтому доступна только менеджеру из /admin
+            admin_password = req_headers.get('X-Admin-Password') or req_headers.get('x-admin-password')
+            if not admin_password_env or admin_password != admin_password_env:
+                return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный пароль администратора'})}
             conn = psycopg2.connect(dsn)
             try:
                 cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -94,9 +100,6 @@ def handler(event: dict, context) -> dict:
     client_ip = get_client_ip(event)
     if not check_rate_limit(dsn, schema, client_ip, 'garage-auth', max_requests=20, window_seconds=600):
         return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Слишком много попыток. Попробуйте позже'})}
-
-    req_headers = event.get('headers') or {}
-    admin_password_env = os.environ.get('ADMIN_PASSWORD')
 
     body = json.loads(event.get('body') or '{}')
     action = body.get('action')

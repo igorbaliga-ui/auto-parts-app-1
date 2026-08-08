@@ -12,7 +12,6 @@ import {
   PASSWORD_VERIFIED_KEY,
   Order,
   CashbackHistoryItem,
-  LoginHistoryItem,
 } from './garageTypes';
 
 /**
@@ -56,9 +55,6 @@ export const useGarageState = () => {
   const [resetPasswordInput, setResetPasswordInput] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
-  const [loginHistory, setLoginHistory] = useState<LoginHistoryItem[]>([]);
-  const [loginHistoryOpen, setLoginHistoryOpen] = useState(false);
-  const [loginHistoryLoading, setLoginHistoryLoading] = useState(false);
   const { permission: pushPermission, subscribing: pushSubscribing, subscribed: pushSubscribed, subscribe: subscribePush } =
     usePushSubscription(authed ? phone : null);
 
@@ -324,21 +320,6 @@ export const useGarageState = () => {
     }
   };
 
-  const openLoginHistory = async () => {
-    setLoginHistoryOpen(true);
-    setLoginHistoryLoading(true);
-    try {
-      const res = await fetch(`${GARAGE_AUTH_URL}?phone=${encodeURIComponent(phone)}&history=1`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setLoginHistory(Array.isArray(data.history) ? data.history : []);
-    } catch {
-      // тихо игнорируем — история не критична для работы кабинета
-    } finally {
-      setLoginHistoryLoading(false);
-    }
-  };
-
   const totalCashback = orders.reduce((sum, o) => sum + (o.cashback || 0), 0) - cashbackDeducted;
   const knownName = orders[0]?.name;
   const vinHistory = Array.from(new Set(orders.map((o) => o.vin).filter((v): v is string => !!v)));
@@ -490,11 +471,6 @@ export const useGarageState = () => {
     cashbackHistory,
     cashbackHistoryOpen,
     setCashbackHistoryOpen,
-    loginHistory,
-    loginHistoryOpen,
-    setLoginHistoryOpen,
-    loginHistoryLoading,
-    openLoginHistory,
     newOrders,
     inProgressOrders,
     doneOrders,
