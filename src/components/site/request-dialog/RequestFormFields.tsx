@@ -200,6 +200,8 @@ const RequestFormFields = ({
               maxLength={12}
               placeholder="+7 900 000-00-00"
               className="mt-1.5 bg-background"
+              autoComplete="off"
+              name="request-phone"
             />
             {errors.phone && (
               <p className="text-primary text-xs mt-1">{errors.phone}</p>
@@ -215,6 +217,8 @@ const RequestFormFields = ({
               maxLength={30}
               placeholder="Как к вам обращаться"
               className="mt-1.5 bg-background"
+              autoComplete="off"
+              name="request-name"
             />
             {errors.name && (
               <p className="text-primary text-xs mt-1">{errors.name}</p>
