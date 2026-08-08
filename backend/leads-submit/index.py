@@ -92,8 +92,14 @@ def handler(event: dict, context) -> dict:
     phone = f'+7{phone_last10}'
     if messenger not in ('telegram', 'max', 'whatsapp'):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Выберите мессенджер'})}
-    if len(parts) < 2:
+    # Запчасти: свободный текст, но без символов, из которых можно собрать HTML/скрипт-инъекцию
+    if re.search(r'[<>{}`]', parts):
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Недопустимые символы в описании запчастей'})}
+    if len(parts) < 2 or len(parts) > 1000:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите интересующие запчасти'})}
+    # Город: только буквы, пробел и дефис — как на клиенте
+    if city and not re.fullmatch(r"[a-zA-Zа-яА-ЯёЁ\s-]{1,20}", city):
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный город'})}
 
     vin_to_save = vin if vin_valid else None
 

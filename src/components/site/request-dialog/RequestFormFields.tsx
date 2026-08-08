@@ -14,6 +14,7 @@ import { setStoredCity } from '@/lib/garage-city';
 import { normalizePhoneInput } from '@/lib/phone';
 import { sanitizeVinInput } from '@/lib/vin';
 import { sanitizeNameInput } from '@/lib/name';
+import { sanitizePartsInput } from '@/lib/text';
 import { messengers, GarageCar } from './RequestContext';
 
 type FormState = { vin: string; name: string; phone: string; parts: string; city: string };
@@ -53,10 +54,6 @@ const RequestFormFields = ({
   submitting,
   onSubmit,
 }: RequestFormFieldsProps) => {
-  const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm((f) => ({ ...f, [k]: e.target.value }));
-  };
-
   const setPhone = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((f) => ({ ...f, phone: normalizePhoneInput(f.phone, e.target.value) }));
   };
@@ -276,7 +273,9 @@ const RequestFormFields = ({
         </label>
         <Textarea
           value={form.parts}
-          onChange={set('parts')}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, parts: sanitizePartsInput(e.target.value) }))
+          }
           onFocus={(e) => {
             const target = e.currentTarget;
             setTimeout(() => {

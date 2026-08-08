@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { cities } from '@/lib/garage-city';
+import { sanitizeCityInput } from '@/lib/text';
 
 type CityInputProps = {
   value: string;
@@ -23,12 +24,16 @@ const CityInput = ({ value, onChange, placeholder = 'Введите город',
       <Input
         value={value}
         onChange={(e) => {
-          onChange(e.target.value);
+          onChange(sanitizeCityInput(e.target.value));
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         maxLength={20}
+        inputMode="text"
+        autoCapitalize="words"
+        autoCorrect="off"
+        spellCheck={false}
         placeholder={placeholder}
         autoComplete="off"
         className={className}
