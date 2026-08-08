@@ -80,10 +80,12 @@ def handler(event: dict, context) -> dict:
             'headers': headers,
             'body': json.dumps({'error': 'Укажите VIN — фото не приложено или не удалось загрузить'}),
         }
-    if len(name) < 2:
+    # Имя: только буквы (рус/лат), пробел, дефис и апостроф — как на клиенте.
+    # Отсекает попытки протащить в базу HTML/скрипты или прочий мусор через прямой запрос к API.
+    if not (2 <= len(name) <= 30) or not re.fullmatch(r"[a-zA-Zа-яА-ЯёЁ\s'-]+", name):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите имя'})}
     phone_digits = re.sub(r'\D', '', phone)
-    if len(phone_digits) < 10:
+    if len(phone_digits) < 10 or len(phone_digits) > 11:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный телефон'})}
     # Нормализуем в единый формат +7XXXXXXXXXX, чтобы 8.../7.../900... считались одним номером
     phone_last10 = phone_digits[-10:]
