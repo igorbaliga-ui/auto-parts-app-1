@@ -45,7 +45,7 @@ export const ResetPasswordView = ({
     <div className="min-h-screen flex items-center justify-center px-5">
       <form
         onSubmit={submitResetPassword}
-        className="w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4"
+        className="w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4 animate-fade-in"
       >
         <div className="flex justify-center mb-2">
           <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center">
@@ -129,7 +129,7 @@ export const PasswordRequiredView = ({
     <div className="min-h-screen flex items-center justify-center px-5">
       <form
         onSubmit={submitPassword}
-        className="w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4"
+        className="w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4 animate-fade-in"
       >
         <div className="flex justify-center mb-2">
           <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center">
