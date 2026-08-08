@@ -21,9 +21,9 @@ const CashbackHistoryDialog = ({
 }: CashbackHistoryDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto [&>button]:focus:!ring-0 [&>button]:focus:!ring-offset-0">
         <DialogHeader>
-          <DialogDescription>
+          <DialogDescription className="pr-8">
             *Кэшбэком можно оплатить до 50% от суммы заказа. Минимальное
             списание 500р.
           </DialogDescription>
