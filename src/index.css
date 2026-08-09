@@ -121,8 +121,12 @@
     margin-right: 0 !important;
   }
 
+  /* ВАЖНО: фон НЕ задаём здесь — body как обычный блочный элемент рисуется
+     НАД слоями с отрицательным z-index и полностью перекрывает собой фоновую
+     текстуру сайта (AppBackground, fixed + -z-10). Сплошной тёмный цвет для
+     самого нижнего слоя задан на html (см. index.html), тут только текст. */
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
     font-family: "Rubik", sans-serif;
     overscroll-behavior: none;
   }
