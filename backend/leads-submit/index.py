@@ -9,6 +9,9 @@ from send_admin_push import send_push_to_admins
 from rate_limit import get_client_ip, check_rate_limit
 
 
+MAX_PHOTOS = 3
+
+
 def upload_photo(photo_base64: str) -> str:
     """Декодирует base64-фото и загружает его в S3, возвращает CDN-ссылку"""
     header, _, data = photo_base64.partition(',')
@@ -35,7 +38,7 @@ def upload_photo(photo_base64: str) -> str:
 
 
 def handler(event: dict, context) -> dict:
-    """Принимает заявку с сайта (VIN, имя, телефон, запчасти, мессенджер, фото СТС) и сохраняет в БД"""
+    """Принимает заявку с сайта (VIN, имя, телефон, запчасти, мессенджер, до 3 фото) и сохраняет в БД"""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -69,21 +72,24 @@ def handler(event: dict, context) -> dict:
     phone = (body.get('phone') or '').strip()
     parts = (body.get('parts') or '').strip()
     messenger = (body.get('messenger') or '').strip() or None
-    photo_base64 = body.get('photo') or None
+    # photos — новый формат (массив base64), photo — старый (один base64), поддерживаем оба
+    # ради совместимости, пока не обновлены все клиенты
+    photos_base64 = body.get('photos') or ([] if not body.get('photo') else [body.get('photo')])
+    photos_base64 = [p for p in photos_base64 if p][:MAX_PHOTOS]
     car_name = (body.get('car_name') or '').strip() or None
     city = (body.get('city') or '').strip() or None
 
-    # Фото грузим первым: если оно успешно загрузится, VIN становится необязательным.
-    # Если фото не прислали или его не удалось загрузить — VIN обязателен, как раньше.
-    photo_url = None
-    if photo_base64:
+    # Фото грузим первыми: если хотя бы одно успешно загрузится, VIN становится необязательным.
+    # Если фото не прислали или ни одно не удалось загрузить — VIN обязателен, как раньше.
+    photo_urls = []
+    for photo_base64 in photos_base64:
         try:
-            photo_url = upload_photo(photo_base64)
+            photo_urls.append(upload_photo(photo_base64))
         except Exception:
-            photo_url = None
+            continue
 
     vin_valid = bool(re.fullmatch(r'[A-Z0-9]{11,17}', vin))
-    if not photo_url and not vin_valid:
+    if not photo_urls and not vin_valid:
         return {
             'statusCode': 400,
             'headers': headers,
@@ -138,10 +144,13 @@ def handler(event: dict, context) -> dict:
             row = cur.fetchone()
             if row:
                 car_name = row[0]
+        # photo_url (одиночное поле) сохраняем тоже — для обратной совместимости со старыми
+        # местами в коде/экспортах, которые могут его ещё читать; photo_urls — основной массив
+        first_photo_url = photo_urls[0] if photo_urls else None
         cur.execute(
-            f"INSERT INTO {schema}.leads (vin, name, phone, parts, messenger, photo_url, car_name, city) "
-            f"VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
-            (vin_to_save, name, phone, parts, messenger, photo_url, car_name, city),
+            f"INSERT INTO {schema}.leads (vin, name, phone, parts, messenger, photo_url, photo_urls, car_name, city) "
+            f"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+            (vin_to_save, name, phone, parts, messenger, first_photo_url, photo_urls or None, car_name, city),
         )
         new_id = cur.fetchone()[0]
         conn.commit()

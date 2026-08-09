@@ -1,17 +1,12 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import PhotoAttach from "@/components/site/PhotoAttach";
 import { useSubmitLead } from "@/hooks/use-submit-lead";
-import { preparePhotoForUpload } from "@/lib/image";
+import { usePhotoAttach } from "@/hooks/use-photo-attach";
 import {
   GARAGE_PHONE_KEY,
   notifyGarageAuthChanged,
@@ -31,21 +26,7 @@ const VinForm = () => {
   const [form, setForm] = useState({ vin: "", name: "", phone: "", parts: "" });
   const [messenger, setMessenger] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    setPhoto(file);
-    setPhotoPreview(file ? URL.createObjectURL(file) : null);
-  };
-
-  const removePhoto = () => {
-    setPhoto(null);
-    setPhotoPreview(null);
-  };
+  const { photos, photoPreviews, addPhotos, removePhoto, resetPhotos, preparePhotosForUpload } = usePhotoAttach();
 
   const set =
     (k: keyof typeof form) =>
@@ -62,7 +43,7 @@ const VinForm = () => {
     const e: Record<string, string> = {};
     const vin = form.vin.trim();
     const vinValid = vin.length >= 11 && vin.length <= 17;
-    if (!vinValid && !photo) e.vin = "Укажите VIN или прикрепите фото СТС";
+    if (!vinValid && photos.length === 0) e.vin = "Укажите VIN или прикрепите фото";
     if (form.name.trim().length < 2) e.name = "Укажите имя";
     if (form.phone.replace(/\D/g, "").length < 10)
       e.phone = "Укажите корректный телефон";
@@ -81,14 +62,14 @@ const VinForm = () => {
     }
     setForm({ vin: "", name: "", phone: "", parts: "" });
     setMessenger(null);
-    removePhoto();
+    resetPhotos();
   });
 
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
-    const photoBase64 = photo ? await preparePhotoForUpload(photo) : null;
-    submitLead({ ...form, messenger, photo: photoBase64 });
+    const photoUrls = await preparePhotosForUpload();
+    submitLead({ ...form, messenger, photos: photoUrls });
   };
 
   return (
@@ -155,70 +136,18 @@ const VinForm = () => {
                 <div className="flex items-center justify-between gap-3">
                   <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
                     VIN-код{" "}
-                    {photo && (
+                    {photos.length > 0 && (
                       <span className="normal-case text-muted-foreground/70">
                         (необязательно, есть фото)
                       </span>
                     )}
                   </label>
-                  {photoPreview ? (
-                    <div className="relative shrink-0">
-                      <img
-                        src={photoPreview}
-                        alt="Фото СТС"
-                        className="h-9 w-9 object-cover rounded-full border-2 border-primary"
-                      />
-                      <button
-                        type="button"
-                        onClick={removePhoto}
-                        aria-label="Удалить фото"
-                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center"
-                      >
-                        <Icon
-                          name="X"
-                          size={10}
-                          className="text-primary-foreground"
-                        />
-                      </button>
-                    </div>
-                  ) : (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
-                          aria-label="Прикрепить фото СТС"
-                          title="Прикрепить фото СТС"
-                          className="shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground cursor-pointer hover:brightness-110 transition-all shadow-sm"
-                        >
-                          <Icon name="Camera" size={16} />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => cameraInputRef.current?.click()}>
-                          <Icon name="Camera" size={15} className="mr-2" />
-                          Сделать фото
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => galleryInputRef.current?.click()}>
-                          <Icon name="Image" size={15} className="mr-2" />
-                          Из галереи
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                  <input
-                    ref={cameraInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handlePhotoSelect}
-                    className="hidden"
-                  />
-                  <input
-                    ref={galleryInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoSelect}
-                    className="hidden"
+                  <PhotoAttach
+                    photos={photos}
+                    photoPreviews={photoPreviews}
+                    onAdd={addPhotos}
+                    onRemove={removePhoto}
+                    compact
                   />
                 </div>
                 <Input

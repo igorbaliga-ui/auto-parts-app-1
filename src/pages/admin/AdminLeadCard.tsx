@@ -211,15 +211,19 @@ const AdminLeadCard = ({
           className="text-left whitespace-pre-wrap"
         />
       </Row>
-      {l.photo_url && (
-        <Row label="Фото СТС">
-          <a href={l.photo_url} target="_blank" rel="noreferrer">
-            <img
-              src={l.photo_url}
-              alt="Фото СТС"
-              className="h-12 w-12 object-cover rounded-sm border border-steel ml-auto"
-            />
-          </a>
+      {l.photo_urls && l.photo_urls.length > 0 && (
+        <Row label="Фото">
+          <div className="flex items-center gap-1.5 ml-auto">
+            {l.photo_urls.map((url) => (
+              <a key={url} href={url} target="_blank" rel="noreferrer">
+                <img
+                  src={url}
+                  alt="Фото"
+                  className="h-12 w-12 object-cover rounded-sm border border-steel"
+                />
+              </a>
+            ))}
+          </div>
         </Row>
       )}
 

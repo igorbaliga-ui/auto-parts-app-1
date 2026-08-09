@@ -18,7 +18,7 @@ import { useSubmitLead } from '@/hooks/use-submit-lead';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { useGarageAuth, GARAGE_PHONE_KEY, notifyGarageAuthChanged, notifyGarageOrdersChanged } from '@/hooks/use-garage-auth';
-import { preparePhotoForUpload } from '@/lib/image';
+import { usePhotoAttach } from '@/hooks/use-photo-attach';
 import { getStoredCity } from '@/lib/garage-city';
 import {
   RequestContext,
@@ -43,8 +43,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const [form, setForm] = useState(emptyForm);
   const [messenger, setMessenger] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const { photos, photoPreviews, addPhotos, removePhoto, resetPhotos, preparePhotosForUpload } = usePhotoAttach();
   const [knownContact, setKnownContact] = useState(false);
   const [vinHistory, setVinHistory] = useState<string[]>([]);
   const [garageCars, setGarageCars] = useState<GarageCar[]>([]);
@@ -125,7 +124,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     return () => clearTimeout(nameLookupTimer.current);
   }, [form.phone, knownContact, garageAuthed]);
 
-  const open = (vin?: string, incomingPhoto?: File | null, phone?: string, name?: string, history?: string[], city?: string) => {
+  const open = (vin?: string, incomingPhotos?: File[], phone?: string, name?: string, history?: string[], city?: string) => {
     setErrors({});
     setForm((f) => ({
       ...f,
@@ -137,30 +136,18 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     setKnownContact(isValidName(name) && isValidPhone(phone));
     setVinHistory(history ?? []);
     setVinSource(vin ? 'manual' : null);
-    if (incomingPhoto) {
-      setPhoto(incomingPhoto);
-      setPhotoPreview(URL.createObjectURL(incomingPhoto));
+    if (incomingPhotos && incomingPhotos.length > 0) {
+      addPhotos(incomingPhotos);
     }
     setIsOpen(true);
-  };
-
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    setPhoto(file);
-    setPhotoPreview(file ? URL.createObjectURL(file) : null);
-  };
-
-  const removePhoto = () => {
-    setPhoto(null);
-    setPhotoPreview(null);
   };
 
   const validate = () => {
     const e: Record<string, string> = {};
     const vin = form.vin.trim();
     const vinValid = vin.length >= 11 && vin.length <= 17;
-    if (!vinValid && !photo) {
-      e.vin = 'Укажите VIN или прикрепите фото СТС';
+    if (!vinValid && photos.length === 0) {
+      e.vin = 'Укажите VIN или прикрепите фото';
     }
     if (!knownContact && form.name.trim().length < 2) {
       e.name = 'Укажите имя';
@@ -201,14 +188,14 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     setMessenger(null);
     setKnownContact(false);
     setVinSource(null);
-    removePhoto();
+    resetPhotos();
     localStorage.removeItem(STORAGE_KEY);
   });
 
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
-    const photoBase64 = photo ? await preparePhotoForUpload(photo) : null;
+    const photoUrls = await preparePhotosForUpload();
     submitLead({
       vin: form.vin,
       name: form.name,
@@ -216,7 +203,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       parts: form.parts,
       city: form.city,
       messenger,
-      photo: photoBase64,
+      photos: photoUrls,
     });
   };
 
@@ -232,8 +219,9 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       garageCars={garageCars}
       vinSource={vinSource}
       setVinSource={setVinSource}
-      photoPreview={photoPreview}
-      handlePhotoSelect={handlePhotoSelect}
+      photos={photos}
+      photoPreviews={photoPreviews}
+      addPhotos={addPhotos}
       removePhoto={removePhoto}
       submitting={submitting}
       onSubmit={submit}

@@ -21,7 +21,7 @@ const cellValue = (l: Lead, key: ColumnKey): string | number => {
     case 'parts':
       return l.parts || '';
     case 'photo':
-      return l.photo_url || '';
+      return l.photo_urls?.join(', ') || '';
     case 'amount':
       return l.order_amount ?? '';
     case 'prepayment':

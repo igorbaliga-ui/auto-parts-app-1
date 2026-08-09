@@ -278,14 +278,18 @@ const AdminLeadsDesktopTable = ({
               )}
               {isColumnVisible('photo') && (
                 <TableCell>
-                  {l.photo_url ? (
-                    <a href={l.photo_url} target="_blank" rel="noreferrer">
-                      <img
-                        src={l.photo_url}
-                        alt="Фото СТС"
-                        className="h-12 w-12 object-cover rounded-sm border border-steel hover:border-primary transition-colors"
-                      />
-                    </a>
+                  {l.photo_urls && l.photo_urls.length > 0 ? (
+                    <div className="flex items-center gap-1.5">
+                      {l.photo_urls.map((url) => (
+                        <a key={url} href={url} target="_blank" rel="noreferrer">
+                          <img
+                            src={url}
+                            alt="Фото"
+                            className="h-12 w-12 object-cover rounded-sm border border-steel hover:border-primary transition-colors"
+                          />
+                        </a>
+                      ))}
+                    </div>
                   ) : (
                     '—'
                   )}

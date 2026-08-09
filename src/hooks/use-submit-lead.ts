@@ -10,7 +10,7 @@ type LeadPayload = {
   phone: string;
   parts: string;
   messenger: string | null;
-  photo?: string | null;
+  photos?: string[];
   car_name?: string;
   city?: string;
 };

@@ -6,6 +6,7 @@ export type Lead = {
   parts: string | null;
   messenger: string | null;
   photo_url: string | null;
+  photo_urls: string[];
   order_amount: number | null;
   prepayment: number | null;
   remaining: number | null;

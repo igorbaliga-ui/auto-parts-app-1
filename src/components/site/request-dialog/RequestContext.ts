@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 
 export type Ctx = {
-  open: (vin?: string, photo?: File | null, phone?: string, name?: string, vinHistory?: string[], city?: string) => void;
+  open: (vin?: string, photos?: File[], phone?: string, name?: string, vinHistory?: string[], city?: string) => void;
 };
 
 export const isValidName = (name?: string) => !!name && name.trim().length >= 2;
