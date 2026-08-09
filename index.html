@@ -49,22 +49,6 @@
             visibility: hidden;
             pointer-events: none;
         }
-        .app-splash__badge {
-            width: 64px;
-            height: 64px;
-            margin-bottom: 28px;
-            border-radius: 4px;
-            border: 1.5px solid #33342f;
-            background: #1a1b1d;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: app-splash-pulse 2.4s ease-in-out infinite;
-        }
-        .app-splash__badge svg {
-            animation: app-splash-spin 44s linear infinite;
-            transform-origin: 50% 50%;
-        }
         .app-splash__title {
             margin: 0;
             font-family: 'Oswald', sans-serif;
@@ -114,17 +98,11 @@
                     0 0 30px rgba(229, 67, 42, 0.62);
             }
         }
-        @keyframes app-splash-pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(229, 67, 42, 0.45); }
-            50% { box-shadow: 0 0 0 10px rgba(229, 67, 42, 0); }
-        }
         @keyframes app-splash-spin {
             to { transform: rotate(360deg); }
         }
         @media (prefers-reduced-motion: reduce) {
             .app-splash__title,
-            .app-splash__badge,
-            .app-splash__badge svg,
             .app-splash__loader {
                 animation: none;
             }
@@ -151,15 +129,6 @@
 
 <body>
 <div id="app-splash">
-    <div class="app-splash__badge">
-        <svg viewBox="0 0 200 200" width="34" height="34" aria-hidden="true">
-            <path
-                fill="#46474b"
-                d="M100 6l9 3 6-8 10 5 2 10 10 1 5 10-6 9 8 7-2 11-10 3 3 10-8 7-9-4-4 9-11 1-6-8-9 4-9-7 1-10-10-3-2-11 8-7-6-9 5-10 10-1 2-10 10-5 6 8z"
-            />
-            <circle cx="100" cy="100" r="62" fill="#1a1b1d" />
-        </svg>
-    </div>
     <h1 class="app-splash__title">ЗАП ОПТОМ</h1>
     <span class="app-splash__subtitle">Проверенные запчасти</span>
     <div class="app-splash__loader"></div>
