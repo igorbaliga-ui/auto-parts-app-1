@@ -8,11 +8,24 @@ createRoot(document.getElementById("root")!).render(<App />);
 // Прячем HTML/CSS-заставку (index.html) сразу после того, как React смонтировал
 // приложение. requestAnimationFrame ждёт первый реальный кадр отрисовки, чтобы
 // заставка не исчезла на мгновение раньше, чем контент готов показаться под ней.
+// При самом первом запуске (сайта или установленного приложения) заставку держим
+// минимум 3 секунды, даже если всё уже загрузилось быстрее — дальше, при повторных
+// заходах, прячем сразу как готово, без искусственной задержки.
+const SPLASH_SEEN_KEY = 'app_splash_seen';
+const isFirstLaunch = !localStorage.getItem(SPLASH_SEEN_KEY);
+const minSplashMs = isFirstLaunch ? 3000 : 0;
+const splashStart = performance.now();
+
 requestAnimationFrame(() => {
   const splash = document.getElementById('app-splash');
   if (!splash) return;
-  splash.classList.add('app-splash--hide');
-  setTimeout(() => splash.remove(), 500);
+  const elapsed = performance.now() - splashStart;
+  const remaining = Math.max(0, minSplashMs - elapsed);
+  setTimeout(() => {
+    splash.classList.add('app-splash--hide');
+    localStorage.setItem(SPLASH_SEEN_KEY, '1');
+    setTimeout(() => splash.remove(), 500);
+  }, remaining);
 });
 
 if ('serviceWorker' in navigator) {
