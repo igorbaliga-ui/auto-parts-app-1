@@ -247,9 +247,18 @@ const RequestFormFields = ({
       </div>
 
       <div>
-        <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-          Интересующие запчасти
-        </label>
+        <div className="flex items-center justify-between gap-3">
+          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+            Интересующие запчасти
+          </label>
+          <PhotoAttach
+            photos={photos}
+            photoPreviews={photoPreviews}
+            onAdd={addPhotos}
+            onRemove={removePhoto}
+            compact
+          />
+        </div>
         <Textarea
           value={form.parts}
           onChange={(e) =>
