@@ -26,6 +26,10 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Обязательные платформенные скрипты ниже (cdn.poehali.dev) блокируют парсинг страницы —
+         соединение с их доменом открываем заранее, пока браузер ещё читает верх <head>, чтобы
+         к моменту их загрузки не тратить время на DNS/TLS-хендшейк. -->
+    <link rel="preconnect" href="https://cdn.poehali.dev" crossorigin />
     <!-- Шрифт подключаем НЕ блокирующим первую отрисовку способом (media="print" переключается
          на "all" только после загрузки). Обычный <link rel="stylesheet"> тут — render-blocking
          ресурс: браузер держит экран пустым (белым) до его загрузки, и на iOS в установленном
