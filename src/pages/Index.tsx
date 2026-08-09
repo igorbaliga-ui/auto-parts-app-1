@@ -12,7 +12,7 @@ const PageContent = () => {
   const { tab } = useNav();
 
   return (
-    <div className="min-h-screen text-foreground font-body">
+    <div className="min-h-screen text-foreground font-body animate-fade-in">
       <Header />
       <main>
         {tab === 'home' && <Hero />}
