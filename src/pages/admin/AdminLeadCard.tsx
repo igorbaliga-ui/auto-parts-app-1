@@ -1,6 +1,6 @@
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,15 +11,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import Icon from '@/components/ui/icon';
-import InlineEditableCell from './InlineEditableCell';
-import { Lead, messengerLabel, statusLabel, formatDate } from './adminTypes';
+} from "@/components/ui/alert-dialog";
+import Icon from "@/components/ui/icon";
+import InlineEditableCell from "./InlineEditableCell";
+import { Lead, messengerLabel, statusLabel, formatDate } from "./adminTypes";
 
 const MESSENGER_OPTIONS = [
-  { value: 'telegram', label: 'Telegram' },
-  { value: 'max', label: 'MAX' },
-  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: "telegram", label: "Telegram" },
+  { value: "max", label: "MAX" },
+  { value: "whatsapp", label: "WhatsApp" },
 ];
 
 type AdminLeadCardProps = {
@@ -41,9 +41,17 @@ type AdminLeadCardProps = {
   onShowLoginHistory: (phone: string, name: string) => void;
 };
 
-const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+const Row = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
   <div className="flex items-start justify-between gap-3 py-1.5 border-b border-border/40 last:border-0">
-    <span className="text-muted-foreground text-xs uppercase tracking-wide shrink-0 pt-1.5">{label}</span>
+    <span className="text-muted-foreground text-xs uppercase tracking-wide shrink-0 pt-1.5">
+      {label}
+    </span>
     <div className="text-right min-w-0">{children}</div>
   </div>
 );
@@ -70,12 +78,14 @@ const AdminLeadCard = ({
     <div className="bg-card border border-steel rounded-sm p-4 flex flex-col gap-1">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-muted-foreground text-xs shrink-0">№{l.id}</span>
+          <span className="text-muted-foreground text-xs shrink-0">
+            №{l.id}
+          </span>
           <InlineEditableCell
             value={l.name}
             displayLabel="Имя"
             required
-            onSave={(v) => saveLeadField(l.id, 'name', v)}
+            onSave={(v) => saveLeadField(l.id, "name", v)}
             className="font-head tracking-[0.08em] text-base truncate"
           />
           <button
@@ -86,22 +96,24 @@ const AdminLeadCard = ({
             <Icon name="History" size={13} />
           </button>
         </div>
-        <span className="text-muted-foreground text-xs shrink-0">{formatDate(l.created_at)}</span>
+        <span className="text-muted-foreground text-xs shrink-0">
+          {formatDate(l.created_at)}
+        </span>
       </div>
 
       <Row label="VIN">
         <InlineEditableCell
-          value={l.vin || ''}
+          value={l.vin || ""}
           displayLabel="VIN"
-          onSave={(v) => saveLeadField(l.id, 'vin', v)}
+          onSave={(v) => saveLeadField(l.id, "vin", v)}
           className="font-head tracking-[0.08em]"
         />
       </Row>
       <Row label="Авто">
         <InlineEditableCell
-          value={l.car_name || ''}
+          value={l.car_name || ""}
           displayLabel="Авто"
-          onSave={(v) => saveLeadField(l.id, 'car_name', v)}
+          onSave={(v) => saveLeadField(l.id, "car_name", v)}
         />
       </Row>
       <Row label="Телефон">
@@ -110,7 +122,7 @@ const AdminLeadCard = ({
             value={l.phone}
             displayLabel="Телефон"
             required
-            onSave={(v) => saveLeadField(l.id, 'phone', v)}
+            onSave={(v) => saveLeadField(l.id, "phone", v)}
             renderValue={(v) => (
               <a
                 href={`tel:${v}`}
@@ -135,8 +147,8 @@ const AdminLeadCard = ({
               <AlertDialogHeader>
                 <AlertDialogTitle>Сбросить пароль клиента?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Клиент {l.name} ({l.phone}) сможет войти в «Гараж» по одному телефону,
-                  без пароля, и при желании задать новый.
+                  Клиент {l.name} ({l.phone}) сможет войти в «Гараж» по одному
+                  телефону, без пароля, и при желании задать новый.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -169,10 +181,13 @@ const AdminLeadCard = ({
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Заблокировать клиента в «Гараже»?</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    Заблокировать клиента в «Гараже»?
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Клиент {l.name} ({l.phone}) временно не сможет войти в личный кабинет
-                    «Гараж» по этому номеру телефона. Разблокировать можно в любой момент.
+                    Клиент {l.name} ({l.phone}) временно не сможет войти в
+                    личный кабинет «Гараж» по этому номеру телефона.
+                    Разблокировать можно в любой момент.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -188,39 +203,39 @@ const AdminLeadCard = ({
       </Row>
       <Row label="Город">
         <InlineEditableCell
-          value={l.city || ''}
+          value={l.city || ""}
           displayLabel="Город"
-          onSave={(v) => saveLeadField(l.id, 'city', v)}
+          onSave={(v) => saveLeadField(l.id, "city", v)}
         />
       </Row>
       <Row label="Пробег">
         <InlineEditableCell
-          value={l.mileage != null ? String(l.mileage) : ''}
+          value={l.mileage != null ? String(l.mileage) : ""}
           displayLabel="Пробег"
-          onSave={(v) => saveLeadField(l.id, 'mileage', v.replace(/\D/g, ''))}
+          onSave={(v) => saveLeadField(l.id, "mileage", v.replace(/\D/g, ""))}
           renderValue={(v) => (
             <span className="inline-flex items-center gap-1 text-primary font-medium tabular-nums">
               <Icon name="Gauge" size={12} />
-              {Number(v).toLocaleString('ru-RU')} км
+              {Number(v).toLocaleString("ru-RU")} км
             </span>
           )}
         />
       </Row>
       <Row label="Мессенджер">
         <InlineEditableCell
-          value={l.messenger || ''}
+          value={l.messenger || ""}
           displayLabel="Мессенджер"
           options={MESSENGER_OPTIONS}
-          onSave={(v) => saveLeadField(l.id, 'messenger', v)}
+          onSave={(v) => saveLeadField(l.id, "messenger", v)}
           renderValue={(v) => messengerLabel[v] ?? v}
         />
       </Row>
       <Row label="Запчасти">
         <InlineEditableCell
-          value={l.parts || ''}
+          value={l.parts || ""}
           displayLabel="Запчасти"
           multiline
-          onSave={(v) => saveLeadField(l.id, 'parts', v)}
+          onSave={(v) => saveLeadField(l.id, "parts", v)}
           className="text-left whitespace-pre-wrap"
         />
       </Row>
@@ -269,10 +284,16 @@ const AdminLeadCard = ({
 
       <div className="flex items-center justify-between gap-3 mt-2 text-sm">
         <span className="text-muted-foreground">
-          Остаток: <span className="text-foreground">{l.remaining != null ? `${l.remaining} ₽` : '—'}</span>
+          Остаток:{" "}
+          <span className="text-foreground">
+            {l.remaining != null ? `${l.remaining} ₽` : "—"}
+          </span>
         </span>
         <span className="text-muted-foreground">
-          Кэшбэк: <span className="text-primary">{l.cashback != null ? `${l.cashback} ₽` : '—'}</span>
+          Кэшбэк:{" "}
+          <span className="text-primary">
+            {l.cashback != null ? `${l.cashback} ₽` : "—"}
+          </span>
         </span>
       </div>
 
@@ -289,11 +310,9 @@ const AdminLeadCard = ({
       </div>
 
       <div>
-        <label className="text-muted-foreground text-xs uppercase tracking-wide block mb-1 mt-2">
-          Заметка по клиенту (видна во всех его заявках)
-        </label>
+        <label className="text-muted-foreground text-xs uppercase tracking-wide block mb-1 mt-2"></label>
         <InlineEditableCell
-          value={l.phone_note || ''}
+          value={l.phone_note || ""}
           displayLabel="Заметка по клиенту"
           multiline
           onSave={(v) => saveClientNote(l.id, v)}
@@ -306,14 +325,14 @@ const AdminLeadCard = ({
           onClick={() => toggleStatus(l.id)}
           disabled={savingId === l.id}
           className={`relative whitespace-nowrap text-[0.65rem] font-head uppercase tracking-wide px-2 py-1.5 rounded-sm transition-colors ${
-            l.status === 'done'
-              ? 'bg-primary/15 text-primary hover:bg-primary/25'
-              : l.status === 'new'
-                ? 'bg-amber-500/15 text-amber-500 hover:bg-amber-500/25'
-                : 'bg-muted text-muted-foreground hover:bg-muted/70'
+            l.status === "done"
+              ? "bg-primary/15 text-primary hover:bg-primary/25"
+              : l.status === "new"
+                ? "bg-amber-500/15 text-amber-500 hover:bg-amber-500/25"
+                : "bg-muted text-muted-foreground hover:bg-muted/70"
           }`}
         >
-          {l.status === 'new' && (
+          {l.status === "new" && (
             <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
@@ -321,14 +340,14 @@ const AdminLeadCard = ({
           )}
           {statusLabel[l.status]}
         </button>
-        {l.status === 'in_progress' && (
+        {l.status === "in_progress" && (
           <button
             onClick={() => toggleArrived(l.id)}
             disabled={savingId === l.id}
             className={`shrink-0 flex items-center gap-1 whitespace-nowrap text-[0.65rem] font-head uppercase tracking-wide px-2 py-1.5 rounded-sm transition-colors ${
               l.arrived
-                ? 'bg-green-600/15 text-green-500 hover:bg-green-600/25'
-                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                ? "bg-green-600/15 text-green-500 hover:bg-green-600/25"
+                : "bg-muted/50 text-muted-foreground hover:bg-muted"
             }`}
           >
             <Icon name="Check" size={11} />
@@ -340,14 +359,16 @@ const AdminLeadCard = ({
           disabled={savingId === l.id}
           className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-sm transition-colors ${
             l.archived
-              ? 'bg-primary/15 text-primary hover:bg-primary/25'
-              : 'text-muted-foreground hover:text-primary hover:bg-muted'
+              ? "bg-primary/15 text-primary hover:bg-primary/25"
+              : "text-muted-foreground hover:text-primary hover:bg-muted"
           }`}
         >
-          <Icon name={l.archived ? 'ArchiveRestore' : 'Archive'} size={13} />
+          <Icon name={l.archived ? "ArchiveRestore" : "Archive"} size={13} />
         </button>
         {l.completed_at && (
-          <span className="text-primary/80 text-xs ml-auto">Выполнен {formatDate(l.completed_at)}</span>
+          <span className="text-primary/80 text-xs ml-auto">
+            Выполнен {formatDate(l.completed_at)}
+          </span>
         )}
       </div>
 
@@ -358,7 +379,7 @@ const AdminLeadCard = ({
           disabled={savingId === l.id}
           className="font-head uppercase tracking-wide text-xs h-9 flex-1"
         >
-          {savingId === l.id ? '…' : 'Сохранить'}
+          {savingId === l.id ? "…" : "Сохранить"}
         </Button>
         <button
           onClick={() => onShowHistory(l.id)}
