@@ -257,6 +257,7 @@ const RequestFormFields = ({
             onAdd={addPhotos}
             onRemove={removePhoto}
             compact
+            showPreviews={false}
           />
         </div>
         <Textarea

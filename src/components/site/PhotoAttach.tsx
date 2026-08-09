@@ -17,6 +17,10 @@ type PhotoAttachProps = {
   onRemove: (index: number) => void;
   /** Компактный вид — кружки миниатюр рядом с триггером (как в шапке поля VIN) */
   compact?: boolean;
+  /** Показывать миниатюры прикреплённых фото рядом с кнопкой (по умолчанию да).
+   * Если один и тот же список фото используется у нескольких полей формы —
+   * миниатюры показываем только у одного из них, чтобы не дублировать. */
+  showPreviews?: boolean;
 };
 
 /**
@@ -24,7 +28,7 @@ type PhotoAttachProps = {
  * Переиспользуется во всех формах заявки (Hero, VinForm, RequestDialog) — единое поведение
  * и внешний вид кнопки прикрепления.
  */
-const PhotoAttach = ({ photos, photoPreviews, onAdd, onRemove, compact }: PhotoAttachProps) => {
+const PhotoAttach = ({ photos, photoPreviews, onAdd, onRemove, compact, showPreviews = true }: PhotoAttachProps) => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const canAddMore = photos.length < MAX_PHOTOS;
@@ -39,7 +43,7 @@ const PhotoAttach = ({ photos, photoPreviews, onAdd, onRemove, compact }: PhotoA
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      {photoPreviews.map((src, i) => (
+      {showPreviews && photoPreviews.map((src, i) => (
         <div key={src} className="relative shrink-0">
           <img
             src={src}
