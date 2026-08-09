@@ -26,8 +26,21 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@400;500;600&display=swap" />
+    <!-- Шрифт подключаем НЕ блокирующим первую отрисовку способом (media="print" переключается
+         на "all" только после загрузки). Обычный <link rel="stylesheet"> тут — render-blocking
+         ресурс: браузер держит экран пустым (белым) до его загрузки, и на iOS в установленном
+         приложении в этот момент светлый текст статус-бара (оператор, батарея) сливается с белым
+         фоном и выглядит как "мигание" при запуске. Заставка ниже не должна ждать шрифт. -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@400;500;600&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@400;500;600&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@400;500;600&display=swap" /></noscript>
     <style>
+        /* Красим html/body в цвет заставки сразу, СИНХРОННО и раньше любых внешних ресурсов —
+           первый кадр всегда тёмный, экран никогда не бывает белым (тем самым не "мигает"
+           статус-бар iOS поверх него). */
+        html, body {
+            background: #0e0e0f;
+        }
         /* Заставка при холодном старте приложения (в т.ч. установленного PWA) — показывается
            мгновенно из чистого HTML/CSS, ещё до загрузки и разбора JS-бандла, и скрывается
            сразу после монтирования React (см. src/main.tsx). Стили самодостаточны и не зависят
