@@ -23,6 +23,7 @@ import {
 import Icon from '@/components/ui/icon';
 import ColumnSearchInput from './ColumnSearchInput';
 import InlineEditableCell from './InlineEditableCell';
+import ImageLightbox from '@/components/shared/ImageLightbox';
 import { Lead, ColumnKey, columns, messengerLabel, statusLabel, formatDate } from './adminTypes';
 
 const MESSENGER_OPTIONS = [
@@ -295,17 +296,11 @@ const AdminLeadsDesktopTable = ({
               {isColumnVisible('photo') && (
                 <TableCell>
                   {l.photo_urls && l.photo_urls.length > 0 ? (
-                    <div className="flex items-center gap-1.5">
-                      {l.photo_urls.map((url) => (
-                        <a key={url} href={url} target="_blank" rel="noreferrer">
-                          <img
-                            src={url}
-                            alt="Фото"
-                            className="h-12 w-12 object-cover rounded-sm border border-steel hover:border-primary transition-colors"
-                          />
-                        </a>
-                      ))}
-                    </div>
+                    <ImageLightbox
+                      urls={l.photo_urls}
+                      className="flex items-center gap-1.5"
+                      imgClassName="h-12 w-12 object-cover rounded-sm border border-steel hover:border-primary transition-colors"
+                    />
                   ) : (
                     '—'
                   )}

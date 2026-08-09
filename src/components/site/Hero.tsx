@@ -4,20 +4,17 @@ import Icon from "@/components/ui/icon";
 import { useRequest } from "./RequestDialog";
 import { useGarageAuth } from "@/hooks/use-garage-auth";
 import { sanitizeVinInput } from "@/lib/vin";
-import { MAX_PHOTOS } from "@/components/site/PhotoAttach";
-import { PHOTO_ACCEPT } from "@/lib/image";
+import PhotoAttach from "@/components/site/PhotoAttach";
+import { usePhotoAttach } from "@/hooks/use-photo-attach";
 
 const Hero = () => {
   const { open } = useRequest();
   const { authed: garageAuthed } = useGarageAuth();
   const [vin, setVin] = useState("");
-  const [photoCount, setPhotoCount] = useState(0);
+  const { photos, photoPreviews, addPhotos, removePhoto } = usePhotoAttach();
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []).slice(0, MAX_PHOTOS);
-    e.target.value = "";
-    if (files.length === 0) return;
-    setPhotoCount(files.length);
+  const handleAddPhotos = (files: File[]) => {
+    addPhotos(files);
     open(vin, files);
   };
 
@@ -73,31 +70,23 @@ const Hero = () => {
                 <p className="max-w-[34ch] text-muted-foreground leading-relaxed text-base sm:text-lg mb-4">
                   Напишите VIN / Frame-номер автомобиля, или отправьте фото СТС
                 </p>
-                {photoCount > 0 && (
+                {photoPreviews.length > 0 && (
                   <p className="text-primary text-xs mb-4 flex items-center gap-1.5">
                     <Icon name="Check" size={14} />
-                    {photoCount === 1
+                    {photoPreviews.length === 1
                       ? "Фото прикреплено"
-                      : `Фото прикреплено: ${photoCount}`}
+                      : `Фото прикреплено: ${photoPreviews.length}`}
                   </p>
                 )}
 
                 <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full max-w-[440px] sm:max-w-[520px]">
                   <div className="flex items-stretch gap-2 min-w-0">
-                    <label
-                      aria-label="Прикрепить фото"
-                      title="Прикрепить фото"
-                      className="shrink-0 flex items-center justify-center w-11 sm:w-12 rounded-sm bg-primary text-primary-foreground hover:brightness-110 transition-all shadow-sm cursor-pointer"
-                    >
-                      <Icon name="Camera" size={18} />
-                      <input
-                        type="file"
-                        accept={PHOTO_ACCEPT}
-                        multiple
-                        onChange={handlePhotoChange}
-                        className="hidden"
-                      />
-                    </label>
+                    <PhotoAttach
+                      photos={photos}
+                      photoPreviews={photoPreviews}
+                      onAdd={handleAddPhotos}
+                      onRemove={removePhoto}
+                    />
                     <div className="flex items-stretch flex-1 min-w-0 sm:hidden border-[1.5px] border-steel rounded-sm bg-card overflow-hidden">
                       <input
                         form="hero-vin-form"

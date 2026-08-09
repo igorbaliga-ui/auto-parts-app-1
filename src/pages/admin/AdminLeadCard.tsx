@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import Icon from "@/components/ui/icon";
 import InlineEditableCell from "./InlineEditableCell";
+import ImageLightbox from "@/components/shared/ImageLightbox";
 import { Lead, messengerLabel, statusLabel, formatDate } from "./adminTypes";
 
 const MESSENGER_OPTIONS = [
@@ -241,17 +242,11 @@ const AdminLeadCard = ({
       </Row>
       {l.photo_urls && l.photo_urls.length > 0 && (
         <Row label="Фото">
-          <div className="flex items-center gap-1.5 ml-auto">
-            {l.photo_urls.map((url) => (
-              <a key={url} href={url} target="_blank" rel="noreferrer">
-                <img
-                  src={url}
-                  alt="Фото"
-                  className="h-12 w-12 object-cover rounded-sm border border-steel"
-                />
-              </a>
-            ))}
-          </div>
+          <ImageLightbox
+            urls={l.photo_urls}
+            className="flex items-center gap-1.5 ml-auto"
+            imgClassName="h-12 w-12 object-cover rounded-sm border border-steel"
+          />
         </Row>
       )}
 
