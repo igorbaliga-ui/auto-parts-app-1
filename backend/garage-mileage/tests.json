@@ -1,0 +1,24 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Missing vin rejected",
+      "method": "POST",
+      "path": "/",
+      "body": {"phone": "+79001234567", "vin": "", "mileage": "50000"},
+      "expectedStatus": 400
+    },
+    {
+      "name": "Non-numeric mileage rejected",
+      "method": "POST",
+      "path": "/",
+      "body": {"phone": "+79001234567", "vin": "XW8ZZZ61ZJ0012345", "mileage": "abc"},
+      "expectedStatus": 400
+    }
+  ]
+}

@@ -14,6 +14,7 @@ export type Lead = {
   created_at: string;
   car_name: string | null;
   city: string | null;
+  mileage: number | null;
   status: 'new' | 'in_progress' | 'done';
   completed_at: string | null;
   arrived: boolean;
@@ -54,6 +55,7 @@ export type ColumnKey =
   | 'name'
   | 'phone'
   | 'city'
+  | 'mileage'
   | 'messenger'
   | 'parts'
   | 'photo'
@@ -81,6 +83,12 @@ export const columns: ColumnDef[] = [
   { key: 'name', label: 'Имя', searchable: true, getSearchValue: (l) => l.name || '' },
   { key: 'phone', label: 'Телефон', searchable: true, getSearchValue: (l) => l.phone || '' },
   { key: 'city', label: 'Город', searchable: true, getSearchValue: (l) => l.city || '' },
+  {
+    key: 'mileage',
+    label: 'Пробег',
+    searchable: true,
+    getSearchValue: (l) => (l.mileage != null ? String(l.mileage) : ''),
+  },
   {
     key: 'messenger',
     label: 'Мессенджер',

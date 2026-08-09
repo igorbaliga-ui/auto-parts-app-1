@@ -146,6 +146,12 @@ const GarageContent = () => {
           savedCarNames={g.savedCarNames}
           savingCarId={g.savingCarId}
           saveCarName={g.saveCarName}
+          mileageDrafts={g.mileageDrafts}
+          setMileageDrafts={g.setMileageDrafts}
+          savedMileages={g.savedMileages}
+          savingMileageId={g.savingMileageId}
+          mileageErrors={g.mileageErrors}
+          saveMileage={g.saveMileage}
         />
       </div>
       <CashbackHistoryDialog

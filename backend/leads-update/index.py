@@ -117,6 +117,17 @@ def handler(event: dict, context) -> dict:
         if raw_vin and not re.fullmatch(r'[A-Z0-9]{11,17}', raw_vin):
             return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный VIN'})}
 
+    mileage_value = None
+    if 'mileage' in body:
+        raw_mileage = body.get('mileage')
+        if raw_mileage not in (None, ''):
+            mileage_str = str(raw_mileage).strip()
+            if not re.fullmatch(r'\d{1,7}', mileage_str):
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Пробег — только цифры'})}
+            mileage_value = int(mileage_str)
+            if mileage_value < 0 or mileage_value > 2000000:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный пробег'})}
+
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor()
@@ -124,7 +135,7 @@ def handler(event: dict, context) -> dict:
         # Читаем текущие значения для журнала изменений
         cur.execute(
             f"SELECT order_amount, prepayment, status, arrived, internal_note, "
-            f"vin, name, phone, city, messenger, parts, car_name, archived "
+            f"vin, name, phone, city, messenger, parts, car_name, archived, mileage "
             f"FROM {schema}.leads WHERE id = %s",
             (lead_id,),
         )
@@ -133,7 +144,7 @@ def handler(event: dict, context) -> dict:
             return {'statusCode': 404, 'headers': headers, 'body': json.dumps({'error': 'Заявка не найдена'})}
         (prev_amount, prev_prepayment, prev_status, prev_arrived, prev_note,
          prev_vin, prev_name, prev_phone, prev_city, prev_messenger, prev_parts, prev_car_name,
-         prev_archived) = prev
+         prev_archived, prev_mileage) = prev
 
         set_clauses = []
         params = []
@@ -151,6 +162,9 @@ def handler(event: dict, context) -> dict:
             note_value = raw_note.strip() if isinstance(raw_note, str) and raw_note.strip() else None
             set_clauses.append("internal_note = %s")
             params.append(note_value)
+        if 'mileage' in body:
+            set_clauses.append("mileage = %s")
+            params.append(mileage_value)
 
         for field in TEXT_FIELDS:
             if field in body:
@@ -208,6 +222,10 @@ def handler(event: dict, context) -> dict:
             log_change(cur, schema, lead_id, admin_name, 'prepayment', fmt_amount(prev_prepayment), fmt_amount(body['prepayment']))
         if 'internal_note' in body:
             log_change(cur, schema, lead_id, admin_name, 'internal_note', prev_note, note_value)
+        if 'mileage' in body:
+            log_change(cur, schema, lead_id, admin_name, 'mileage',
+                       str(prev_mileage) if prev_mileage is not None else None,
+                       str(mileage_value) if mileage_value is not None else None)
         if status is not None:
             log_change(cur, schema, lead_id, admin_name, 'status', fmt_status(prev_status), fmt_status(status))
         if arrived is not None:

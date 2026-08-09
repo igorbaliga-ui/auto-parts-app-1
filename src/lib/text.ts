@@ -42,3 +42,16 @@ const CAR_NAME_MAX_LENGTH = 25;
 export function sanitizeCarNameInput(raw: string): string {
   return raw.replace(DANGEROUS_CHARS, '').slice(0, CAR_NAME_MAX_LENGTH);
 }
+
+export const MILEAGE_MAX_LENGTH = 7; // до 9 999 999 км — с запасом, ограничение по значению ниже
+export const MILEAGE_MAX_VALUE = 2_000_000;
+
+/**
+ * Приводит ввод поля «Пробег» (личный кабинет «Гараж») к безопасному виду:
+ * оставляет только цифры и обрезает до разумной длины — совпадает с
+ * ограничением на сервере. Числовое поле, поэтому никакой другой пунктуации
+ * не допускается в принципе (это не текст, а строго число в км).
+ */
+export function sanitizeMileageInput(raw: string): string {
+  return raw.replace(/\D/g, '').slice(0, MILEAGE_MAX_LENGTH);
+}

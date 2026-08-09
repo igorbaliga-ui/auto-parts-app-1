@@ -1,6 +1,7 @@
 export const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
 export const GARAGE_CAR_NAME_URL = 'https://functions.poehali.dev/22aa943f-f262-4beb-b2e2-c713d1684c82';
 export const GARAGE_AUTH_URL = 'https://functions.poehali.dev/d92ac11d-c6d2-4430-b948-a767c0048442';
+export const GARAGE_MILEAGE_URL = 'https://functions.poehali.dev/d71db07d-92d5-48aa-9636-226e7b979955';
 export const STORAGE_KEY = 'zapoptom_garage_phone';
 export const PASSWORD_VERIFIED_KEY = 'zapoptom_garage_password_verified';
 
@@ -25,6 +26,7 @@ export type Order = {
   archived: boolean;
   in_progress_at: string | null;
   arrived_at: string | null;
+  mileage: number | null;
 };
 
 export type CashbackHistoryItem = {

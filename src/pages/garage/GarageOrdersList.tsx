@@ -6,7 +6,7 @@ import ExpandableText from "@/components/shared/ExpandableText";
 import { isPushSupported } from "@/hooks/use-push-subscription";
 import GarageOrderHistory from "./GarageOrderHistory";
 import { Order, messengerLabel, formatDate, formatMoney } from "./garageTypes";
-import { sanitizeCarNameInput } from "@/lib/text";
+import { sanitizeCarNameInput, sanitizeMileageInput } from "@/lib/text";
 
 type GarageOrdersListProps = {
   orders: Order[];
@@ -33,6 +33,14 @@ type GarageOrdersListProps = {
   savedCarNames: Record<number, string>;
   savingCarId: number | null;
   saveCarName: (order: Order) => void;
+  mileageDrafts: Record<number, string>;
+  setMileageDrafts: React.Dispatch<
+    React.SetStateAction<Record<number, string>>
+  >;
+  savedMileages: Record<number, string>;
+  savingMileageId: number | null;
+  mileageErrors: Record<number, string>;
+  saveMileage: (order: Order) => void;
 };
 
 const GarageOrdersList = ({
@@ -58,6 +66,12 @@ const GarageOrdersList = ({
   savedCarNames,
   savingCarId,
   saveCarName,
+  mileageDrafts,
+  setMileageDrafts,
+  savedMileages,
+  savingMileageId,
+  mileageErrors,
+  saveMileage,
 }: GarageOrdersListProps) => {
   const [searchOpen, setSearchOpen] = useState(() => !!searchQuery);
   return (
@@ -252,7 +266,7 @@ const GarageOrdersList = ({
                     </div>
                   </div>
                   {o.vin && (
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
                       <Input
                         value={carNameDrafts[o.id] ?? ""}
                         onChange={(e) => {
@@ -279,6 +293,49 @@ const GarageOrdersList = ({
                         >
                           {savingCarId === o.id ? "…" : "Сохранить"}
                         </Button>
+                      )}
+
+                      <div className="flex items-center gap-1.5 ml-auto pl-3 border-l border-steel/60">
+                        <span className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-primary/15">
+                          <Icon name="Gauge" size={14} className="text-primary" />
+                        </span>
+                        <div className="relative">
+                          <Input
+                            value={mileageDrafts[o.id] ?? ""}
+                            onChange={(e) => {
+                              const value = sanitizeMileageInput(e.target.value);
+                              setMileageDrafts((d) => ({ ...d, [o.id]: value }));
+                            }}
+                            maxLength={7}
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            spellCheck={false}
+                            placeholder="Пробег"
+                            aria-label="Пробег автомобиля, км"
+                            className="h-9 text-sm bg-background w-28 pr-9 tabular-nums"
+                          />
+                          <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[0.65rem] text-muted-foreground uppercase tracking-wide">
+                            км
+                          </span>
+                        </div>
+                        {(mileageDrafts[o.id] ?? "").trim() !==
+                          (savedMileages[o.id] ?? "").trim() && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={savingMileageId === o.id}
+                            onClick={() => saveMileage(o)}
+                            className="h-9 font-head uppercase tracking-wide text-xs"
+                          >
+                            {savingMileageId === o.id ? "…" : "Сохранить"}
+                          </Button>
+                        )}
+                      </div>
+                      {mileageErrors[o.id] && (
+                        <p className="w-full text-primary text-xs">
+                          {mileageErrors[o.id]}
+                        </p>
                       )}
                     </div>
                   )}

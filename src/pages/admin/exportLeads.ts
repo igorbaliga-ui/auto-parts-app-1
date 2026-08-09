@@ -16,6 +16,8 @@ const cellValue = (l: Lead, key: ColumnKey): string | number => {
       return l.phone || '';
     case 'city':
       return l.city || '';
+    case 'mileage':
+      return l.mileage ?? '';
     case 'messenger':
       return l.messenger ? messengerLabel[l.messenger] ?? l.messenger : '';
     case 'parts':

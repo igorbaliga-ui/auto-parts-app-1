@@ -193,6 +193,19 @@ const AdminLeadCard = ({
           onSave={(v) => saveLeadField(l.id, 'city', v)}
         />
       </Row>
+      <Row label="Пробег">
+        <InlineEditableCell
+          value={l.mileage != null ? String(l.mileage) : ''}
+          displayLabel="Пробег"
+          onSave={(v) => saveLeadField(l.id, 'mileage', v.replace(/\D/g, ''))}
+          renderValue={(v) => (
+            <span className="inline-flex items-center gap-1 text-primary font-medium tabular-nums">
+              <Icon name="Gauge" size={12} />
+              {Number(v).toLocaleString('ru-RU')} км
+            </span>
+          )}
+        />
+      </Row>
       <Row label="Мессенджер">
         <InlineEditableCell
           value={l.messenger || ''}

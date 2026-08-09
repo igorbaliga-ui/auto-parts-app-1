@@ -4,10 +4,12 @@ import { notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
 import { getStoredCity } from '@/lib/garage-city';
 import { usePushSubscription } from '@/hooks/use-push-subscription';
 import { toast } from '@/hooks/use-toast';
+import { sanitizeMileageInput, MILEAGE_MAX_VALUE } from '@/lib/text';
 import {
   GARAGE_LOOKUP_URL,
   GARAGE_CAR_NAME_URL,
   GARAGE_AUTH_URL,
+  GARAGE_MILEAGE_URL,
   STORAGE_KEY,
   PASSWORD_VERIFIED_KEY,
   Order,
@@ -34,6 +36,10 @@ export const useGarageState = () => {
   const [carNameDrafts, setCarNameDrafts] = useState<Record<number, string>>({});
   const [savedCarNames, setSavedCarNames] = useState<Record<number, string>>({});
   const [savingCarId, setSavingCarId] = useState<number | null>(null);
+  const [mileageDrafts, setMileageDrafts] = useState<Record<number, string>>({});
+  const [savedMileages, setSavedMileages] = useState<Record<number, string>>({});
+  const [savingMileageId, setSavingMileageId] = useState<number | null>(null);
+  const [mileageErrors, setMileageErrors] = useState<Record<number, string>>({});
   const [city, setCity] = useState(() => getStoredCity());
   const [statusTab, setStatusTab] = useState<'new' | 'in_progress' | 'done'>('new');
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,6 +115,11 @@ export const useGarageState = () => {
       const names = Object.fromEntries(list.map((o) => [o.id, o.car_name || '']));
       setCarNameDrafts(names);
       setSavedCarNames(names);
+      const mileages = Object.fromEntries(
+        list.map((o) => [o.id, o.mileage != null ? String(o.mileage) : '']),
+      );
+      setMileageDrafts(mileages);
+      setSavedMileages(mileages);
       // Узнаём наличие пароля до показа страницы, чтобы иконка замка сразу
       // отрисовалась в верном состоянии — без короткой вспышки индикатора
       // «пароль не задан», пока идёт запрос
@@ -391,6 +402,57 @@ export const useGarageState = () => {
     }
   };
 
+  const saveMileage = async (order: Order) => {
+    if (!order.vin) return;
+    const raw = sanitizeMileageInput(mileageDrafts[order.id] || '');
+    if (raw && Number(raw) > MILEAGE_MAX_VALUE) {
+      setMileageErrors((e) => ({ ...e, [order.id]: 'Слишком большое значение' }));
+      return;
+    }
+    setMileageErrors((e) => {
+      const next = { ...e };
+      delete next[order.id];
+      return next;
+    });
+    setSavingMileageId(order.id);
+    try {
+      const res = await fetch(GARAGE_MILEAGE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, vin: order.vin, mileage: raw || null }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'request failed');
+      }
+      const mileageValue = raw ? Number(raw) : null;
+      setOrders((list) =>
+        list.map((o) => (o.vin === order.vin ? { ...o, mileage: mileageValue } : o)),
+      );
+      setMileageDrafts((d) => {
+        const next = { ...d };
+        orders.forEach((o) => {
+          if (o.vin === order.vin) next[o.id] = raw;
+        });
+        return next;
+      });
+      setSavedMileages((s) => {
+        const next = { ...s };
+        orders.forEach((o) => {
+          if (o.vin === order.vin) next[o.id] = raw;
+        });
+        return next;
+      });
+    } catch (err) {
+      setMileageErrors((e) => ({
+        ...e,
+        [order.id]: err instanceof Error && err.message !== 'request failed' ? err.message : 'Не удалось сохранить пробег',
+      }));
+    } finally {
+      setSavingMileageId(null);
+    }
+  };
+
   const onNewRequest = () => open(undefined, undefined, phone, knownName, vinHistory, city);
 
   const refresh = async () => {
@@ -407,6 +469,11 @@ export const useGarageState = () => {
       const names = Object.fromEntries(list.map((o) => [o.id, o.car_name || '']));
       setCarNameDrafts(names);
       setSavedCarNames(names);
+      const mileages = Object.fromEntries(
+        list.map((o) => [o.id, o.mileage != null ? String(o.mileage) : '']),
+      );
+      setMileageDrafts(mileages);
+      setSavedMileages(mileages);
     } catch {
       // тихо игнорируем — свайп для обновления не должен показывать ошибки
     }
@@ -437,6 +504,11 @@ export const useGarageState = () => {
     setCarNameDrafts,
     savedCarNames,
     savingCarId,
+    mileageDrafts,
+    setMileageDrafts,
+    savedMileages,
+    savingMileageId,
+    mileageErrors,
     city,
     setCity,
     statusTab,
@@ -495,6 +567,7 @@ export const useGarageState = () => {
     archiveDialogOpen,
     setArchiveDialogOpen,
     saveCarName,
+    saveMileage,
     onNewRequest,
   };
 };

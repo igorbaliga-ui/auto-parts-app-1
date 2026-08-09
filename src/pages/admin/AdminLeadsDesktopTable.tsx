@@ -252,6 +252,22 @@ const AdminLeadsDesktopTable = ({
                   />
                 </TableCell>
               )}
+              {isColumnVisible('mileage') && (
+                <TableCell>
+                  <InlineEditableCell
+                    value={l.mileage != null ? String(l.mileage) : ''}
+                    displayLabel="Пробег"
+                    onSave={(v) => saveLeadField(l.id, 'mileage', v.replace(/\D/g, ''))}
+                    inputClassName="w-24"
+                    renderValue={(v) => (
+                      <span className="inline-flex items-center gap-1 text-primary font-medium tabular-nums">
+                        <Icon name="Gauge" size={12} />
+                        {Number(v).toLocaleString('ru-RU')} км
+                      </span>
+                    )}
+                  />
+                </TableCell>
+              )}
               {isColumnVisible('messenger') && (
                 <TableCell>
                   <InlineEditableCell
