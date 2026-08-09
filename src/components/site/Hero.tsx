@@ -71,13 +71,14 @@ const Hero = () => {
             ) : (
               <>
                 <p className="max-w-[34ch] text-muted-foreground leading-relaxed text-base sm:text-lg mb-4">
-                  Напишите VIN или Frame-номер автомобиля, или отправьте фото
-                  СТС
+                  Напишите VIN / Frame-номер автомобиля, или отправьте фото СТС
                 </p>
                 {photoCount > 0 && (
                   <p className="text-primary text-xs mb-4 flex items-center gap-1.5">
                     <Icon name="Check" size={14} />
-                    {photoCount === 1 ? "Фото прикреплено" : `Фото прикреплено: ${photoCount}`}
+                    {photoCount === 1
+                      ? "Фото прикреплено"
+                      : `Фото прикреплено: ${photoCount}`}
                   </p>
                 )}
 
@@ -101,7 +102,9 @@ const Hero = () => {
                       <input
                         form="hero-vin-form"
                         value={vin}
-                        onChange={(e) => setVin(sanitizeVinInput(e.target.value))}
+                        onChange={(e) =>
+                          setVin(sanitizeVinInput(e.target.value))
+                        }
                         maxLength={17}
                         type="text"
                         inputMode="text"
