@@ -291,7 +291,11 @@ const GarageOrdersList = ({
                           onClick={() => saveCarName(o)}
                           className="h-9 font-head uppercase tracking-wide text-xs"
                         >
-                          {savingCarId === o.id ? "…" : "Сохранить"}
+                          {savingCarId === o.id ? (
+                            <Icon name="Loader2" size={14} className="animate-spin" />
+                          ) : (
+                            "Сохранить"
+                          )}
                         </Button>
                       )}
 
@@ -328,7 +332,11 @@ const GarageOrdersList = ({
                             onClick={() => saveMileage(o)}
                             className="h-9 font-head uppercase tracking-wide text-xs"
                           >
-                            {savingMileageId === o.id ? "…" : "Сохранить"}
+                            {savingMileageId === o.id ? (
+                              <Icon name="Loader2" size={14} className="animate-spin" />
+                            ) : (
+                              "Сохранить"
+                            )}
                           </Button>
                         )}
                       </div>
