@@ -43,6 +43,7 @@ def send_push_to_phone(dsn: str, schema: str, phone: str, title: str, body: str)
                     data=json.dumps({'title': title, 'body': body}),
                     vapid_private_key=private_key,
                     vapid_claims={'sub': 'mailto:zapoptom@bk.ru'},
+                    ttl=86400,
                 )
             except WebPushException as e:
                 status_code = getattr(e.response, 'status_code', None)
