@@ -43,7 +43,10 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const [form, setForm] = useState(emptyForm);
   const [messenger, setMessenger] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { photos, photoPreviews, addPhotos, removePhoto, resetPhotos, preparePhotosForUpload } = usePhotoAttach();
+  // Два независимых набора фото — у поля VIN свои миниатюры, у поля «Интересующие запчасти»
+  // свои; при отправке оба набора объединяются в один список фото заявки.
+  const vinPhoto = usePhotoAttach();
+  const partsPhoto = usePhotoAttach();
   const [knownContact, setKnownContact] = useState(false);
   const [vinHistory, setVinHistory] = useState<string[]>([]);
   const [garageCars, setGarageCars] = useState<GarageCar[]>([]);
@@ -137,7 +140,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     setVinHistory(history ?? []);
     setVinSource(vin ? 'manual' : null);
     if (incomingPhotos && incomingPhotos.length > 0) {
-      addPhotos(incomingPhotos);
+      vinPhoto.addPhotos(incomingPhotos);
     }
     setIsOpen(true);
   };
@@ -146,7 +149,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     const e: Record<string, string> = {};
     const vin = form.vin.trim();
     const vinValid = vin.length >= 11 && vin.length <= 17;
-    if (!vinValid && photos.length === 0) {
+    if (!vinValid && vinPhoto.photos.length === 0 && partsPhoto.photos.length === 0) {
       e.vin = 'Укажите VIN или прикрепите фото';
     }
     if (!knownContact && form.name.trim().length < 2) {
@@ -188,14 +191,18 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     setMessenger(null);
     setKnownContact(false);
     setVinSource(null);
-    resetPhotos();
+    vinPhoto.resetPhotos();
+    partsPhoto.resetPhotos();
     localStorage.removeItem(STORAGE_KEY);
   });
 
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
-    const photoUrls = await preparePhotosForUpload();
+    const [vinPhotoUrls, partsPhotoUrls] = await Promise.all([
+      vinPhoto.preparePhotosForUpload(),
+      partsPhoto.preparePhotosForUpload(),
+    ]);
     submitLead({
       vin: form.vin,
       name: form.name,
@@ -203,7 +210,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       parts: form.parts,
       city: form.city,
       messenger,
-      photos: photoUrls,
+      photos: [...vinPhotoUrls, ...partsPhotoUrls],
     });
   };
 
@@ -219,10 +226,14 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       garageCars={garageCars}
       vinSource={vinSource}
       setVinSource={setVinSource}
-      photos={photos}
-      photoPreviews={photoPreviews}
-      addPhotos={addPhotos}
-      removePhoto={removePhoto}
+      vinPhotos={vinPhoto.photos}
+      vinPhotoPreviews={vinPhoto.photoPreviews}
+      addVinPhotos={vinPhoto.addPhotos}
+      removeVinPhoto={vinPhoto.removePhoto}
+      partsPhotos={partsPhoto.photos}
+      partsPhotoPreviews={partsPhoto.photoPreviews}
+      addPartsPhotos={partsPhoto.addPhotos}
+      removePartsPhoto={partsPhoto.removePhoto}
       submitting={submitting}
       onSubmit={submit}
     />

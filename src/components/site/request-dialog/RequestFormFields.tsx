@@ -31,10 +31,14 @@ type RequestFormFieldsProps = {
   garageCars: GarageCar[];
   vinSource: 'garage' | 'manual' | null;
   setVinSource: React.Dispatch<React.SetStateAction<'garage' | 'manual' | null>>;
-  photos: File[];
-  photoPreviews: string[];
-  addPhotos: (files: File[]) => void;
-  removePhoto: (index: number) => void;
+  vinPhotos: File[];
+  vinPhotoPreviews: string[];
+  addVinPhotos: (files: File[]) => void;
+  removeVinPhoto: (index: number) => void;
+  partsPhotos: File[];
+  partsPhotoPreviews: string[];
+  addPartsPhotos: (files: File[]) => void;
+  removePartsPhoto: (index: number) => void;
   submitting: boolean;
   onSubmit: (ev: React.FormEvent) => void;
 };
@@ -50,10 +54,14 @@ const RequestFormFields = ({
   garageCars,
   vinSource,
   setVinSource,
-  photos,
-  photoPreviews,
-  addPhotos,
-  removePhoto,
+  vinPhotos,
+  vinPhotoPreviews,
+  addVinPhotos,
+  removeVinPhoto,
+  partsPhotos,
+  partsPhotoPreviews,
+  addPartsPhotos,
+  removePartsPhoto,
   submitting,
   onSubmit,
 }: RequestFormFieldsProps) => {
@@ -109,13 +117,13 @@ const RequestFormFields = ({
       <div>
         <div className="flex items-center justify-between gap-3">
           <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-            VIN или Frame{photos.length > 0 ? ' (необязательно)' : ''}
+            VIN или Frame{(vinPhotos.length > 0 || partsPhotos.length > 0) ? ' (необязательно)' : ''}
           </label>
           <PhotoAttach
-            photos={photos}
-            photoPreviews={photoPreviews}
-            onAdd={addPhotos}
-            onRemove={removePhoto}
+            photos={vinPhotos}
+            photoPreviews={vinPhotoPreviews}
+            onAdd={addVinPhotos}
+            onRemove={removeVinPhoto}
             compact
           />
         </div>
@@ -252,12 +260,11 @@ const RequestFormFields = ({
             Интересующие запчасти
           </label>
           <PhotoAttach
-            photos={photos}
-            photoPreviews={photoPreviews}
-            onAdd={addPhotos}
-            onRemove={removePhoto}
+            photos={partsPhotos}
+            photoPreviews={partsPhotoPreviews}
+            onAdd={addPartsPhotos}
+            onRemove={removePartsPhoto}
             compact
-            showPreviews={false}
           />
         </div>
         <Textarea
