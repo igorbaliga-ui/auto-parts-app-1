@@ -5,6 +5,16 @@ import './index.css'
 
 createRoot(document.getElementById("root")!).render(<App />);
 
+// Прячем HTML/CSS-заставку (index.html) сразу после того, как React смонтировал
+// приложение. requestAnimationFrame ждёт первый реальный кадр отрисовки, чтобы
+// заставка не исчезла на мгновение раньше, чем контент готов показаться под ней.
+requestAnimationFrame(() => {
+  const splash = document.getElementById('app-splash');
+  if (!splash) return;
+  splash.classList.add('app-splash--hide');
+  setTimeout(() => splash.remove(), 500);
+});
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {});

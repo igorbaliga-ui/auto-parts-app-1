@@ -27,6 +27,109 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@400;500;600&display=swap" />
+    <style>
+        /* Заставка при холодном старте приложения (в т.ч. установленного PWA) — показывается
+           мгновенно из чистого HTML/CSS, ещё до загрузки и разбора JS-бандла, и скрывается
+           сразу после монтирования React (см. src/main.tsx). Стили самодостаточны и не зависят
+           от Tailwind/CSS-переменных проекта, чтобы отрисоваться без единого лишнего запроса. */
+        #app-splash {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: radial-gradient(120% 90% at 50% 38%, #1a1b1d 0%, #0e0e0f 72%);
+            transition: opacity .45s ease, visibility .45s ease;
+        }
+        #app-splash.app-splash--hide {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .app-splash__badge {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 28px;
+            border-radius: 4px;
+            border: 1.5px solid #33342f;
+            background: #1a1b1d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: app-splash-pulse 2.4s ease-in-out infinite;
+        }
+        .app-splash__badge svg {
+            animation: app-splash-spin 44s linear infinite;
+            transform-origin: 50% 50%;
+        }
+        .app-splash__title {
+            margin: 0;
+            font-family: 'Oswald', sans-serif;
+            font-weight: 700;
+            font-size: clamp(1.9rem, 8.5vw, 3rem);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            text-align: center;
+            color: #3a3b3f;
+            text-shadow:
+                -1.5px -1.5px 1.5px rgba(0, 0, 0, 0.85),
+                1.5px 1.5px 1.5px rgba(255, 255, 255, 0.07),
+                0 0 16px rgba(229, 67, 42, 0.3);
+            animation: app-splash-glow 2.4s ease-in-out infinite;
+        }
+        .app-splash__subtitle {
+            display: block;
+            margin-top: 12px;
+            font-family: 'Rubik', sans-serif;
+            font-weight: 500;
+            font-size: clamp(0.7rem, 2.6vw, 0.85rem);
+            letter-spacing: 0.34em;
+            text-transform: uppercase;
+            text-align: center;
+            color: #8c8a83;
+        }
+        .app-splash__loader {
+            margin-top: 34px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 3px solid rgba(229, 67, 42, 0.18);
+            border-top-color: #e5432a;
+            animation: app-splash-spin 0.85s linear infinite;
+        }
+        @keyframes app-splash-glow {
+            0%, 100% {
+                text-shadow:
+                    -1.5px -1.5px 1.5px rgba(0, 0, 0, 0.85),
+                    1.5px 1.5px 1.5px rgba(255, 255, 255, 0.07),
+                    0 0 10px rgba(229, 67, 42, 0.22);
+            }
+            50% {
+                text-shadow:
+                    -1.5px -1.5px 1.5px rgba(0, 0, 0, 0.85),
+                    1.5px 1.5px 1.5px rgba(255, 255, 255, 0.07),
+                    0 0 30px rgba(229, 67, 42, 0.62);
+            }
+        }
+        @keyframes app-splash-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(229, 67, 42, 0.45); }
+            50% { box-shadow: 0 0 0 10px rgba(229, 67, 42, 0); }
+        }
+        @keyframes app-splash-spin {
+            to { transform: rotate(360deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .app-splash__title,
+            .app-splash__badge,
+            .app-splash__badge svg,
+            .app-splash__loader {
+                animation: none;
+            }
+        }
+    </style>
     <meta property="og:title" content="Поехали">
     <meta property="og:description" content="Опишите идею — нейросеть сделает приложение или сайт за 5 минут. Запустите сами или доверьте фрилансеру.">
     <meta property="og:image:width" content="1200">
@@ -47,6 +150,20 @@
   </head>
 
 <body>
+<div id="app-splash">
+    <div class="app-splash__badge">
+        <svg viewBox="0 0 200 200" width="34" height="34" aria-hidden="true">
+            <path
+                fill="#46474b"
+                d="M100 6l9 3 6-8 10 5 2 10 10 1 5 10-6 9 8 7-2 11-10 3 3 10-8 7-9-4-4 9-11 1-6-8-9 4-9-7 1-10-10-3-2-11 8-7-6-9 5-10 10-1 2-10 10-5 6 8z"
+            />
+            <circle cx="100" cy="100" r="62" fill="#1a1b1d" />
+        </svg>
+    </div>
+    <h1 class="app-splash__title">ЗАП ОПТОМ</h1>
+    <span class="app-splash__subtitle">Проверенные запчасти</span>
+    <div class="app-splash__loader"></div>
+</div>
 <div id="root"></div>
 <script type="module" src="/src/main.tsx"></script>
 
