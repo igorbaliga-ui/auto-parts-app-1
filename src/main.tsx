@@ -2,6 +2,7 @@ import * as React from 'react';
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import './index.css'
+import { safeGetItem, safeSetItem } from '@/lib/storage';
 
 createRoot(document.getElementById("root")!).render(<App />);
 
@@ -12,14 +13,14 @@ createRoot(document.getElementById("root")!).render(<App />);
 // минимум 3 секунды, даже если всё уже загрузилось быстрее — дальше, при повторных
 // заходах, прячем сразу как готово, без искусственной задержки.
 const SPLASH_SEEN_KEY = 'app_splash_seen';
-const isFirstLaunch = !localStorage.getItem(SPLASH_SEEN_KEY);
+const isFirstLaunch = !safeGetItem(SPLASH_SEEN_KEY);
 const minSplashMs = isFirstLaunch ? 3000 : 0;
 const splashStart = performance.now();
 
 requestAnimationFrame(() => {
   const splash = document.getElementById('app-splash');
   if (!splash) return;
-  localStorage.setItem(SPLASH_SEEN_KEY, '1');
+  safeSetItem(SPLASH_SEEN_KEY, '1');
   // При повторном визите index.html уже отрисовал заставку скрытой (display:none) —
   // тут просто убираем узел из DOM без анимации и задержек, показывать было нечего
   if (!isFirstLaunch) {

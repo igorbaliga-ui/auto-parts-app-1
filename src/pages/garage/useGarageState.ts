@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRequest } from '@/components/site/RequestDialog';
 import { notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
 import { getStoredCity } from '@/lib/garage-city';
+import { safeGetItem, safeSetItem, safeRemoveItem } from '@/lib/storage';
 import { usePushSubscription } from '@/hooks/use-push-subscription';
 import { toast } from '@/hooks/use-toast';
 import { sanitizeMileageInput, MILEAGE_MAX_VALUE } from '@/lib/text';
@@ -27,7 +28,7 @@ export const useGarageState = () => {
   const [phone, setPhone] = useState('');
   const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [checkingSaved, setCheckingSaved] = useState(() => !!localStorage.getItem(STORAGE_KEY));
+  const [checkingSaved, setCheckingSaved] = useState(() => !!safeGetItem(STORAGE_KEY));
   const [error, setError] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
   const [cashbackDeducted, setCashbackDeducted] = useState(0);
@@ -89,8 +90,8 @@ export const useGarageState = () => {
         setError(data.error || 'Доступ в «Гараж» временно заблокирован. Обратитесь к менеджеру');
         setAuthed(false);
         setPasswordRequired(false);
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(PASSWORD_VERIFIED_KEY);
+        safeRemoveItem(STORAGE_KEY);
+        safeRemoveItem(PASSWORD_VERIFIED_KEY);
         return;
       }
       if (!res.ok) throw new Error('request failed');
@@ -100,8 +101,8 @@ export const useGarageState = () => {
         setError('По этому номеру заявок не найдено. Оставьте заявку, чтобы получить доступ в гараж.');
         setAuthed(false);
         setPasswordRequired(false);
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(PASSWORD_VERIFIED_KEY);
+        safeRemoveItem(STORAGE_KEY);
+        safeRemoveItem(PASSWORD_VERIFIED_KEY);
         return;
       }
       setOrders(list);
@@ -125,7 +126,7 @@ export const useGarageState = () => {
       // «пароль не задан», пока идёт запрос
       setHasPassword(await checkHasPassword(ph));
       setAuthed(true);
-      localStorage.setItem(STORAGE_KEY, ph);
+      safeSetItem(STORAGE_KEY, ph);
       notifyGarageAuthChanged();
     } catch {
       setError('Не удалось загрузить заказы. Проверьте телефон и попробуйте снова.');
@@ -136,11 +137,11 @@ export const useGarageState = () => {
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = safeGetItem(STORAGE_KEY);
     if (saved) {
       setPhone(saved);
       // Пароль уже подтверждён в этой сессии — не спрашиваем его повторно при возврате в «Гараж»
-      if (localStorage.getItem(PASSWORD_VERIFIED_KEY) === saved) {
+      if (safeGetItem(PASSWORD_VERIFIED_KEY) === saved) {
         load(saved);
         return;
       }
@@ -193,7 +194,7 @@ export const useGarageState = () => {
         return;
       }
       setPasswordInput('');
-      localStorage.setItem(PASSWORD_VERIFIED_KEY, phone);
+      safeSetItem(PASSWORD_VERIFIED_KEY, phone);
       // passwordRequired специально сбрасываем только ПОСЛЕ загрузки заказов: пока идёт
       // load(), authed ещё false, и если сбросить passwordRequired раньше, экран на
       // мгновение провалится в форму ввода телефона (условие рендера в Garage.tsx) —
@@ -242,7 +243,7 @@ export const useGarageState = () => {
       setResetVinInput('');
       setPasswordInput(resetPasswordInput.trim());
       setResetPasswordInput('');
-      localStorage.setItem(PASSWORD_VERIFIED_KEY, phone);
+      safeSetItem(PASSWORD_VERIFIED_KEY, phone);
       await load(phone);
       setResetPasswordMode(false);
       setPasswordRequired(false);
@@ -254,8 +255,8 @@ export const useGarageState = () => {
   };
 
   const logout = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(PASSWORD_VERIFIED_KEY);
+    safeRemoveItem(STORAGE_KEY);
+    safeRemoveItem(PASSWORD_VERIFIED_KEY);
     setAuthed(false);
     setOrders([]);
     setPhone('');
@@ -310,7 +311,7 @@ export const useGarageState = () => {
       setNewPasswordConfirmInput('');
       // Пароль только что задан в этой же сессии — сразу отмечаем его подтверждённым,
       // чтобы при возврате в «Гараж» не спрашивать его повторно
-      localStorage.setItem(PASSWORD_VERIFIED_KEY, phone);
+      safeSetItem(PASSWORD_VERIFIED_KEY, phone);
       setPasswordSettingsOpen(false);
       toast({ title: 'Пароль сохранён' });
     } catch {

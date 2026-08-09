@@ -140,6 +140,7 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
                   <div className="flex items-center gap-2">
                     <Input
                       type="number"
+                      inputMode="decimal"
                       placeholder="Сумма списания"
                       value={deductDrafts[c.phone_last10] ?? ''}
                       onChange={(e) =>

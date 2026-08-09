@@ -310,6 +310,7 @@ const AdminLeadsDesktopTable = ({
                 <TableCell>
                   <Input
                     type="number"
+                    inputMode="decimal"
                     value={drafts[l.id]?.amount ?? ''}
                     onChange={(e) => setDraft(l.id, e.target.value)}
                     placeholder="0"
@@ -321,6 +322,7 @@ const AdminLeadsDesktopTable = ({
                 <TableCell>
                   <Input
                     type="number"
+                    inputMode="decimal"
                     value={drafts[l.id]?.prepayment ?? ''}
                     onChange={(e) => setPrepaymentDraft(l.id, e.target.value)}
                     placeholder="0"

@@ -257,6 +257,7 @@ const AdminLeadCard = ({
           </label>
           <Input
             type="number"
+            inputMode="decimal"
             value={draft.amount}
             onChange={(e) => setDraft(l.id, e.target.value)}
             placeholder="0"
@@ -269,6 +270,7 @@ const AdminLeadCard = ({
           </label>
           <Input
             type="number"
+            inputMode="decimal"
             value={draft.prepayment}
             onChange={(e) => setPrepaymentDraft(l.id, e.target.value)}
             placeholder="0"

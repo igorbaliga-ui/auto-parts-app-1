@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAdminPushSubscription } from '@/hooks/use-admin-push-subscription';
+import { safeGetSession, safeSetSession } from '@/lib/storage';
 import { Lead, ColumnKey, columns } from './adminTypes';
 
 const LEADS_ADMIN_URL = 'https://functions.poehali.dev/68ca5544-c377-4c79-ba1f-57ba286b33a9';
@@ -64,7 +65,7 @@ export const useAdminLeads = () => {
         ),
       );
       setAuthed(true);
-      sessionStorage.setItem('admin_password', pwd);
+      safeSetSession('admin_password', pwd);
     } catch {
       setError('Не удалось загрузить заявки');
     } finally {
@@ -73,8 +74,8 @@ export const useAdminLeads = () => {
   };
 
   useEffect(() => {
-    const saved = sessionStorage.getItem('admin_password');
-    const savedName = sessionStorage.getItem('admin_name');
+    const saved = safeGetSession('admin_password');
+    const savedName = safeGetSession('admin_name');
     if (savedName) setAdminName(savedName);
     if (saved) {
       setPassword(saved);
@@ -97,7 +98,7 @@ export const useAdminLeads = () => {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    sessionStorage.setItem('admin_name', adminName.trim() || 'Менеджер');
+    safeSetSession('admin_name', adminName.trim() || 'Менеджер');
     load(password);
   };
 

@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import { safeGetJSON } from '@/lib/storage';
 
 export type Ctx = {
   open: (vin?: string, photos?: File[], phone?: string, name?: string, vinHistory?: string[], city?: string) => void;
@@ -23,14 +24,7 @@ export const STORAGE_KEY = 'zapoptom_request_draft';
 
 export const emptyForm = { vin: '', name: '', phone: '', parts: '', city: '' };
 
-export const loadDraft = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as { form: typeof emptyForm; messenger: string | null };
-  } catch {
-    return null;
-  }
-};
+export const loadDraft = () =>
+  safeGetJSON<{ form: typeof emptyForm; messenger: string | null }>(STORAGE_KEY);
 
 export type GarageCar = { vin: string; car_name: string };

@@ -1,4 +1,5 @@
 import { lazy } from 'react';
+import { safeGetSession, safeSetSession, safeRemoveSession } from '@/lib/storage';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -28,12 +29,12 @@ export function lazyWithReload<T extends { default: React.ComponentType<unknown>
     }
 
     const reloadedKey = 'chunk-reload-attempted';
-    if (!sessionStorage.getItem(reloadedKey)) {
-      sessionStorage.setItem(reloadedKey, '1');
+    if (!safeGetSession(reloadedKey)) {
+      safeSetSession(reloadedKey, '1');
       window.location.reload();
       return new Promise<T>(() => {});
     }
-    sessionStorage.removeItem(reloadedKey);
+    safeRemoveSession(reloadedKey);
     throw lastError;
   });
 }

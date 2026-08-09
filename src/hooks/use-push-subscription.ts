@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { safeGetItem, safeSetItem } from '@/lib/storage';
 
 const PUSH_SUBSCRIBE_URL = 'https://functions.poehali.dev/30d578c6-e25c-4fdc-b648-85e2cbdc2a65';
 
@@ -42,7 +43,7 @@ export const usePushSubscription = (phone: string | null) => {
     navigator.serviceWorker.ready
       .then((reg) => reg.pushManager.getSubscription())
       .then((sub) => {
-        const subscribedPhone = localStorage.getItem(SUBSCRIBED_PHONE_KEY);
+        const subscribedPhone = safeGetItem(SUBSCRIBED_PHONE_KEY);
         setSubscribed(!!sub && subscribedPhone === phoneLast10);
       })
       .catch(() => {});
@@ -75,7 +76,7 @@ export const usePushSubscription = (phone: string | null) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, subscription: sub.toJSON() }),
       });
-      localStorage.setItem(SUBSCRIBED_PHONE_KEY, normalizePhoneLast10(phone));
+      safeSetItem(SUBSCRIBED_PHONE_KEY, normalizePhoneLast10(phone));
       setSubscribed(true);
       return true;
     } catch {

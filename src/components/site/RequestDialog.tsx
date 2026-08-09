@@ -20,6 +20,7 @@ import { toast } from '@/hooks/use-toast';
 import { useGarageAuth, GARAGE_PHONE_KEY, notifyGarageAuthChanged, notifyGarageOrdersChanged } from '@/hooks/use-garage-auth';
 import { usePhotoAttach } from '@/hooks/use-photo-attach';
 import { getStoredCity } from '@/lib/garage-city';
+import { safeSetItem, safeRemoveItem } from '@/lib/storage';
 import {
   RequestContext,
   isValidName,
@@ -93,9 +94,9 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const hasData = form.vin || form.name || form.phone || form.parts || messenger;
     if (hasData) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ form, messenger }));
+      safeSetItem(STORAGE_KEY, JSON.stringify({ form, messenger }));
     } else {
-      localStorage.removeItem(STORAGE_KEY);
+      safeRemoveItem(STORAGE_KEY);
     }
   }, [form, messenger]);
 
@@ -180,7 +181,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     });
     // Неавторизованный в «Гараже» клиент после успешной заявки сразу попадает в свой личный кабинет
     if (!garageAuthed && form.phone) {
-      localStorage.setItem(GARAGE_PHONE_KEY, form.phone);
+      safeSetItem(GARAGE_PHONE_KEY, form.phone);
       notifyGarageAuthChanged();
       navigate('/garage');
     } else if (location.pathname === '/garage') {
@@ -193,7 +194,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     setVinSource(null);
     vinPhoto.resetPhotos();
     partsPhoto.resetPhotos();
-    localStorage.removeItem(STORAGE_KEY);
+    safeRemoveItem(STORAGE_KEY);
   });
 
   const submit = async (ev: React.FormEvent) => {

@@ -1,3 +1,5 @@
+import { safeGetItem, safeSetItem } from '@/lib/storage';
+
 export const CITY_STORAGE_KEY = 'zapoptom_garage_city';
 export const DEFAULT_CITY = 'Сургут';
 
@@ -8,8 +10,8 @@ export const cities = [
   'Волгоград', 'Саратов', 'Тюмень', 'Тольятти', 'Ижевск',
 ];
 
-export const getStoredCity = () => localStorage.getItem(CITY_STORAGE_KEY) || DEFAULT_CITY;
+export const getStoredCity = () => safeGetItem(CITY_STORAGE_KEY) || DEFAULT_CITY;
 
 export const setStoredCity = (city: string) => {
-  localStorage.setItem(CITY_STORAGE_KEY, city);
+  safeSetItem(CITY_STORAGE_KEY, city);
 };

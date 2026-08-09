@@ -13,6 +13,7 @@ import {
 } from "@/hooks/use-garage-auth";
 import { normalizePhoneInput } from "@/lib/phone";
 import { sanitizeVinInput } from "@/lib/vin";
+import { safeSetItem } from "@/lib/storage";
 
 const messengers = [
   { id: "telegram", label: "Telegram", icon: "Send" },
@@ -56,7 +57,7 @@ const VinForm = () => {
   const { submitLead, submitting } = useSubmitLead(() => {
     setSent(true);
     if (form.phone) {
-      localStorage.setItem(GARAGE_PHONE_KEY, form.phone);
+      safeSetItem(GARAGE_PHONE_KEY, form.phone);
       notifyGarageAuthChanged();
       navigate("/garage");
     }

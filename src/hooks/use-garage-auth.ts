@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
+import { safeGetItem } from '@/lib/storage';
 
 export const GARAGE_PHONE_KEY = 'zapoptom_garage_phone';
 
-const getStoredPhone = () => localStorage.getItem(GARAGE_PHONE_KEY);
+const getStoredPhone = () => safeGetItem(GARAGE_PHONE_KEY);
 
 export const notifyGarageAuthChanged = () => {
   window.dispatchEvent(new Event('garage-auth-changed'));
