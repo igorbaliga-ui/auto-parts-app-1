@@ -128,7 +128,16 @@
   </head>
 
 <body>
-<div id="app-splash">
+<script>
+    // Синхронно, до первой отрисовки: при повторном визите (заставку уже видели —
+    // см. src/main.tsx) сразу помечаем блок как скрытый через inline-style, чтобы
+    // браузер не отрисовал его вообще ни на один кадр — визуально заставки просто нет.
+    if (localStorage.getItem('app_splash_seen')) {
+        document.write('<div id="app-splash" style="display:none">');
+    } else {
+        document.write('<div id="app-splash">');
+    }
+</script>
     <h1 class="app-splash__title">ЗАП ОПТОМ</h1>
     <span class="app-splash__subtitle">Проверенные запчасти</span>
     <div class="app-splash__loader"></div>

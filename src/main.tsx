@@ -19,11 +19,17 @@ const splashStart = performance.now();
 requestAnimationFrame(() => {
   const splash = document.getElementById('app-splash');
   if (!splash) return;
+  localStorage.setItem(SPLASH_SEEN_KEY, '1');
+  // При повторном визите index.html уже отрисовал заставку скрытой (display:none) —
+  // тут просто убираем узел из DOM без анимации и задержек, показывать было нечего
+  if (!isFirstLaunch) {
+    splash.remove();
+    return;
+  }
   const elapsed = performance.now() - splashStart;
   const remaining = Math.max(0, minSplashMs - elapsed);
   setTimeout(() => {
     splash.classList.add('app-splash--hide');
-    localStorage.setItem(SPLASH_SEEN_KEY, '1');
     setTimeout(() => splash.remove(), 500);
   }, remaining);
 });
