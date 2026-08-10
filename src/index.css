@@ -236,3 +236,22 @@
     animation: none;
   }
 }
+
+@keyframes float-pulse {
+  0%,
+  70%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.45);
+  }
+  35% {
+    box-shadow: 0 0 0 10px hsl(var(--primary) / 0);
+  }
+}
+.animate-float-pulse {
+  animation: float-pulse 3s ease-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-pulse {
+    animation: none;
+  }
+}

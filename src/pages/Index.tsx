@@ -7,6 +7,7 @@ import HowToOrder from '@/components/site/HowToOrder';
 import Advantages from '@/components/site/Advantages';
 import Contacts from '@/components/site/Contacts';
 import Footer from '@/components/site/Footer';
+import FloatingContactButton from '@/components/site/FloatingContactButton';
 
 const PageContent = () => {
   const { tab } = useNav();
@@ -26,6 +27,7 @@ const PageContent = () => {
         )}
       </main>
       <Footer />
+      <FloatingContactButton />
     </div>
   );
 };
