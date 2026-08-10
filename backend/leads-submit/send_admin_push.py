@@ -25,12 +25,16 @@ def send_push_to_admins(dsn: str, schema: str, title: str, body: str, url: str =
                 'keys': {'p256dh': p256dh, 'auth': auth},
             }
             try:
+                # Urgency: high — просим Google/Apple доставить уведомление немедленно,
+                # а не откладывать до следующего «пробуждения» телефона (Android Doze
+                # иначе копит уведомления и выдаёт их пачкой при заходе в приложение).
                 webpush(
                     subscription_info=subscription_info,
                     data=json.dumps({'title': title, 'body': body, 'url': url}),
                     vapid_private_key=private_key,
                     vapid_claims={'sub': 'mailto:zapoptom@bk.ru'},
                     ttl=86400,
+                    headers={'Urgency': 'high'},
                 )
             except WebPushException as e:
                 status_code = getattr(e.response, 'status_code', None)
