@@ -2,6 +2,13 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import ExpandableText from "@/components/shared/ExpandableText";
 import { isPushSupported } from "@/hooks/use-push-subscription";
 import GarageOrderHistory from "./GarageOrderHistory";
@@ -74,6 +81,7 @@ const GarageOrdersList = ({
   saveMileage,
 }: GarageOrdersListProps) => {
   const [searchOpen, setSearchOpen] = useState(() => !!searchQuery);
+  const [mileageInfoOpen, setMileageInfoOpen] = useState(false);
   return (
     <>
       {orders.length > 0 && (
@@ -300,9 +308,15 @@ const GarageOrdersList = ({
                       )}
 
                       <div className="flex items-center gap-1.5 ml-auto pl-3 border-l border-steel/60">
-                        <span className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-primary/15">
+                        <button
+                          type="button"
+                          onClick={() => setMileageInfoOpen(true)}
+                          aria-label="Зачем указывать пробег"
+                          title="Зачем указывать пробег"
+                          className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-primary/15 hover:bg-primary/25 transition-colors"
+                        >
                           <Icon name="Gauge" size={14} className="text-primary" />
-                        </span>
+                        </button>
                         <div className="relative">
                           <Input
                             value={mileageDrafts[o.id] ?? ""}
@@ -429,6 +443,19 @@ const GarageOrdersList = ({
           )}
         </>
       )}
+      <Dialog open={mileageInfoOpen} onOpenChange={setMileageInfoOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Icon name="Gauge" size={18} className="text-primary" />
+              Пробег автомобиля
+            </DialogTitle>
+            <DialogDescription>
+              Укажите пробег автомобиля, чтобы отслеживать историю ремонта.
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
