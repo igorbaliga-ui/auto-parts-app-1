@@ -1,0 +1,25 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Get contacts",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {"phone_value": "string", "email_value": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Update without password rejected",
+      "method": "POST",
+      "path": "/",
+      "body": {"phone_value": "+7 (999) 999-99-99"},
+      "expectedStatus": 401
+    }
+  ]
+}
