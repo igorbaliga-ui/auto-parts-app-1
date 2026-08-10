@@ -54,7 +54,10 @@ const Header = () => {
   };
 
   return (
-    <header className="absolute top-0 left-0 right-0 z-30">
+    <header
+      className="absolute top-0 left-0 right-0 z-30"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
       <div className="max-w-[1400px] mx-auto flex items-center px-5 sm:px-8 lg:px-12 py-6">
         <button onClick={() => navigate("home")} className="flex items-center">
           <span className="font-head font-bold uppercase tracking-[0.18em] text-lg sm:text-xl text-concrete-carved">
