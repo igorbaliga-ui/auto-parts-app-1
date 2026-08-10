@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Lead, ColumnKey } from './adminTypes';
 import LeadHistoryDialog from './LeadHistoryDialog';
 import LoginHistoryDialog from './LoginHistoryDialog';
+import SendPushDialog from './SendPushDialog';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
 import { useIsIosInstallable } from '@/hooks/use-ios-install-hint';
 import AdminInstallBanners from './AdminInstallBanners';
@@ -91,6 +92,8 @@ const AdminLeadsTable = ({
   const historyLead = leads.find((l) => l.id === historyLeadId) || null;
   const [loginHistoryClient, setLoginHistoryClient] = useState<{ phone: string; name: string } | null>(null);
   const [cashbackDialogOpen, setCashbackDialogOpen] = useState(false);
+  const [sendPushLeadId, setSendPushLeadId] = useState<number | null>(null);
+  const sendPushLead = leads.find((l) => l.id === sendPushLeadId) || null;
   const { canInstall, promptInstall } = usePwaInstall();
   const isIosInstallable = useIsIosInstallable();
 
@@ -145,6 +148,7 @@ const AdminLeadsTable = ({
               saveClientNote={saveClientNote}
               onShowHistory={setHistoryLeadId}
               onShowLoginHistory={(phone, name) => setLoginHistoryClient({ phone, name })}
+              onSendPush={setSendPushLeadId}
             />
             <AdminLeadsDesktopTable
               filteredLeads={filteredLeads}
@@ -167,6 +171,7 @@ const AdminLeadsTable = ({
               saveClientNote={saveClientNote}
               onShowHistory={setHistoryLeadId}
               onShowLoginHistory={(phone, name) => setLoginHistoryClient({ phone, name })}
+              onSendPush={setSendPushLeadId}
             />
           </>
         )}
@@ -187,6 +192,15 @@ const AdminLeadsTable = ({
           adminPassword={adminPassword}
           open={loginHistoryClient !== null}
           onOpenChange={(open) => !open && setLoginHistoryClient(null)}
+        />
+      )}
+      {sendPushLead && (
+        <SendPushDialog
+          leadId={sendPushLead.id}
+          clientLabel={`${sendPushLead.name} — ${sendPushLead.phone}`}
+          adminPassword={adminPassword}
+          open={sendPushLeadId !== null}
+          onOpenChange={(open) => !open && setSendPushLeadId(null)}
         />
       )}
       <ClientCashbackDialog

@@ -53,6 +53,7 @@ type AdminLeadsDesktopTableProps = {
   saveClientNote: (id: number, note: string) => Promise<void>;
   onShowHistory: (id: number) => void;
   onShowLoginHistory: (phone: string, name: string) => void;
+  onSendPush: (id: number) => void;
 };
 
 const AdminLeadsDesktopTable = ({
@@ -76,6 +77,7 @@ const AdminLeadsDesktopTable = ({
   saveClientNote,
   onShowHistory,
   onShowLoginHistory,
+  onSendPush,
 }: AdminLeadsDesktopTableProps) => {
   return (
     <div className="hidden md:block bg-card border border-steel rounded-sm overflow-x-auto">
@@ -431,6 +433,13 @@ const AdminLeadsDesktopTable = ({
                   >
                     {savingId === l.id ? '…' : 'Сохранить'}
                   </Button>
+                  <button
+                    onClick={() => onSendPush(l.id)}
+                    title="Отправить push-уведомление клиенту"
+                    className="shrink-0 flex items-center justify-center w-9 h-9 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                  >
+                    <Icon name="Send" size={15} />
+                  </button>
                   <button
                     onClick={() => onShowHistory(l.id)}
                     title="История изменений"

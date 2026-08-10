@@ -18,6 +18,7 @@ type AdminLeadsMobileListProps = {
   saveClientNote: (id: number, note: string) => Promise<void>;
   onShowHistory: (id: number) => void;
   onShowLoginHistory: (phone: string, name: string) => void;
+  onSendPush: (id: number) => void;
 };
 
 const AdminLeadsMobileList = ({
@@ -37,6 +38,7 @@ const AdminLeadsMobileList = ({
   saveClientNote,
   onShowHistory,
   onShowLoginHistory,
+  onSendPush,
 }: AdminLeadsMobileListProps) => {
   return (
     <div className="md:hidden flex flex-col gap-3">
@@ -62,6 +64,7 @@ const AdminLeadsMobileList = ({
             saveClientNote={saveClientNote}
             onShowHistory={onShowHistory}
             onShowLoginHistory={onShowLoginHistory}
+            onSendPush={onSendPush}
           />
         ))
       )}

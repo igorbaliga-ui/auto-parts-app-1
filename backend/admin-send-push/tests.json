@@ -1,0 +1,17 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "No password rejected",
+      "method": "POST",
+      "path": "/",
+      "body": {"id": 1, "message": "Тест"},
+      "expectedStatus": 401
+    }
+  ]
+}

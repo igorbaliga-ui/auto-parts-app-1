@@ -1,4 +1,5 @@
 {
+  "admin-send-push": "https://functions.poehali.dev/34a554a6-5792-424c-b83e-678e43c707f1",
   "garage-mileage": "https://functions.poehali.dev/d71db07d-92d5-48aa-9636-226e7b979955",
   "client-notes": "https://functions.poehali.dev/6db08252-18b5-4e2f-8d19-e0b07150e9d5",
   "client-cashback": "https://functions.poehali.dev/9852e677-02a7-403b-9658-35e7a0ac1b66",
