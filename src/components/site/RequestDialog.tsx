@@ -21,6 +21,7 @@ import { useGarageAuth, GARAGE_PHONE_KEY, notifyGarageAuthChanged, notifyGarageO
 import { usePhotoAttach } from '@/hooks/use-photo-attach';
 import { getStoredCity } from '@/lib/garage-city';
 import { safeSetItem, safeRemoveItem } from '@/lib/storage';
+import { setLastVin } from '@/hooks/use-last-vin';
 import {
   RequestContext,
   isValidName,
@@ -99,6 +100,13 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       safeRemoveItem(STORAGE_KEY);
     }
   }, [form, messenger]);
+
+  // Запоминаем VIN сразу по мере ввода (не дожидаясь отправки формы) — чтобы плавающая
+  // кнопка WhatsApp/Telegram могла подставить его в сообщение, даже если клиент откроет
+  // чат раньше, чем отправит саму заявку
+  useEffect(() => {
+    if (form.vin) setLastVin(form.vin);
+  }, [form.vin]);
 
   // Телефон привязан к одному имени: при вводе известного номера имя подставляется автоматически.
   // Только для клиента, уже вошедшего в свой «Гараж» — иначе по чужому номеру телефона
@@ -200,6 +208,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
+    setLastVin(form.vin);
     const [vinPhotoUrls, partsPhotoUrls] = await Promise.all([
       vinPhoto.preparePhotosForUpload(),
       partsPhoto.preparePhotosForUpload(),

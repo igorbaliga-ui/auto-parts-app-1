@@ -14,6 +14,7 @@ import {
 import { normalizePhoneInput } from "@/lib/phone";
 import { sanitizeVinInput } from "@/lib/vin";
 import { safeSetItem } from "@/lib/storage";
+import { setLastVin } from "@/hooks/use-last-vin";
 
 const messengers = [
   { id: "telegram", label: "Telegram", icon: "Send" },
@@ -69,6 +70,7 @@ const VinForm = () => {
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
+    setLastVin(form.vin);
     const photoUrls = await preparePhotosForUpload();
     submitLead({ ...form, messenger, photos: photoUrls });
   };

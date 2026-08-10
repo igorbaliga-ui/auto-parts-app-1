@@ -6,6 +6,7 @@ import { useGarageAuth } from "@/hooks/use-garage-auth";
 import { sanitizeVinInput } from "@/lib/vin";
 import PhotoAttach from "@/components/site/PhotoAttach";
 import { usePhotoAttach } from "@/hooks/use-photo-attach";
+import { setLastVin } from "@/hooks/use-last-vin";
 
 const Hero = () => {
   const { open } = useRequest();
@@ -15,11 +16,13 @@ const Hero = () => {
 
   const handleAddPhotos = (files: File[]) => {
     addPhotos(files);
+    setLastVin(vin);
     open(vin, files);
   };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    setLastVin(vin);
     open(vin);
   };
 
