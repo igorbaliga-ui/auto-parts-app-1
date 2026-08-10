@@ -50,7 +50,7 @@ const FloatingContactButton = () => {
       rel="noopener noreferrer"
       aria-label={link.label}
       title={link.label}
-      className="fixed bottom-6 right-5 sm:bottom-8 sm:right-8 z-40 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center hover:brightness-110 hover:scale-105 transition-all animate-float-pulse"
+      className="fixed bottom-16 right-5 sm:bottom-20 sm:right-8 z-40 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center hover:brightness-110 hover:scale-105 transition-all animate-float-pulse"
       style={{ marginBottom: "env(safe-area-inset-bottom)" }}
     >
       <Icon name={link.icon} size={26} />
