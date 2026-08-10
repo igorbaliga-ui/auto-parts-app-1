@@ -13,6 +13,10 @@ type ContactsData = {
   email_href: string;
   address_value: string;
   hours_value: string;
+  whatsapp_href: string | null;
+  telegram_href: string | null;
+  vk_href: string | null;
+  instagram_href: string | null;
 };
 
 type AdminContactsTabProps = {
@@ -43,6 +47,13 @@ const AdminContactsTab = ({ adminPassword }: AdminContactsTabProps) => {
   const setField = (field: keyof ContactsData, value: string) => {
     setData((d) => (d ? { ...d, [field]: value } : d));
   };
+
+  const socialFields: { field: keyof ContactsData; label: string; icon: string; placeholder: string }[] = [
+    { field: 'whatsapp_href', label: 'WhatsApp', icon: 'MessageCircle', placeholder: 'https://wa.me/79324027937' },
+    { field: 'telegram_href', label: 'Telegram', icon: 'Send', placeholder: 'https://t.me/username' },
+    { field: 'vk_href', label: 'ВКонтакте', icon: 'Share2', placeholder: 'https://vk.com/username' },
+    { field: 'instagram_href', label: 'Instagram', icon: 'Instagram', placeholder: 'https://instagram.com/username' },
+  ];
 
   const save = async () => {
     if (!data) return;
@@ -141,6 +152,28 @@ const AdminContactsTab = ({ adminPassword }: AdminContactsTabProps) => {
             onChange={(e) => setField('hours_value', e.target.value)}
             placeholder="Пн–Сб, 9:00–20:00"
           />
+        </div>
+      </div>
+
+      <div className="border-t border-steel pt-5">
+        <h3 className="font-head uppercase tracking-wide text-sm mb-1">Соцсети и мессенджеры</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Необязательно — оставьте поле пустым, если ссылки нет, и иконка не будет показана на сайте.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {socialFields.map(({ field, label, icon, placeholder }) => (
+            <div key={field}>
+              <label className="text-muted-foreground text-xs uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                <Icon name={icon} size={14} />
+                {label}
+              </label>
+              <Input
+                value={data[field] || ''}
+                onChange={(e) => setField(field, e.target.value)}
+                placeholder={placeholder}
+              />
+            </div>
+          ))}
         </div>
       </div>
 

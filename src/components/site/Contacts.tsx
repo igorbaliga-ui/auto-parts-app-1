@@ -13,7 +13,18 @@ const defaultContactsData = {
   email_href: "mailto:zapoptom@bk.ru",
   address_value: "г. Сургут, ул. Республики, 71/3с1",
   hours_value: "Пн–Сб, 9:00–20:00",
+  whatsapp_href: null as string | null,
+  telegram_href: null as string | null,
+  vk_href: null as string | null,
+  instagram_href: null as string | null,
 };
+
+const socialLinks = [
+  { key: "whatsapp_href", icon: "MessageCircle", label: "WhatsApp" },
+  { key: "telegram_href", icon: "Send", label: "Telegram" },
+  { key: "vk_href", icon: "Share2", label: "ВКонтакте" },
+  { key: "instagram_href", icon: "Instagram", label: "Instagram" },
+] as const;
 
 const Contacts = () => {
   const { open } = useRequest();
@@ -75,6 +86,26 @@ const Contacts = () => {
             >
               Оставить заявку
             </Button>
+          )}
+          {socialLinks.some((s) => data[s.key]) && (
+            <div className="flex items-center gap-3 mt-6">
+              {socialLinks.map(
+                (s) =>
+                  data[s.key] && (
+                    <a
+                      key={s.key}
+                      href={data[s.key] as string}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={s.label}
+                      title={s.label}
+                      className="w-11 h-11 rounded-sm bg-card border border-steel/60 flex items-center justify-center hover:border-primary/60 hover:text-primary transition-colors"
+                    >
+                      <Icon name={s.icon} size={20} />
+                    </a>
+                  ),
+              )}
+            </div>
           )}
         </div>
 

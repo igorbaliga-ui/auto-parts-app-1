@@ -1,0 +1,5 @@
+ALTER TABLE site_contacts
+    ADD COLUMN IF NOT EXISTS whatsapp_href VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS telegram_href VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS vk_href VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS instagram_href VARCHAR(255);

@@ -5,10 +5,15 @@ import psycopg2.extras
 from rate_limit import get_client_ip, check_rate_limit
 
 
+SOCIAL_FIELDS = ['whatsapp_href', 'telegram_href', 'vk_href', 'instagram_href']
+REQUIRED_FIELDS = ['phone_value', 'phone_href', 'email_value', 'email_href', 'address_value', 'hours_value']
+
+
 def handler(event: dict, context) -> dict:
-    """Отдаёт публичные контакты сайта (телефон, почта, адрес, часы работы) — GET доступен
-    всем без пароля (используется на главной странице). Изменить контакты может только
-    администратор через POST с паролем (используется на странице /admin)."""
+    """Отдаёт публичные контакты сайта (телефон, почта, адрес, часы работы, ссылки на
+    соцсети/мессенджеры) — GET доступен всем без пароля (используется на главной странице).
+    Изменить контакты может только администратор через POST с паролем (используется на
+    странице /admin). Ссылки на соцсети необязательны — пустое значение убирает иконку с сайта."""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -33,7 +38,8 @@ def handler(event: dict, context) -> dict:
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cur.execute(
-                f"SELECT phone_value, phone_href, email_value, email_href, address_value, hours_value "
+                f"SELECT phone_value, phone_href, email_value, email_href, address_value, hours_value, "
+                f"whatsapp_href, telegram_href, vk_href, instagram_href "
                 f"FROM {schema}.site_contacts WHERE id = 1"
             )
             row = cur.fetchone()
@@ -63,14 +69,20 @@ def handler(event: dict, context) -> dict:
 
     body = json.loads(event.get('body') or '{}')
 
-    fields = ['phone_value', 'phone_href', 'email_value', 'email_href', 'address_value', 'hours_value']
     values = {}
-    for field in fields:
+    for field in REQUIRED_FIELDS:
         if field in body:
             value = (body[field] or '').strip()
             if not value:
                 return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Поля не могут быть пустыми'})}
             values[field] = value
+
+    # Ссылки на соцсети необязательны — пустая строка сохраняется как NULL и убирает
+    # иконку с сайта, не блокируя сохранение остальных полей
+    for field in SOCIAL_FIELDS:
+        if field in body:
+            value = (body[field] or '').strip()
+            values[field] = value or None
 
     if not values:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Нечего сохранять'})}
