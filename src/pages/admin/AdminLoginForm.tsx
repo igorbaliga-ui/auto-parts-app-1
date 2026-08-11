@@ -26,8 +26,9 @@ const AdminLoginForm = ({ password, setPassword, adminName, setAdminName, error,
           type="text"
           value={adminName}
           onChange={(e) => setAdminName(e.target.value)}
-          placeholder="Ваше имя"
+          placeholder="Ваше имя*"
           autoFocus
+          required
         />
         <Input
           type="password"

@@ -98,7 +98,11 @@ export const useAdminLeads = () => {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    safeSetSession('admin_name', adminName.trim() || 'Менеджер');
+    if (!adminName.trim()) {
+      setError('Введите имя');
+      return;
+    }
+    safeSetSession('admin_name', adminName.trim());
     load(password);
   };
 
