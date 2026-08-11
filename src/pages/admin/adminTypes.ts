@@ -22,6 +22,7 @@ export type Lead = {
   archived: boolean;
   garage_blocked: boolean;
   phone_note: string | null;
+  handled_by: string | null;
 };
 
 export const messengerLabel: Record<string, string> = {
@@ -66,7 +67,8 @@ export type ColumnKey =
   | 'status'
   | 'completed_at'
   | 'internal_note'
-  | 'phone_note';
+  | 'phone_note'
+  | 'handled_by';
 
 export type ColumnDef = {
   key: ColumnKey;
@@ -112,6 +114,12 @@ export const columns: ColumnDef[] = [
     label: 'Дата выполнения',
     searchable: true,
     getSearchValue: (l) => (l.completed_at ? formatDate(l.completed_at) : ''),
+  },
+  {
+    key: 'handled_by',
+    label: 'Менеджер',
+    searchable: true,
+    getSearchValue: (l) => l.handled_by || '',
   },
   {
     key: 'internal_note',

@@ -55,6 +55,8 @@ def handler(event: dict, context) -> dict:
     имя, телефон, город, мессенджер, запчасти и название авто. Обновляются только те поля, что
     реально переданы в запросе. Остаток и кэшбэк — вычисляемые колонки в БД, пересчитываются автоматически.
     Каждое изменение записывается в журнал lead_changes (кто и когда менял).
+    При первом переводе заявки в статус «В работе» фиксируется имя менеджера в поле handled_by
+    (кто взял заявку в работу) — дальше не перезаписывается при повторных изменениях статуса.
     При простановке пометки «Поступил», переводе в статус «В работе» (из «Новая») или
     «Выполнен» отправляет клиенту Web Push уведомление."""
     method = event.get('httpMethod', 'GET')
@@ -135,7 +137,7 @@ def handler(event: dict, context) -> dict:
         # Читаем текущие значения для журнала изменений
         cur.execute(
             f"SELECT order_amount, prepayment, status, arrived, internal_note, "
-            f"vin, name, phone, city, messenger, parts, car_name, archived, mileage "
+            f"vin, name, phone, city, messenger, parts, car_name, archived, mileage, handled_by "
             f"FROM {schema}.leads WHERE id = %s",
             (lead_id,),
         )
@@ -144,7 +146,7 @@ def handler(event: dict, context) -> dict:
             return {'statusCode': 404, 'headers': headers, 'body': json.dumps({'error': 'Заявка не найдена'})}
         (prev_amount, prev_prepayment, prev_status, prev_arrived, prev_note,
          prev_vin, prev_name, prev_phone, prev_city, prev_messenger, prev_parts, prev_car_name,
-         prev_archived, prev_mileage) = prev
+         prev_archived, prev_mileage, prev_handled_by) = prev
 
         set_clauses = []
         params = []
@@ -184,6 +186,10 @@ def handler(event: dict, context) -> dict:
                 set_clauses.append("completed_at = NULL")
             if status == 'in_progress':
                 set_clauses.append("in_progress_at = COALESCE(in_progress_at, now())")
+                # Фиксируем менеджера, который первым взял заявку в работу — дальше не перезаписываем
+                if not prev_handled_by:
+                    set_clauses.append("handled_by = %s")
+                    params.append(admin_name)
 
         if arrived is not None:
             set_clauses.append("arrived = %s")
@@ -207,13 +213,14 @@ def handler(event: dict, context) -> dict:
         params.append(lead_id)
         cur.execute(
             f"UPDATE {schema}.leads SET {', '.join(set_clauses)} WHERE id = %s "
-            f"RETURNING cashback, remaining, completed_at, phone, car_name, vin",
+            f"RETURNING cashback, remaining, completed_at, phone, car_name, vin, handled_by",
             params,
         )
         row = cur.fetchone()
         cashback = float(row[0]) if row and row[0] is not None else None
         remaining = float(row[1]) if row and row[1] is not None else None
         completed_at = row[2].isoformat() if row and row[2] else None
+        handled_by = row[6] if row else None
 
         # Записываем изменения в журнал
         if 'order_amount' in body:
@@ -228,6 +235,8 @@ def handler(event: dict, context) -> dict:
                        str(mileage_value) if mileage_value is not None else None)
         if status is not None:
             log_change(cur, schema, lead_id, admin_name, 'status', fmt_status(prev_status), fmt_status(status))
+            if status == 'in_progress' and not prev_handled_by:
+                log_change(cur, schema, lead_id, admin_name, 'handled_by', prev_handled_by, admin_name)
         if arrived is not None:
             log_change(cur, schema, lead_id, admin_name, 'arrived', fmt_arrived(prev_arrived), fmt_arrived(arrived))
         if archived is not None:
@@ -272,5 +281,5 @@ def handler(event: dict, context) -> dict:
     return {
         'statusCode': 200,
         'headers': headers,
-        'body': json.dumps({'success': True, 'cashback': cashback, 'remaining': remaining, 'completed_at': completed_at}),
+        'body': json.dumps({'success': True, 'cashback': cashback, 'remaining': remaining, 'completed_at': completed_at, 'handled_by': handled_by}),
     }

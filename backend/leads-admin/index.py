@@ -55,7 +55,7 @@ def handler(event: dict, context) -> dict:
         conn.commit()
 
         cur.execute(
-            f"SELECT id, vin, name, phone, parts, messenger, photo_url, photo_urls, order_amount, prepayment, remaining, cashback, created_at, car_name, city, status, completed_at, arrived, internal_note, archived, mileage "
+            f"SELECT id, vin, name, phone, parts, messenger, photo_url, photo_urls, order_amount, prepayment, remaining, cashback, created_at, car_name, city, status, completed_at, arrived, internal_note, archived, mileage, handled_by "
             f"FROM {schema}.leads ORDER BY created_at DESC LIMIT 500"
         )
         rows = cur.fetchall()
@@ -98,6 +98,7 @@ def handler(event: dict, context) -> dict:
             'internal_note': r['internal_note'],
             'archived': bool(r['archived']),
             'mileage': r['mileage'],
+            'handled_by': r['handled_by'],
             'garage_blocked': phone_last10 in blocked_phones,
             'phone_note': notes_map.get(phone_last10),
         })

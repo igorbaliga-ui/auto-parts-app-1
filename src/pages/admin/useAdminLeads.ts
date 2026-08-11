@@ -218,7 +218,13 @@ export const useAdminLeads = () => {
       setLeads((ls) =>
         ls.map((l) =>
           l.id === id
-            ? { ...l, status: nextStatus, remaining: data.remaining ?? null, completed_at: data.completed_at ?? null }
+            ? {
+                ...l,
+                status: nextStatus,
+                remaining: data.remaining ?? null,
+                completed_at: data.completed_at ?? null,
+                handled_by: data.handled_by ?? l.handled_by,
+              }
             : l,
         ),
       );

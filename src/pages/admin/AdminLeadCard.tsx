@@ -370,6 +370,11 @@ const AdminLeadCard = ({
           </span>
         )}
       </div>
+      {l.handled_by && (
+        <div className="text-muted-foreground text-xs mt-1.5">
+          Менеджер: <span className="text-foreground">{l.handled_by}</span>
+        </div>
+      )}
 
       <div className="flex items-center gap-1.5 mt-3">
         <Button

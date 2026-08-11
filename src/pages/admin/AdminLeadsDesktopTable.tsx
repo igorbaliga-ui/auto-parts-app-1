@@ -400,6 +400,11 @@ const AdminLeadsDesktopTable = ({
                   {l.completed_at ? formatDate(l.completed_at) : '—'}
                 </TableCell>
               )}
+              {isColumnVisible('handled_by') && (
+                <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
+                  {l.handled_by || '—'}
+                </TableCell>
+              )}
               {isColumnVisible('internal_note') && (
                 <TableCell>
                   <Textarea

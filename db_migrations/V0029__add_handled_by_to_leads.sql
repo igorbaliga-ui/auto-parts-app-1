@@ -1,0 +1,1 @@
+ALTER TABLE t_p41196774_auto_parts_app_1.leads ADD COLUMN handled_by VARCHAR(100) NULL;
