@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAdminPushSubscription } from '@/hooks/use-admin-push-subscription';
-import { safeGetSession, safeSetSession, safeRemoveSession } from '@/lib/storage';
+import { safeGetSession, safeSetSession, safeRemoveSession, safeGetJSON, safeSetItem, safeGetItem } from '@/lib/storage';
 import { Lead, ColumnKey, columns } from './adminTypes';
 
 const LEADS_ADMIN_URL = 'https://functions.poehali.dev/68ca5544-c377-4c79-ba1f-57ba286b33a9';
@@ -8,9 +8,27 @@ const LEADS_UPDATE_URL = 'https://functions.poehali.dev/1612bdca-502b-46a9-b0ea-
 const GARAGE_AUTH_URL = 'https://functions.poehali.dev/d92ac11d-c6d2-4430-b948-a767c0048442';
 const CLIENT_NOTES_URL = 'https://functions.poehali.dev/6db08252-18b5-4e2f-8d19-e0b07150e9d5';
 
+// Ключ для сохранения в localStorage набора скрытых столбцов таблицы заявок —
+// хранится постоянно (не sessionStorage), чтобы настройка не сбрасывалась между заходами
+const HIDDEN_COLUMNS_KEY = 'admin_hidden_columns';
+
 type Draft = { amount: string; prepayment: string; note: string };
 
 const phoneLast10 = (phone: string) => phone.replace(/\D/g, '').slice(-10);
+
+const loadHiddenColumns = (): Set<ColumnKey> => {
+  const saved = safeGetJSON<ColumnKey[]>(HIDDEN_COLUMNS_KEY);
+  return saved ? new Set(saved) : new Set();
+};
+
+const STATUS_TAB_KEY = 'admin_status_tab';
+type StatusTab = 'new' | 'in_progress' | 'done' | 'all' | 'archived';
+const VALID_STATUS_TABS: StatusTab[] = ['new', 'in_progress', 'done', 'all', 'archived'];
+
+const loadStatusTab = (): StatusTab => {
+  const saved = safeGetItem(STATUS_TAB_KEY);
+  return (VALID_STATUS_TABS as string[]).includes(saved || '') ? (saved as StatusTab) : 'new';
+};
 
 /**
  * Вся логика страницы /admin: авторизация менеджера, загрузка заявок, черновики
@@ -27,9 +45,16 @@ export const useAdminLeads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [drafts, setDrafts] = useState<Record<number, Draft>>({});
   const [savingId, setSavingId] = useState<number | null>(null);
-  const [hiddenColumns, setHiddenColumns] = useState<Set<ColumnKey>>(new Set());
+  const [hiddenColumns, setHiddenColumns] = useState<Set<ColumnKey>>(loadHiddenColumns);
   const [columnFilters, setColumnFilters] = useState<Partial<Record<ColumnKey, string>>>({});
-  const [statusTab, setStatusTab] = useState<'new' | 'in_progress' | 'done' | 'all' | 'archived'>('new');
+  const [statusTab, setStatusTabState] = useState<StatusTab>(loadStatusTab);
+
+  // Выбранная вкладка статуса тоже сохраняется в localStorage — при заходе снова
+  // открывается тот же раздел (например «В работе»), что и в прошлый раз
+  const setStatusTab = (tab: StatusTab) => {
+    setStatusTabState(tab);
+    safeSetItem(STATUS_TAB_KEY, tab);
+  };
   const {
     permission: pushPermission,
     subscribing: pushSubscribing,
@@ -352,11 +377,14 @@ export const useAdminLeads = () => {
 
   const isColumnVisible = (key: ColumnKey) => !hiddenColumns.has(key);
 
+  // Видимость столбцов сохраняется в localStorage — при следующем заходе в админку
+  // менеджеру не нужно заново скрывать/показывать одни и те же колонки
   const toggleColumn = (key: ColumnKey) => {
     setHiddenColumns((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
+      safeSetItem(HIDDEN_COLUMNS_KEY, JSON.stringify(Array.from(next)));
       return next;
     });
   };
