@@ -49,6 +49,14 @@ const Admin = () => {
           <Icon name="Contact" size={15} />
           Контакты
         </button>
+        <button
+          onClick={a.logout}
+          title="Выйти из админки"
+          className="h-10 px-4 ml-auto rounded-sm border border-steel text-sm font-head uppercase tracking-wide text-muted-foreground hover:border-destructive/60 hover:text-destructive transition-colors flex items-center gap-2"
+        >
+          <Icon name="LogOut" size={15} />
+          Выйти
+        </button>
       </div>
       {page === 'contacts' ? (
         <div className="px-5 sm:px-8 lg:px-12 py-10">

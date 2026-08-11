@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAdminPushSubscription } from '@/hooks/use-admin-push-subscription';
-import { safeGetSession, safeSetSession } from '@/lib/storage';
+import { safeGetSession, safeSetSession, safeRemoveSession } from '@/lib/storage';
 import { Lead, ColumnKey, columns } from './adminTypes';
 
 const LEADS_ADMIN_URL = 'https://functions.poehali.dev/68ca5544-c377-4c79-ba1f-57ba286b33a9';
@@ -408,6 +408,17 @@ export const useAdminLeads = () => {
 
   const clearFilters = () => setColumnFilters({});
 
+  // Выход из админки: очищаем сохранённые пароль/имя в sessionStorage и сбрасываем состояние —
+  // пользователь снова увидит форму входа
+  const logout = () => {
+    safeRemoveSession('admin_password');
+    safeRemoveSession('admin_name');
+    setPassword('');
+    setAdminName('');
+    setAuthed(false);
+    setLeads([]);
+  };
+
   return {
     password,
     setPassword,
@@ -450,5 +461,6 @@ export const useAdminLeads = () => {
     hasActiveFilters,
     clearFilters,
     onRefresh: () => load(password),
+    logout,
   };
 };
