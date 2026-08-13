@@ -410,16 +410,14 @@ const GarageOrdersList = ({
                         <span>{formatMoney(o.prepayment)}</span>
                       </div>
                     )}
-                    {o.status === "in_progress" &&
-                      o.remaining != null &&
-                      o.prepayment !== 0 && (
-                        <div className="flex justify-between sm:block">
-                          <span className="text-muted-foreground">
-                            Остаток:{" "}
-                          </span>
-                          <span>{formatMoney(o.remaining)}</span>
-                        </div>
-                      )}
+                    {o.status === "in_progress" && o.remaining != null && (
+                      <div className="flex justify-between sm:block">
+                        <span className="text-muted-foreground">
+                          Остаток:{" "}
+                        </span>
+                        <span>{formatMoney(o.remaining)}</span>
+                      </div>
+                    )}
                     {o.status === "in_progress" && (
                       <div className="flex justify-between sm:block">
                         <span className="text-muted-foreground">
