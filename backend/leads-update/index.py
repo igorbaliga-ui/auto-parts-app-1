@@ -269,6 +269,13 @@ def handler(event: dict, context) -> dict:
                     title='Заказ выполнен',
                     body=f'{car_label}: заказ выполнен. Спасибо, что выбрали нас!',
                 )
+                if cashback:
+                    cashback_str = f'{cashback:,.0f}'.replace(',', ' ')
+                    send_push_to_phone(
+                        dsn, schema, phone,
+                        title='Начислены бонусы',
+                        body=f'{car_label}: начислено {cashback_str} бонусов. Проверьте баланс в «Гараже».',
+                    )
             elif status == 'in_progress' and prev_status == 'new':
                 send_push_to_phone(
                     dsn, schema, phone,
