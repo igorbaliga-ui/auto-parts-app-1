@@ -8,6 +8,10 @@ import PhotoAttach from "@/components/site/PhotoAttach";
 import { usePhotoAttach } from "@/hooks/use-photo-attach";
 import { setLastVin } from "@/hooks/use-last-vin";
 
+// VIN без дефисов, максимум 17 символов (полный VIN — 17, короткие форматы — 10)
+const sanitizeHeroVin = (raw: string) =>
+  sanitizeVinInput(raw).replace(/-/g, "").slice(0, 17);
+
 const Hero = () => {
   const { open } = useRequest();
   const { authed: garageAuthed } = useGarageAuth();
@@ -95,9 +99,9 @@ const Hero = () => {
                         form="hero-vin-form"
                         value={vin}
                         onChange={(e) =>
-                          setVin(sanitizeVinInput(e.target.value))
+                          setVin(sanitizeHeroVin(e.target.value))
                         }
-                        maxLength={20}
+                        maxLength={17}
                         type="text"
                         inputMode="text"
                         autoCapitalize="characters"
@@ -120,8 +124,8 @@ const Hero = () => {
                     </span>
                     <input
                       value={vin}
-                      onChange={(e) => setVin(sanitizeVinInput(e.target.value))}
-                      maxLength={20}
+                      onChange={(e) => setVin(sanitizeHeroVin(e.target.value))}
+                      maxLength={17}
                       type="text"
                       inputMode="text"
                       autoCapitalize="characters"
