@@ -20,7 +20,7 @@
         // потом из React — иначе установленный на /admin ярлык откроет весь сайт, а не админку.
         if (location.pathname.indexOf('/admin') === 0) {
             document.querySelector('link[rel="manifest"]').setAttribute('href', '/admin-manifest.webmanifest');
-            document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'Заявки');
+            document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'ЗАП ОПТОМ');
             document.title = 'ЗАП ОПТОМ — Заявки';
         }
     </script>
