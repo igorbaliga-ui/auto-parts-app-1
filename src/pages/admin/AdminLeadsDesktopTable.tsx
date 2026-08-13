@@ -292,7 +292,7 @@ const AdminLeadsDesktopTable = ({
                     onSave={(v) => saveLeadField(l.id, 'parts', v)}
                     inputClassName="w-48"
                     textareaClassName="w-80"
-                    className="max-w-[220px] line-clamp-5 whitespace-pre-wrap align-top"
+                    className="w-[220px] max-w-[220px] line-clamp-5 whitespace-pre-wrap break-words align-top"
                   />
                 </TableCell>
               )}
