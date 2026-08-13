@@ -5,6 +5,7 @@ import re
 import psycopg2
 import psycopg2.extras
 from rate_limit import get_client_ip, check_rate_limit
+from send_push import send_push_to_phone
 
 
 def normalize_phone(phone: str) -> str:
@@ -150,5 +151,19 @@ def handler(event: dict, context) -> dict:
         cur.close()
     finally:
         conn.close()
+
+    amount_str = f'{amount:,.0f}'.replace(',', ' ')
+    if op_type == 'accrue':
+        send_push_to_phone(
+            dsn, schema, phone_last10,
+            title='Начислен кэшбэк',
+            body=f'Вам начислено {amount_str} ₽ кэшбэка. Проверьте баланс в «Гараже».',
+        )
+    else:
+        send_push_to_phone(
+            dsn, schema, phone_last10,
+            title='Списан кэшбэк',
+            body=f'С вашего баланса списано {amount_str} ₽ кэшбэка.',
+        )
 
     return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
