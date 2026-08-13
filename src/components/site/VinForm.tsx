@@ -44,8 +44,14 @@ const VinForm = () => {
   const validate = () => {
     const e: Record<string, string> = {};
     const vin = form.vin.trim();
-    const vinValid = vin.length >= 7 && vin.length <= 20;
-    if (!vinValid && photos.length === 0) e.vin = "Укажите VIN или прикрепите фото";
+    const vinValid = vin.length === 10 || vin.length === 17;
+    if (!vinValid) {
+      if (vin.length === 0) {
+        if (photos.length === 0) e.vin = "Укажите VIN или прикрепите фото";
+      } else {
+        e.vin = "VIN должен содержать 10 или 17 символов";
+      }
+    }
     if (form.name.trim().length < 2) e.name = "Укажите имя";
     if (form.phone.replace(/\D/g, "").length < 10)
       e.phone = "Укажите корректный телефон";

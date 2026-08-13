@@ -157,9 +157,15 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const validate = () => {
     const e: Record<string, string> = {};
     const vin = form.vin.trim();
-    const vinValid = vin.length >= 7 && vin.length <= 20;
-    if (!vinValid && vinPhoto.photos.length === 0 && partsPhoto.photos.length === 0) {
-      e.vin = 'Укажите VIN или прикрепите фото';
+    const vinValid = vin.length === 10 || vin.length === 17;
+    if (!vinValid) {
+      if (vin.length === 0) {
+        if (vinPhoto.photos.length === 0 && partsPhoto.photos.length === 0) {
+          e.vin = 'Укажите VIN или прикрепите фото';
+        }
+      } else {
+        e.vin = 'VIN должен содержать 10 или 17 символов';
+      }
     }
     if (!knownContact && form.name.trim().length < 2) {
       e.name = 'Укажите имя';
