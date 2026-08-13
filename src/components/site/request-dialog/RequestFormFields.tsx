@@ -131,11 +131,11 @@ const RequestFormFields = ({
           <Input
             value={form.vin}
             onChange={(e) => {
-              const value = sanitizeVinInput(e.target.value);
+              const value = sanitizeVinInput(e.target.value).replace(/-/g, '').slice(0, 17);
               setForm((f) => ({ ...f, vin: value }));
               setVinSource(value ? 'manual' : null);
             }}
-            maxLength={20}
+            maxLength={17}
             inputMode="text"
             autoCapitalize="characters"
             autoCorrect="off"

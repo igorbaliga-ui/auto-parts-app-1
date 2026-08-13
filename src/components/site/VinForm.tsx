@@ -162,9 +162,12 @@ const VinForm = () => {
                 <Input
                   value={form.vin}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, vin: sanitizeVinInput(e.target.value) }))
+                    setForm((f) => ({
+                      ...f,
+                      vin: sanitizeVinInput(e.target.value).replace(/-/g, "").slice(0, 17),
+                    }))
                   }
-                  maxLength={20}
+                  maxLength={17}
                   inputMode="text"
                   autoCapitalize="characters"
                   autoCorrect="off"
