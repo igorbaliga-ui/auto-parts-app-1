@@ -13,7 +13,7 @@ import CityInput from '@/components/shared/CityInput';
 import PhotoAttach from '@/components/site/PhotoAttach';
 import { setStoredCity } from '@/lib/garage-city';
 import { normalizePhoneInput } from '@/lib/phone';
-import { sanitizeVinInput } from '@/lib/vin';
+import { sanitizeVinInput, getVinLengthHint } from '@/lib/vin';
 import { sanitizeNameInput } from '@/lib/name';
 import { sanitizePartsInput } from '@/lib/text';
 import { messengers, GarageCar } from './RequestContext';
@@ -168,8 +168,14 @@ const RequestFormFields = ({
             ))}
           </datalist>
         )}
-        {errors.vin && (
+        {errors.vin ? (
           <p className="text-primary text-xs mt-1">{errors.vin}</p>
+        ) : (
+          getVinLengthHint(form.vin) && (
+            <p className="text-muted-foreground text-xs mt-1">
+              {getVinLengthHint(form.vin)}
+            </p>
+          )
         )}
       </div>
 

@@ -12,7 +12,7 @@ import {
   notifyGarageAuthChanged,
 } from "@/hooks/use-garage-auth";
 import { normalizePhoneInput } from "@/lib/phone";
-import { sanitizeVinInput } from "@/lib/vin";
+import { sanitizeVinInput, getVinLengthHint } from "@/lib/vin";
 import { safeSetItem } from "@/lib/storage";
 import { setLastVin } from "@/hooks/use-last-vin";
 
@@ -173,8 +173,14 @@ const VinForm = () => {
                   placeholder="XW8ZZZ• • • • • • •"
                   className="mt-1.5 uppercase tracking-[0.14em] h-12"
                 />
-                {errors.vin && (
+                {errors.vin ? (
                   <p className="text-primary text-xs mt-1">{errors.vin}</p>
+                ) : (
+                  getVinLengthHint(form.vin) && (
+                    <p className="text-muted-foreground text-xs mt-1">
+                      {getVinLengthHint(form.vin)}
+                    </p>
+                  )
                 )}
               </div>
               <div className="grid sm:grid-cols-2 gap-4">

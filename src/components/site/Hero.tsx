@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { useRequest } from "./RequestDialog";
 import { useGarageAuth } from "@/hooks/use-garage-auth";
-import { sanitizeVinInput } from "@/lib/vin";
+import { sanitizeVinInput, getVinLengthHint } from "@/lib/vin";
 import PhotoAttach from "@/components/site/PhotoAttach";
 import { usePhotoAttach } from "@/hooks/use-photo-attach";
 import { setLastVin } from "@/hooks/use-last-vin";
@@ -151,6 +151,11 @@ const Hero = () => {
                     Подобрать
                   </button>
                 </div>
+                {getVinLengthHint(vin) && (
+                  <p className="text-muted-foreground text-xs mt-1.5">
+                    {getVinLengthHint(vin)}
+                  </p>
+                )}
               </>
             )}
 
