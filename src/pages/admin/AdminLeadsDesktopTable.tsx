@@ -339,7 +339,7 @@ const AdminLeadsDesktopTable = ({
               )}
               {isColumnVisible('cashback') && (
                 <TableCell className="text-primary whitespace-nowrap">
-                  {l.cashback != null ? `${l.cashback} ₽` : '—'}
+                  {l.cashback != null ? `${l.cashback} бонусов` : '—'}
                 </TableCell>
               )}
               {isColumnVisible('status') && (

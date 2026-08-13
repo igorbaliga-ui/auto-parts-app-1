@@ -10,7 +10,17 @@ import { formatDate } from './adminTypes';
 
 const CLIENT_CASHBACK_URL = 'https://functions.poehali.dev/9852e677-02a7-403b-9658-35e7a0ac1b66';
 
-const formatMoney = (n: number) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n) + ' ₽';
+const bonusWord = (n: number) => {
+  const abs = Math.abs(Math.round(n));
+  const mod10 = abs % 10;
+  const mod100 = abs % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'бонус';
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return 'бонуса';
+  return 'бонусов';
+};
+
+const formatMoney = (n: number) =>
+  `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n)} ${bonusWord(n)}`;
 
 type Deduction = {
   id: number;
@@ -59,7 +69,7 @@ const CashbackHistoryDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>История операций с кэшбэком</DialogTitle>
+          <DialogTitle>История операций с бонусами</DialogTitle>
           <DialogDescription>{clientLabel}</DialogDescription>
         </DialogHeader>
         {loading ? (

@@ -102,7 +102,7 @@ export const columns: ColumnDef[] = [
   { key: 'amount', label: 'Сумма заказа', searchable: false },
   { key: 'prepayment', label: 'Предоплата', searchable: false },
   { key: 'remaining', label: 'Остаток', searchable: false },
-  { key: 'cashback', label: 'Кэшбэк 3%', searchable: false },
+  { key: 'cashback', label: 'Бонусы 3%', searchable: false },
   {
     key: 'status',
     label: 'Статус',

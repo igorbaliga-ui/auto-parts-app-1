@@ -79,14 +79,17 @@ def handler(event: dict, context) -> dict:
         )
         rows = cur.fetchall()
 
-        # Списания кэшбэка менеджером — вычитаются из общей суммы, видной клиенту
+        # Ручные операции менеджера с бонусами (списания и начисления) — меняют общую сумму, видную клиенту
         cur.execute(
-            f"SELECT id, amount, created_at FROM {schema}.client_cashback_deductions "
+            f"SELECT id, amount, type, created_at FROM {schema}.client_cashback_deductions "
             f"WHERE phone_last10 = %s ORDER BY created_at DESC",
             (phone_last10,),
         )
         deduction_rows = cur.fetchall()
-        cashback_deducted = sum(float(d['amount']) for d in deduction_rows)
+        cashback_deducted = sum(
+            float(d['amount']) if d['type'] == 'deduct' else -float(d['amount'])
+            for d in deduction_rows
+        )
         cur.close()
     finally:
         conn.close()
@@ -133,9 +136,9 @@ def handler(event: dict, context) -> dict:
             })
     for d in deduction_rows:
         cashback_history.append({
-            'type': 'deduction',
+            'type': 'accrual' if d['type'] == 'accrue' else 'deduction',
             'amount': float(d['amount']),
-            'label': 'Списание',
+            'label': 'Начисление бонусов' if d['type'] == 'accrue' else 'Списание',
             'created_at': d['created_at'].isoformat() if d['created_at'] else None,
         })
     cashback_history.sort(key=lambda h: h['created_at'] or '', reverse=True)

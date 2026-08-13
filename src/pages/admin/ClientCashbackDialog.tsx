@@ -24,7 +24,17 @@ type Client = {
 
 type OpType = 'deduct' | 'accrue';
 
-const formatMoney = (n: number) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n) + ' ₽';
+const bonusWord = (n: number) => {
+  const abs = Math.abs(Math.round(n));
+  const mod10 = abs % 10;
+  const mod100 = abs % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'бонус';
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return 'бонуса';
+  return 'бонусов';
+};
+
+const formatMoney = (n: number) =>
+  `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n)} ${bonusWord(n)}`;
 
 type ClientCashbackDialogProps = {
   adminPassword: string;
@@ -111,9 +121,9 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Кэшбэк клиентов</DialogTitle>
+            <DialogTitle>Бонусы клиентов</DialogTitle>
             <DialogDescription>
-              Общий кэшбэк — 3% от суммы выполненных заказов, пополняется автоматически. Списания
+              Общие бонусы — 3% от суммы выполненных заказов, начисляются автоматически. Списания
               и ручные начисления меняют общую сумму, которую видит клиент в «Гараже».
             </DialogDescription>
           </DialogHeader>
@@ -141,7 +151,7 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
                   <div className="min-w-[140px]">
                     <p className="font-head text-sm">{c.name || '—'}</p>
                     <p className="text-xs text-muted-foreground">{c.phone_last10}</p>
-                    <p className="text-sm text-primary mt-1">Кэшбэк: {formatMoney(c.total_cashback)}</p>
+                    <p className="text-sm text-primary mt-1">Бонусы: {formatMoney(c.total_cashback)}</p>
                     {(c.deducted > 0 || c.manual_accrued > 0) && (
                       <p className="text-xs text-muted-foreground">
                         {c.manual_accrued > 0 && <>Начислено вручную: {formatMoney(c.manual_accrued)}. </>}

@@ -91,7 +91,7 @@ const AdminToolbar = ({
             className="font-head uppercase tracking-wide"
           >
             <Icon name="Wallet" size={16} className="sm:mr-2" />
-            <span className="hidden sm:inline">Кэшбэк клиентов</span>
+            <span className="hidden sm:inline">Бонусы клиентов</span>
           </Button>
           <Button
             variant="secondary"

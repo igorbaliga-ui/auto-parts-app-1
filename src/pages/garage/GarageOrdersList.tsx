@@ -12,7 +12,7 @@ import {
 import ExpandableText from "@/components/shared/ExpandableText";
 import { isPushSupported } from "@/hooks/use-push-subscription";
 import GarageOrderHistory from "./GarageOrderHistory";
-import { Order, messengerLabel, formatDate, formatMoney } from "./garageTypes";
+import { Order, messengerLabel, formatDate, formatMoney, formatBonus } from "./garageTypes";
 import { sanitizeCarNameInput, sanitizeMileageInput } from "@/lib/text";
 
 type GarageOrdersListProps = {
@@ -88,10 +88,10 @@ const GarageOrdersList = ({
         <div className="mb-5 mt-4 bg-card border border-primary/40 rounded-sm px-4 py-2.5 flex items-center justify-between gap-3">
           <div className="flex items-baseline gap-2">
             <span className="text-muted-foreground text-xs uppercase tracking-[0.1em]">
-              Кэшбэк
+              Бонусы
             </span>
             <span className="font-head text-xl text-primary">
-              {formatMoney(totalCashback)}
+              {formatBonus(totalCashback)}
             </span>
           </div>
           <button
@@ -419,20 +419,20 @@ const GarageOrdersList = ({
                     {o.status === "in_progress" && (
                       <div className="flex justify-between sm:block">
                         <span className="text-muted-foreground">
-                          Кэшбэк начислим:{" "}
+                          Бонусы начислим:{" "}
                         </span>
                         <span className="text-primary">
                           {o.pending_cashback != null
-                            ? formatMoney(o.pending_cashback)
+                            ? formatBonus(o.pending_cashback)
                             : "—"}
                         </span>
                       </div>
                     )}
                     {o.status === "done" && (
                       <div className="flex justify-between sm:block">
-                        <span className="text-muted-foreground">Кэшбэк: </span>
+                        <span className="text-muted-foreground">Бонусы: </span>
                         <span className="text-primary">
-                          {o.cashback != null ? formatMoney(o.cashback) : "—"}
+                          {o.cashback != null ? formatBonus(o.cashback) : "—"}
                         </span>
                       </div>
                     )}

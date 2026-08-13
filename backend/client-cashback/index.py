@@ -156,14 +156,14 @@ def handler(event: dict, context) -> dict:
     if op_type == 'accrue':
         send_push_to_phone(
             dsn, schema, phone_last10,
-            title='Начислен кэшбэк',
-            body=f'Вам начислено {amount_str} ₽ кэшбэка. Проверьте баланс в «Гараже».',
+            title='Начислены бонусы',
+            body=f'Вам начислено {amount_str} бонусов. Проверьте баланс в «Гараже».',
         )
     else:
         send_push_to_phone(
             dsn, schema, phone_last10,
-            title='Списан кэшбэк',
-            body=f'С вашего баланса списано {amount_str} ₽ кэшбэка.',
+            title='Списаны бонусы',
+            body=f'С вашего баланса списано {amount_str} бонусов.',
         )
 
     return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}

@@ -289,9 +289,9 @@ const AdminLeadCard = ({
           </span>
         </span>
         <span className="text-muted-foreground">
-          Кэшбэк:{" "}
+          Бонусы:{" "}
           <span className="text-primary">
-            {l.cashback != null ? `${l.cashback} ₽` : "—"}
+            {l.cashback != null ? `${l.cashback} бонусов` : "—"}
           </span>
         </span>
       </div>

@@ -6,7 +6,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import Icon from "@/components/ui/icon";
-import { CashbackHistoryItem, formatDate, formatMoney } from "./garageTypes";
+import { CashbackHistoryItem, formatDate, formatBonus } from "./garageTypes";
 
 type CashbackHistoryDialogProps = {
   history: CashbackHistoryItem[];
@@ -24,10 +24,10 @@ const CashbackHistoryDialog = ({
       <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto [&>button]:focus:!ring-0 [&>button]:focus:!ring-offset-0">
         <DialogHeader>
           <DialogDescription className="pr-8">
-            *Кэшбэком можно оплатить до 50% от суммы заказа. Минимальное
-            списание 500р.
+            *Бонусами можно оплатить до 50% от суммы заказа. Минимальное
+            списание 500 бонусов.
           </DialogDescription>
-          <DialogTitle>История кэшбэка</DialogTitle>
+          <DialogTitle>История бонусов</DialogTitle>
           <DialogDescription>
             Начисления за выполненные заказы и списания
           </DialogDescription>
@@ -70,7 +70,7 @@ const CashbackHistoryDialog = ({
                   }`}
                 >
                   {h.type === "accrual" ? "+" : "−"}
-                  {formatMoney(h.amount)}
+                  {formatBonus(h.amount)}
                 </span>
               </div>
             ))}
