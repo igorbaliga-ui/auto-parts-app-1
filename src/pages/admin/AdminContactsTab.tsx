@@ -17,6 +17,8 @@ type ContactsData = {
   telegram_href: string | null;
   vk_href: string | null;
   instagram_href: string | null;
+  website_value: string | null;
+  website_href: string | null;
 };
 
 type AdminContactsTabProps = {
@@ -151,6 +153,26 @@ const AdminContactsTab = ({ adminPassword }: AdminContactsTabProps) => {
             value={data.hours_value}
             onChange={(e) => setField('hours_value', e.target.value)}
             placeholder="Пн–Сб, 9:00–20:00"
+          />
+        </div>
+        <div>
+          <label className="text-muted-foreground text-xs uppercase tracking-wide block mb-1">
+            Адрес сайта (текст)
+          </label>
+          <Input
+            value={data.website_value || ''}
+            onChange={(e) => setField('website_value', e.target.value)}
+            placeholder="zapoptom.ru"
+          />
+        </div>
+        <div>
+          <label className="text-muted-foreground text-xs uppercase tracking-wide block mb-1">
+            Адрес сайта (ссылка)
+          </label>
+          <Input
+            value={data.website_href || ''}
+            onChange={(e) => setField('website_href', e.target.value)}
+            placeholder="https://zapoptom.ru"
           />
         </div>
       </div>

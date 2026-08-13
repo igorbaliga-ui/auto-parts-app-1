@@ -17,6 +17,8 @@ const defaultContactsData = {
   telegram_href: null as string | null,
   vk_href: null as string | null,
   instagram_href: null as string | null,
+  website_value: null as string | null,
+  website_href: null as string | null,
 };
 
 const socialLinks = [
@@ -63,6 +65,17 @@ const Contacts = () => {
       value: data.hours_value,
       href: "#",
     },
+    ...(data.website_value
+      ? [
+          {
+            icon: "Globe",
+            label: "Сайт",
+            value: data.website_value,
+            href: data.website_href || "#",
+            external: true,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -114,6 +127,7 @@ const Contacts = () => {
             <a
               key={c.label}
               href={c.href}
+              {...(c.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
               className="bg-card border border-steel/60 rounded-sm p-6 flex flex-col gap-3 hover:border-primary/60 transition-colors"
             >
               <span className="w-11 h-11 rounded-sm bg-primary/15 flex items-center justify-center">
