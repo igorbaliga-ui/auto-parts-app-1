@@ -154,7 +154,7 @@ const InlineEditableCell = ({
           setEditing(true);
         }
       }}
-      className={`text-left inline-block rounded-sm -mx-1 px-1 hover:bg-muted/60 transition-colors cursor-pointer ${
+      className={`text-left ${multiline ? 'block' : 'inline-block'} rounded-sm -mx-1 px-1 hover:bg-muted/60 transition-colors cursor-pointer ${
         disabled ? 'cursor-default hover:bg-transparent' : ''
       } ${className}`}
     >
