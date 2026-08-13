@@ -135,7 +135,7 @@ const RequestFormFields = ({
               setForm((f) => ({ ...f, vin: value }));
               setVinSource(value ? 'manual' : null);
             }}
-            maxLength={17}
+            maxLength={20}
             inputMode="text"
             autoCapitalize="characters"
             autoCorrect="off"

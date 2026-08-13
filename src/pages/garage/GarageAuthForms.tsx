@@ -97,7 +97,7 @@ export const ResetPasswordView = ({
         <Input
           value={resetVinInput}
           onChange={(e) => setResetVinInput(sanitizeVinInput(e.target.value))}
-          maxLength={17}
+          maxLength={20}
           inputMode="text"
           autoCapitalize="characters"
           autoCorrect="off"

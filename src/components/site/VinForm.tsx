@@ -44,7 +44,7 @@ const VinForm = () => {
   const validate = () => {
     const e: Record<string, string> = {};
     const vin = form.vin.trim();
-    const vinValid = vin.length >= 11 && vin.length <= 17;
+    const vinValid = vin.length >= 7 && vin.length <= 20;
     if (!vinValid && photos.length === 0) e.vin = "Укажите VIN или прикрепите фото";
     if (form.name.trim().length < 2) e.name = "Укажите имя";
     if (form.phone.replace(/\D/g, "").length < 10)
@@ -158,7 +158,7 @@ const VinForm = () => {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, vin: sanitizeVinInput(e.target.value) }))
                   }
-                  maxLength={17}
+                  maxLength={20}
                   inputMode="text"
                   autoCapitalize="characters"
                   autoCorrect="off"

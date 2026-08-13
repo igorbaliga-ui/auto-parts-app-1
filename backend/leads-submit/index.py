@@ -88,7 +88,7 @@ def handler(event: dict, context) -> dict:
         except Exception:
             continue
 
-    vin_valid = bool(re.fullmatch(r'[A-Z0-9]{11,17}', vin))
+    vin_valid = bool(re.fullmatch(r'[A-Z0-9-]{7,20}', vin))
     if not photo_urls and not vin_valid:
         return {
             'statusCode': 400,

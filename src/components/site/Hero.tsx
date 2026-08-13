@@ -97,7 +97,7 @@ const Hero = () => {
                         onChange={(e) =>
                           setVin(sanitizeVinInput(e.target.value))
                         }
-                        maxLength={17}
+                        maxLength={20}
                         type="text"
                         inputMode="text"
                         autoCapitalize="characters"
@@ -121,7 +121,7 @@ const Hero = () => {
                     <input
                       value={vin}
                       onChange={(e) => setVin(sanitizeVinInput(e.target.value))}
-                      maxLength={17}
+                      maxLength={20}
                       type="text"
                       inputMode="text"
                       autoCapitalize="characters"

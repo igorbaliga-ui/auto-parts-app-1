@@ -157,7 +157,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const validate = () => {
     const e: Record<string, string> = {};
     const vin = form.vin.trim();
-    const vinValid = vin.length >= 11 && vin.length <= 17;
+    const vinValid = vin.length >= 7 && vin.length <= 20;
     if (!vinValid && vinPhoto.photos.length === 0 && partsPhoto.photos.length === 0) {
       e.vin = 'Укажите VIN или прикрепите фото';
     }

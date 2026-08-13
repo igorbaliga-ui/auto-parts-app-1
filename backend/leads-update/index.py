@@ -116,7 +116,7 @@ def handler(event: dict, context) -> dict:
 
     if 'vin' in body:
         raw_vin = (body.get('vin') or '').strip().upper()
-        if raw_vin and not re.fullmatch(r'[A-Z0-9]{11,17}', raw_vin):
+        if raw_vin and not re.fullmatch(r'[A-Z0-9-]{7,20}', raw_vin):
             return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный VIN'})}
 
     mileage_value = None

@@ -42,7 +42,7 @@ def handler(event: dict, context) -> dict:
     phone_digits = re.sub(r'\D', '', phone)
     if len(phone_digits) < 10:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите корректный телефон'})}
-    if not re.fullmatch(r'[A-Z0-9]{11,17}', vin):
+    if not re.fullmatch(r'[A-Z0-9-]{7,20}', vin):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный VIN'})}
     # Название авто: свободный текст, но без символов, из которых можно собрать HTML/скрипт-инъекцию
     if re.search(r'[<>{}`]', car_name):
