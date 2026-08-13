@@ -18,8 +18,11 @@ type Client = {
   name: string | null;
   accrued: number;
   deducted: number;
+  manual_accrued: number;
   total_cashback: number;
 };
+
+type OpType = 'deduct' | 'accrue';
 
 const formatMoney = (n: number) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n) + ' ₽';
 
@@ -35,6 +38,7 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [deductDrafts, setDeductDrafts] = useState<Record<string, string>>({});
+  const [opTypeDrafts, setOpTypeDrafts] = useState<Record<string, OpType>>({});
   const [savingPhone, setSavingPhone] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [historyPhone, setHistoryPhone] = useState<string | null>(null);
@@ -57,11 +61,14 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const deduct = async (phoneLast10: string) => {
+  const getOpType = (phoneLast10: string): OpType => opTypeDrafts[phoneLast10] ?? 'deduct';
+
+  const applyOperation = async (phoneLast10: string) => {
+    const opType = getOpType(phoneLast10);
     const value = (deductDrafts[phoneLast10] || '').trim();
     const amount = Number(value);
     if (!value || !Number.isFinite(amount) || amount <= 0) {
-      setError('Укажите сумму списания больше нуля');
+      setError('Укажите сумму больше нуля');
       return;
     }
     setError('');
@@ -70,19 +77,21 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
       const res = await fetch(CLIENT_CASHBACK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword },
-        body: JSON.stringify({ phone: phoneLast10, amount, admin_name: adminName }),
+        body: JSON.stringify({ phone: phoneLast10, amount, type: opType, admin_name: adminName }),
       });
       if (!res.ok) throw new Error('request failed');
       setClients((cs) =>
         cs.map((c) =>
           c.phone_last10 === phoneLast10
-            ? { ...c, deducted: c.deducted + amount, total_cashback: c.total_cashback - amount }
+            ? opType === 'deduct'
+              ? { ...c, deducted: c.deducted + amount, total_cashback: c.total_cashback - amount }
+              : { ...c, manual_accrued: c.manual_accrued + amount, total_cashback: c.total_cashback + amount }
             : c,
         ),
       );
       setDeductDrafts((d) => ({ ...d, [phoneLast10]: '' }));
     } catch {
-      setError('Не удалось списать. Попробуйте ещё раз.');
+      setError('Не удалось выполнить операцию. Попробуйте ещё раз.');
     } finally {
       setSavingPhone(null);
     }
@@ -105,7 +114,7 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
             <DialogTitle>Кэшбэк клиентов</DialogTitle>
             <DialogDescription>
               Общий кэшбэк — 3% от суммы выполненных заказов, пополняется автоматически. Списания
-              вычитаются из общей суммы, которую видит клиент в «Гараже».
+              и ручные начисления меняют общую сумму, которую видит клиент в «Гараже».
             </DialogDescription>
           </DialogHeader>
 
@@ -133,35 +142,66 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
                     <p className="font-head text-sm">{c.name || '—'}</p>
                     <p className="text-xs text-muted-foreground">{c.phone_last10}</p>
                     <p className="text-sm text-primary mt-1">Кэшбэк: {formatMoney(c.total_cashback)}</p>
-                    {c.deducted > 0 && (
-                      <p className="text-xs text-muted-foreground">Списано всего: {formatMoney(c.deducted)}</p>
+                    {(c.deducted > 0 || c.manual_accrued > 0) && (
+                      <p className="text-xs text-muted-foreground">
+                        {c.manual_accrued > 0 && <>Начислено вручную: {formatMoney(c.manual_accrued)}. </>}
+                        {c.deducted > 0 && <>Списано всего: {formatMoney(c.deducted)}</>}
+                      </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex rounded-sm border border-steel overflow-hidden h-9">
+                      <button
+                        type="button"
+                        onClick={() => setOpTypeDrafts((d) => ({ ...d, [c.phone_last10]: 'deduct' }))}
+                        className={`px-3 text-xs font-head uppercase tracking-wide transition-colors ${
+                          getOpType(c.phone_last10) === 'deduct'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Списать
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOpTypeDrafts((d) => ({ ...d, [c.phone_last10]: 'accrue' }))}
+                        className={`px-3 text-xs font-head uppercase tracking-wide transition-colors ${
+                          getOpType(c.phone_last10) === 'accrue'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Начислить
+                      </button>
+                    </div>
                     <Input
                       type="number"
                       inputMode="decimal"
-                      placeholder="Сумма списания"
+                      placeholder="Сумма"
                       value={deductDrafts[c.phone_last10] ?? ''}
                       onChange={(e) =>
                         setDeductDrafts((d) => ({ ...d, [c.phone_last10]: e.target.value }))
                       }
-                      className="w-32 h-9"
+                      className="w-24 h-9"
                     />
                     <Button
                       size="sm"
                       disabled={savingPhone === c.phone_last10}
-                      onClick={() => deduct(c.phone_last10)}
+                      onClick={() => applyOperation(c.phone_last10)}
                       className="font-head uppercase tracking-wide text-xs h-9"
                     >
-                      {savingPhone === c.phone_last10 ? '…' : 'Списать'}
+                      {savingPhone === c.phone_last10
+                        ? '…'
+                        : getOpType(c.phone_last10) === 'deduct'
+                          ? 'Списать'
+                          : 'Начислить'}
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => setHistoryPhone(c.phone_last10)}
                       className="h-9"
-                      title="История списаний"
+                      title="История операций"
                     >
                       <Icon name="History" size={16} />
                     </Button>

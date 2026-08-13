@@ -13,10 +13,10 @@ def normalize_phone(phone: str) -> str:
 
 
 def handler(event: dict, context) -> dict:
-    """Считает суммарный кэшбэк клиента (3% от выполненных заказов минус списания) и
-    позволяет менеджеру списать часть кэшбэка по номеру телефона (для /admin).
-    Новые начисления (выполненные заказы) продолжают суммироваться в общий кэшбэк,
-    списания вычитаются из него. Клиент в «Гараже» видит итоговую сумму."""
+    """Считает суммарный кэшбэк клиента (3% от выполненных заказов, плюс ручные начисления,
+    минус списания) и позволяет менеджеру вручную списать или начислить кэшбэк по номеру
+    телефона (для /admin). Автоматические начисления (выполненные заказы) продолжают
+    суммироваться в общий кэшбэк. Клиент в «Гараже» видит итоговую сумму."""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -57,10 +57,10 @@ def handler(event: dict, context) -> dict:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
             if phone_param:
-                # История списаний по конкретному клиенту
+                # История списаний/начислений по конкретному клиенту
                 phone_last10 = normalize_phone(phone_param)
                 cur.execute(
-                    f"SELECT id, amount, admin_name, created_at FROM {schema}.client_cashback_deductions "
+                    f"SELECT id, amount, type, admin_name, created_at FROM {schema}.client_cashback_deductions "
                     f"WHERE phone_last10 = %s ORDER BY created_at DESC LIMIT 200",
                     (phone_last10,),
                 )
@@ -69,6 +69,7 @@ def handler(event: dict, context) -> dict:
                 history = [{
                     'id': r['id'],
                     'amount': float(r['amount']),
+                    'type': r['type'],
                     'admin_name': r['admin_name'],
                     'created_at': r['created_at'].isoformat() if r['created_at'] else None,
                 } for r in rows]
@@ -83,10 +84,15 @@ def handler(event: dict, context) -> dict:
             rows = cur.fetchall()
 
             cur.execute(
-                f"SELECT phone_last10, COALESCE(SUM(amount), 0) AS deducted "
+                f"SELECT phone_last10, "
+                f"COALESCE(SUM(amount) FILTER (WHERE type = 'deduct'), 0) AS deducted, "
+                f"COALESCE(SUM(amount) FILTER (WHERE type = 'accrue'), 0) AS manual_accrued "
                 f"FROM {schema}.client_cashback_deductions GROUP BY 1"
             )
-            deducted_map = {r['phone_last10']: float(r['deducted']) for r in cur.fetchall()}
+            adjust_map = {
+                r['phone_last10']: (float(r['deducted']), float(r['manual_accrued']))
+                for r in cur.fetchall()
+            }
             cur.close()
         finally:
             conn.close()
@@ -97,13 +103,14 @@ def handler(event: dict, context) -> dict:
             if not phone_last10:
                 continue
             accrued = float(r['accrued']) if r['accrued'] is not None else 0
-            deducted = deducted_map.get(phone_last10, 0)
+            deducted, manual_accrued = adjust_map.get(phone_last10, (0, 0))
             clients.append({
                 'phone_last10': phone_last10,
                 'name': r['name'],
                 'accrued': accrued,
                 'deducted': deducted,
-                'total_cashback': accrued - deducted,
+                'manual_accrued': manual_accrued,
+                'total_cashback': accrued + manual_accrued - deducted,
             })
 
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'clients': clients})}
@@ -123,7 +130,11 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректная сумма'})}
 
     if amount <= 0:
-        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Сумма списания должна быть больше нуля'})}
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Сумма должна быть больше нуля'})}
+
+    op_type = body.get('type') or 'deduct'
+    if op_type not in ('deduct', 'accrue'):
+        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный тип операции'})}
 
     admin_name = (body.get('admin_name') or '').strip() or 'Менеджер'
 
@@ -131,9 +142,9 @@ def handler(event: dict, context) -> dict:
     try:
         cur = conn.cursor()
         cur.execute(
-            f"INSERT INTO {schema}.client_cashback_deductions (phone_last10, amount, admin_name) "
-            f"VALUES (%s, %s, %s)",
-            (phone_last10, amount, admin_name),
+            f"INSERT INTO {schema}.client_cashback_deductions (phone_last10, amount, type, admin_name) "
+            f"VALUES (%s, %s, %s, %s)",
+            (phone_last10, amount, op_type, admin_name),
         )
         conn.commit()
         cur.close()

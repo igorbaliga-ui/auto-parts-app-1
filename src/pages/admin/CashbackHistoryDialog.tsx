@@ -15,6 +15,7 @@ const formatMoney = (n: number) => new Intl.NumberFormat('ru-RU', { maximumFract
 type Deduction = {
   id: number;
   amount: number;
+  type: 'deduct' | 'accrue';
   admin_name: string | null;
   created_at: string;
 };
@@ -58,7 +59,7 @@ const CashbackHistoryDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>История списаний кэшбэка</DialogTitle>
+          <DialogTitle>История операций с кэшбэком</DialogTitle>
           <DialogDescription>{clientLabel}</DialogDescription>
         </DialogHeader>
         {loading ? (
@@ -66,13 +67,20 @@ const CashbackHistoryDialog = ({
         ) : error ? (
           <p className="text-primary text-sm py-4">{error}</p>
         ) : history.length === 0 ? (
-          <p className="text-muted-foreground text-sm py-4">Списаний пока не было.</p>
+          <p className="text-muted-foreground text-sm py-4">Операций пока не было.</p>
         ) : (
           <div className="flex flex-col gap-3 py-2">
             {history.map((h) => (
-              <div key={h.id} className="flex items-center justify-between border-l-2 border-primary/40 pl-3">
+              <div
+                key={h.id}
+                className={`flex items-center justify-between border-l-2 pl-3 ${
+                  h.type === 'accrue' ? 'border-green-500/50' : 'border-primary/40'
+                }`}
+              >
                 <div>
-                  <p className="text-sm">Списано {formatMoney(h.amount)}</p>
+                  <p className="text-sm">
+                    {h.type === 'accrue' ? 'Начислено' : 'Списано'} {formatMoney(h.amount)}
+                  </p>
                   <p className="text-xs text-muted-foreground">{h.admin_name || 'Менеджер'}</p>
                 </div>
                 <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(h.created_at)}</span>
