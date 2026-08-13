@@ -291,7 +291,8 @@ const AdminLeadsDesktopTable = ({
                     multiline
                     onSave={(v) => saveLeadField(l.id, 'parts', v)}
                     inputClassName="w-48"
-                    className="max-w-[220px] line-clamp-3 whitespace-pre-wrap align-top"
+                    textareaClassName="w-80"
+                    className="max-w-[220px] line-clamp-5 whitespace-pre-wrap align-top"
                   />
                 </TableCell>
               )}

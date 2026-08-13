@@ -239,7 +239,7 @@ const AdminLeadCard = ({
           displayLabel="Запчасти"
           multiline
           onSave={(v) => saveLeadField(l.id, "parts", v)}
-          className="text-left whitespace-pre-wrap"
+          className="text-left whitespace-pre-wrap line-clamp-5"
         />
       </Row>
       {l.photo_urls && l.photo_urls.length > 0 && (

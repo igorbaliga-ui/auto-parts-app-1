@@ -15,6 +15,7 @@ type InlineEditableCellProps = {
   disabled?: boolean;
   className?: string;
   inputClassName?: string;
+  textareaClassName?: string;
   renderValue?: (value: string) => React.ReactNode;
 };
 
@@ -34,6 +35,7 @@ const InlineEditableCell = ({
   disabled = false,
   className = '',
   inputClassName = '',
+  textareaClassName = '',
   renderValue,
 }: InlineEditableCellProps) => {
   const [editing, setEditing] = useState(false);
@@ -114,7 +116,7 @@ const InlineEditableCell = ({
         onChange={(e) => setDraft(e.target.value)}
         onBlur={(e) => commit(e.target.value)}
         onKeyDown={(e) => e.key === 'Escape' && cancel()}
-        className={`min-h-9 h-9 text-xs resize-y ${inputClassName}`}
+        className={`min-h-32 text-xs resize-y ${inputClassName} ${textareaClassName}`}
       />
     );
   }
