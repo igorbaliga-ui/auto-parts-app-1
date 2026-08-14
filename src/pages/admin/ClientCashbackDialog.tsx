@@ -19,6 +19,7 @@ type Client = {
   accrued: number;
   deducted: number;
   manual_accrued: number;
+  referral_bonus: number;
   total_cashback: number;
 };
 
@@ -152,6 +153,11 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
                     <p className="font-head text-sm">{c.name || '—'}</p>
                     <p className="text-xs text-muted-foreground">{c.phone_last10}</p>
                     <p className="text-sm text-primary mt-1">Бонусы: {formatMoney(c.total_cashback)}</p>
+                    {c.referral_bonus > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Реферальный заработок: {formatMoney(c.referral_bonus)}
+                      </p>
+                    )}
                     {(c.deducted > 0 || c.manual_accrued > 0) && (
                       <p className="text-xs text-muted-foreground">
                         {c.manual_accrued > 0 && <>Начислено вручную: {formatMoney(c.manual_accrued)}. </>}
