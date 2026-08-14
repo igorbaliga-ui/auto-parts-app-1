@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { useIsStandalone } from "@/hooks/use-standalone";
+import { useIsMobileOs } from "@/hooks/use-mobile-os";
 import { useNav, Tab } from "@/components/site/NavContext";
 import { useGarageAuth } from "@/hooks/use-garage-auth";
 import { useGarageArrived } from "@/hooks/use-garage-arrived";
@@ -21,6 +22,7 @@ const Header = () => {
   const [open, setOpen] = useState(false);
   const { canInstall, promptInstall } = usePwaInstall();
   const isStandalone = useIsStandalone();
+  const isMobileOs = useIsMobileOs();
   const [guideOpen, setGuideOpen] = useState(false);
   const [guideTab, setGuideTab] = useState<"ios" | "android">("ios");
   const [installHint, setInstallHint] = useState(
@@ -86,7 +88,7 @@ const Header = () => {
           >
             <Icon name="Share2" size={16} />
           </button>
-        ) : (
+        ) : isMobileOs ? (
           <div className="relative ml-4">
             {installHint && (
               <div
@@ -128,9 +130,9 @@ const Header = () => {
               </button>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {!isStandalone && (
+        {!isStandalone && isMobileOs && (
           <InstallGuide
             key={guideTab}
             open={guideOpen}
