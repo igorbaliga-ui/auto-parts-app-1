@@ -16,7 +16,10 @@ def start_flashcall(phone_e164: str) -> dict:
     public_key = (os.environ.get('ZVONOK_PUBLIC_KEY') or '').strip()
     campaign_id = (os.environ.get('ZVONOK_CAMPAIGN_ID') or '').strip()
     if not public_key or not campaign_id:
-        raise ZvonokError('Сервис подтверждения звонком временно недоступен. Обратитесь к менеджеру')
+        raise ZvonokError(
+            f'Не заданы секреты Zvonok: public_key={"есть" if public_key else "ПУСТО"}, '
+            f'campaign_id={"есть" if campaign_id else "ПУСТО"}'
+        )
     if not campaign_id.isdigit():
         raise ZvonokError(f'Некорректный campaign_id в настройках: "{campaign_id}" — должно быть целое число')
     resp = requests.post(
