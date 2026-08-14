@@ -83,10 +83,14 @@ const Header = () => {
                 role="button"
                 tabIndex={-1}
                 onClick={() => setInstallHint(false)}
-                className="absolute top-full left-0 -translate-x-3/4 mt-2 whitespace-nowrap px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-[0.68rem] font-head font-bold uppercase tracking-wide shadow-[0_4px_16px_rgba(0,0,0,0.35)] ring-1 ring-primary/40 cursor-pointer animate-[fade-in_0.5s_ease-out_both,glow-pulse_2s_ease-in-out_0.5s_infinite] z-10"
+                className="absolute top-full mt-2 whitespace-nowrap px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-[0.68rem] font-head font-bold uppercase tracking-wide shadow-[0_4px_16px_rgba(0,0,0,0.35)] ring-1 ring-primary/40 cursor-pointer animate-[fade-in_0.5s_ease-out_both,glow-pulse_2s_ease-in-out_0.5s_infinite] z-10"
+                style={{ left: "-2.5rem" }}
               >
                 Нажмите для скачивания приложения
-                <span className="absolute -top-1 left-3/4 -translate-x-1/2 w-2 h-2 bg-primary rotate-45" />
+                <span
+                  className="absolute -top-1 w-2 h-2 bg-primary rotate-45"
+                  style={{ left: "2.75rem" }}
+                />
               </div>
             )}
             <div
