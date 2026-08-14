@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
+import { exportReferralsToExcel } from './exportReferrals';
 
 const CLIENT_CASHBACK_URL = 'https://functions.poehali.dev/9852e677-02a7-403b-9658-35e7a0ac1b66';
 
@@ -73,15 +75,26 @@ const AdminReferralsTab = ({ adminPassword }: AdminReferralsTabProps) => {
 
   return (
     <div className="max-w-3xl bg-card border border-steel rounded-sm p-6 flex flex-col gap-5">
-      <div>
-        <h2 className="font-head uppercase tracking-wide text-lg flex items-center gap-2">
-          <Icon name="Trophy" size={18} className="text-primary" />
-          Рейтинг рефералов
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Клиенты, которые приглашают друзей, отсортированы по количеству приглашённых и
-          заработанным бонусам (2% от суммы их выполненных заказов).
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="font-head uppercase tracking-wide text-lg flex items-center gap-2">
+            <Icon name="Trophy" size={18} className="text-primary" />
+            Рейтинг рефералов
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Клиенты, которые приглашают друзей, отсортированы по количеству приглашённых и
+            заработанным бонусам (2% от суммы их выполненных заказов).
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          onClick={() => exportReferralsToExcel(referrers)}
+          disabled={referrers.length === 0}
+          className="font-head uppercase tracking-wide shrink-0"
+        >
+          <Icon name="FileSpreadsheet" size={16} className="sm:mr-2" />
+          <span className="hidden sm:inline">Выгрузить в Excel</span>
+        </Button>
       </div>
 
       <Input
