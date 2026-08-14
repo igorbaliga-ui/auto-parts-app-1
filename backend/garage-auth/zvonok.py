@@ -13,10 +13,12 @@ def start_flashcall(phone_e164: str) -> dict:
     а последние 4 цифры номера, с которого поступит звонок, служат кодом
     подтверждения. Возвращает call_id и pincode — ожидаемые 4 цифры, которые
     нужно будет сравнить с тем, что введёт клиент."""
-    public_key = os.environ.get('ZVONOK_PUBLIC_KEY')
-    campaign_id = os.environ.get('ZVONOK_CAMPAIGN_ID')
+    public_key = (os.environ.get('ZVONOK_PUBLIC_KEY') or '').strip()
+    campaign_id = (os.environ.get('ZVONOK_CAMPAIGN_ID') or '').strip()
     if not public_key or not campaign_id:
         raise ZvonokError('Сервис подтверждения звонком временно недоступен. Обратитесь к менеджеру')
+    if not campaign_id.isdigit():
+        raise ZvonokError(f'Некорректный campaign_id в настройках: "{campaign_id}" — должно быть целое число')
     resp = requests.post(
         f'{ZVONOK_BASE_URL}/phones/flashcall/',
         data={'public_key': public_key, 'campaign_id': campaign_id, 'phone': phone_e164},
