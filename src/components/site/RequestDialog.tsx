@@ -19,6 +19,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { useGarageAuth, GARAGE_PHONE_KEY, notifyGarageAuthChanged, notifyGarageOrdersChanged } from '@/hooks/use-garage-auth';
 import { usePhotoAttach } from '@/hooks/use-photo-attach';
+import { usePhoneCallVerification } from '@/hooks/use-phone-call-verification';
 import { getStoredCity } from '@/lib/garage-city';
 import { safeSetItem, safeRemoveItem } from '@/lib/storage';
 import { setLastVin } from '@/hooks/use-last-vin';
@@ -33,6 +34,7 @@ import {
   GarageCar,
 } from './request-dialog/RequestContext';
 import RequestFormFields from './request-dialog/RequestFormFields';
+import RequestPhoneVerificationStep from './request-dialog/RequestPhoneVerificationStep';
 
 export { useRequest } from './request-dialog/RequestContext';
 
@@ -55,6 +57,11 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const [vinSource, setVinSource] = useState<'garage' | 'manual' | null>(null);
   const nameLookupTimer = useRef<ReturnType<typeof setTimeout>>();
   const lastLookupPhone = useRef<string>('');
+  // Шаг подтверждения номера звонком: показывается только если у клиента ещё нет
+  // подтверждённого номера (проверяем перед фактической отправкой заявки в базу)
+  const [verificationStep, setVerificationStep] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState<(() => void) | null>(null);
+  const verification = usePhoneCallVerification();
 
   // Клиент вошёл в «Гараж» — подгружаем список его автомобилей с названиями (привязаны к VIN)
   useEffect(() => {
@@ -209,11 +216,14 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     vinPhoto.resetPhotos();
     partsPhoto.resetPhotos();
     safeRemoveItem(STORAGE_KEY);
+    setVerificationStep(false);
+    verification.reset();
+    setPendingSubmit(null);
   });
 
-  const submit = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!validate()) return;
+  const [checkingVerification, setCheckingVerification] = useState(false);
+
+  const performSubmit = async () => {
     setLastVin(form.vin);
     const [vinPhotoUrls, partsPhotoUrls] = await Promise.all([
       vinPhoto.preparePhotosForUpload(),
@@ -228,6 +238,48 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       messenger,
       photos: [...vinPhotoUrls, ...partsPhotoUrls],
     });
+  };
+
+  // Заявка реально отправляется в базу только после того, как номер телефона
+  // подтверждён звонком. Уже авторизованный в «Гараже» клиент проходит эту
+  // проверку один раз при входе, поэтому здесь его не переспрашиваем.
+  const submit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!validate()) return;
+    const phoneDigits = form.phone.replace(/\D/g, '');
+    if (!garageAuthed) {
+      setCheckingVerification(true);
+      const verified = await verification.checkPhoneVerified(phoneDigits);
+      setCheckingVerification(false);
+      if (!verified) {
+        setPendingSubmit(() => performSubmit);
+        setVerificationStep(true);
+        return;
+      }
+    }
+    await performSubmit();
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const phoneDigits = form.phone.replace(/\D/g, '');
+    const ok = await verification.verifyCode(phoneDigits);
+    if (ok) {
+      setVerificationStep(false);
+      verification.reset();
+      pendingSubmit?.();
+      setPendingSubmit(null);
+    }
+  };
+
+  const handleRequestCall = () => {
+    verification.requestCall(form.phone.replace(/\D/g, ''));
+  };
+
+  const handleBackFromVerification = () => {
+    setVerificationStep(false);
+    verification.reset();
+    setPendingSubmit(null);
   };
 
   const formContent = (
@@ -250,10 +302,28 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       partsPhotoPreviews={partsPhoto.photoPreviews}
       addPartsPhotos={partsPhoto.addPhotos}
       removePartsPhoto={partsPhoto.removePhoto}
-      submitting={submitting}
+      submitting={submitting || checkingVerification}
       onSubmit={submit}
     />
   );
+
+  const verificationContent = (
+    <RequestPhoneVerificationStep
+      phone={form.phone}
+      callRequested={verification.callRequested}
+      callLoading={verification.callLoading}
+      codeInput={verification.codeInput}
+      setCodeInput={verification.setCodeInput}
+      error={verification.error}
+      verifyLoading={verification.verifyLoading}
+      cooldown={verification.callCooldown}
+      requestCall={handleRequestCall}
+      submitCode={handleVerifyCode}
+      onBack={handleBackFromVerification}
+    />
+  );
+
+  const dialogBody = verificationStep ? verificationContent : formContent;
 
   if (isMobile) {
     return (
@@ -269,13 +339,15 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
             <div className="overflow-y-auto px-4 pb-6">
               <DrawerHeader className="px-0 text-left">
                 <DrawerTitle className="font-head uppercase tracking-wide text-2xl">
-                  Заявка на подбор
+                  {verificationStep ? 'Подтверждение номера' : 'Заявка на подбор'}
                 </DrawerTitle>
                 <DrawerDescription className="text-muted-foreground">
-                  Оставьте VIN и контакты — найдём деталь и сообщим цену.
+                  {verificationStep
+                    ? 'Осталось подтвердить номер телефона.'
+                    : 'Оставьте VIN и контакты — найдём деталь и сообщим цену.'}
                 </DrawerDescription>
               </DrawerHeader>
-              {formContent}
+              {dialogBody}
             </div>
           </DrawerContent>
         </Drawer>
@@ -290,13 +362,15 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
         <DialogContent className="bg-card border-border sm:max-w-[460px]">
           <DialogHeader>
             <DialogTitle className="font-head uppercase tracking-wide text-2xl">
-              Заявка на подбор
+              {verificationStep ? 'Подтверждение номера' : 'Заявка на подбор'}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Оставьте VIN и контакты — найдём деталь и сообщим цену.
+              {verificationStep
+                ? 'Осталось подтвердить номер телефона.'
+                : 'Оставьте VIN и контакты — найдём деталь и сообщим цену.'}
             </DialogDescription>
           </DialogHeader>
-          {formContent}
+          {dialogBody}
         </DialogContent>
       </Dialog>
     </RequestContext.Provider>
