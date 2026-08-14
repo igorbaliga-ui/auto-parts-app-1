@@ -96,7 +96,8 @@ def handler(event: dict, context) -> dict:
             }
 
             # Реферальный бонус 2%: сколько каждый клиент заработал на выполненных заказах
-            # приглашённых им друзей (по garage_accounts.referred_by_phone_last10)
+            # приглашённых им друзей (по garage_accounts.referred_by_phone_last10), и
+            # сколько всего друзей он привёл (для рейтинга в /admin)
             cur.execute(
                 f"SELECT ga.referred_by_phone_last10 AS inviter, "
                 f"SUM(CASE WHEN l.status = 'done' THEN l.order_amount ELSE 0 END) AS friends_done_amount "
@@ -109,6 +110,14 @@ def handler(event: dict, context) -> dict:
                 r['inviter']: round(float(r['friends_done_amount'] or 0) * 0.02, 2)
                 for r in cur.fetchall()
             }
+
+            cur.execute(
+                f"SELECT referred_by_phone_last10 AS inviter, COUNT(*) AS friends_count "
+                f"FROM {schema}.garage_accounts "
+                f"WHERE referred_by_phone_last10 IS NOT NULL "
+                f"GROUP BY 1"
+            )
+            friends_count_map = {r['inviter']: r['friends_count'] for r in cur.fetchall()}
             cur.close()
         finally:
             conn.close()
@@ -128,6 +137,7 @@ def handler(event: dict, context) -> dict:
                 'deducted': deducted,
                 'manual_accrued': manual_accrued,
                 'referral_bonus': referral_bonus,
+                'friends_invited_count': friends_count_map.get(phone_last10, 0),
                 'total_cashback': accrued + manual_accrued + referral_bonus - deducted,
             })
 

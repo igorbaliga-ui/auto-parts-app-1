@@ -3,12 +3,13 @@ import PageBackground from '@/components/site/PageBackground';
 import AdminLoginForm from './admin/AdminLoginForm';
 import AdminLeadsTable from './admin/AdminLeadsTable';
 import AdminContactsTab from './admin/AdminContactsTab';
+import AdminReferralsTab from './admin/AdminReferralsTab';
 import Icon from '@/components/ui/icon';
 import { useAdminLeads } from './admin/useAdminLeads';
 
 const Admin = () => {
   const a = useAdminLeads();
-  const [page, setPage] = useState<'leads' | 'contacts'>('leads');
+  const [page, setPage] = useState<'leads' | 'contacts' | 'referrals'>('leads');
 
   if (!a.authed) {
     return (
@@ -50,6 +51,17 @@ const Admin = () => {
           Контакты
         </button>
         <button
+          onClick={() => setPage('referrals')}
+          className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors flex items-center gap-2 ${
+            page === 'referrals'
+              ? 'border-primary bg-primary/10 text-foreground'
+              : 'border-steel text-muted-foreground hover:border-primary/60'
+          }`}
+        >
+          <Icon name="Trophy" size={15} />
+          Рефералы
+        </button>
+        <button
           onClick={a.logout}
           title="Выйти из админки"
           className="h-10 px-4 ml-auto rounded-sm border border-steel text-sm font-head uppercase tracking-wide text-muted-foreground hover:border-destructive/60 hover:text-destructive transition-colors flex items-center gap-2"
@@ -61,6 +73,10 @@ const Admin = () => {
       {page === 'contacts' ? (
         <div className="px-5 sm:px-8 lg:px-12 py-10">
           <AdminContactsTab adminPassword={a.password} />
+        </div>
+      ) : page === 'referrals' ? (
+        <div className="px-5 sm:px-8 lg:px-12 py-10">
+          <AdminReferralsTab adminPassword={a.password} />
         </div>
       ) : (
         <AdminLeadsTable
