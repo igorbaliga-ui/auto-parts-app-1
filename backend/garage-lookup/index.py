@@ -1,9 +1,47 @@
 import json
 import os
+import random
 import re
+import string
 import psycopg2
+import psycopg2.errors
 import psycopg2.extras
 from rate_limit import get_client_ip, check_rate_limit
+
+# Без легко путаемых символов (0/O, 1/I)
+REFERRAL_CODE_ALPHABET = ''.join(c for c in string.ascii_uppercase + string.digits if c not in '01OI')
+
+
+def get_or_create_referral_code(conn, schema: str, phone_last10: str) -> str:
+    """Возвращает персональный код приглашения клиента, создавая его при первом обращении."""
+    cur = conn.cursor()
+    try:
+        cur.execute(f"SELECT referral_code FROM {schema}.garage_accounts WHERE phone_last10 = %s", (phone_last10,))
+        row = cur.fetchone()
+        if row and row[0]:
+            return row[0]
+
+        for _ in range(8):
+            code = ''.join(random.choices(REFERRAL_CODE_ALPHABET, k=6))
+            try:
+                cur.execute(
+                    f"INSERT INTO {schema}.garage_accounts (phone_last10, referral_code, updated_at) "
+                    f"VALUES (%s, %s, now()) "
+                    f"ON CONFLICT (phone_last10) DO UPDATE SET referral_code = EXCLUDED.referral_code, updated_at = now() "
+                    f"WHERE garage_accounts.referral_code IS NULL",
+                    (phone_last10, code),
+                )
+                conn.commit()
+                break
+            except psycopg2.errors.UniqueViolation:
+                conn.rollback()
+                continue
+
+        cur.execute(f"SELECT referral_code FROM {schema}.garage_accounts WHERE phone_last10 = %s", (phone_last10,))
+        row = cur.fetchone()
+        return row[0] if row else None
+    finally:
+        cur.close()
 
 
 def handler(event: dict, context) -> dict:
@@ -90,6 +128,39 @@ def handler(event: dict, context) -> dict:
             float(d['amount']) if d['type'] == 'deduct' else -float(d['amount'])
             for d in deduction_rows
         )
+
+        # Друзья, приглашённые этим клиентом по его реферальному коду — начисляем 2% от
+        # суммы каждого их выполненного заказа, дополнительно к обычному кэшбеку 3%
+        cur.execute(
+            f"SELECT phone_last10 FROM {schema}.garage_accounts WHERE referred_by_phone_last10 = %s",
+            (phone_last10,),
+        )
+        friend_phones = [r['phone_last10'] for r in cur.fetchall()]
+
+        referral_bonus_total = 0.0
+        referrals = []
+        if friend_phones:
+            cur.execute(
+                f"SELECT RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) AS phone_last10, "
+                f"MAX(name) AS name, "
+                f"SUM(CASE WHEN status = 'done' THEN order_amount ELSE 0 END) AS done_amount, "
+                f"COUNT(*) FILTER (WHERE status = 'done') AS done_count "
+                f"FROM {schema}.leads "
+                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = ANY(%s) "
+                f"GROUP BY 1",
+                (friend_phones,),
+            )
+            for r in cur.fetchall():
+                done_amount = float(r['done_amount']) if r['done_amount'] is not None else 0.0
+                friend_bonus = round(done_amount * 0.02, 2)
+                referral_bonus_total += friend_bonus
+                referrals.append({
+                    'name': r['name'],
+                    'done_orders': int(r['done_count'] or 0),
+                    'bonus_earned': friend_bonus,
+                })
+
+        referral_code = get_or_create_referral_code(conn, schema, phone_last10)
         cur.close()
     finally:
         conn.close()
@@ -141,6 +212,14 @@ def handler(event: dict, context) -> dict:
             'label': 'Начисление бонусов' if d['type'] == 'accrue' else 'Списание',
             'created_at': d['created_at'].isoformat() if d['created_at'] else None,
         })
+    for ref in referrals:
+        if ref['bonus_earned'] > 0:
+            cashback_history.append({
+                'type': 'accrual',
+                'amount': ref['bonus_earned'],
+                'label': f"Бонус за друга {ref['name'] or ''}".strip(),
+                'created_at': None,
+            })
     cashback_history.sort(key=lambda h: h['created_at'] or '', reverse=True)
 
     return {
@@ -150,5 +229,8 @@ def handler(event: dict, context) -> dict:
             'orders': orders,
             'cashback_deducted': cashback_deducted,
             'cashback_history': cashback_history,
+            'referral_code': referral_code,
+            'referral_bonus_total': referral_bonus_total,
+            'referrals': referrals,
         }),
     }

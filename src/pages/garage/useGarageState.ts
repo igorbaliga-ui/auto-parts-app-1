@@ -15,6 +15,7 @@ import {
   PASSWORD_VERIFIED_KEY,
   Order,
   CashbackHistoryItem,
+  ReferralFriend,
 } from './garageTypes';
 
 /**
@@ -34,6 +35,10 @@ export const useGarageState = () => {
   const [cashbackDeducted, setCashbackDeducted] = useState(0);
   const [cashbackHistory, setCashbackHistory] = useState<CashbackHistoryItem[]>([]);
   const [cashbackHistoryOpen, setCashbackHistoryOpen] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [referralBonusTotal, setReferralBonusTotal] = useState(0);
+  const [referrals, setReferrals] = useState<ReferralFriend[]>([]);
+  const [referralDialogOpen, setReferralDialogOpen] = useState(false);
   const [carNameDrafts, setCarNameDrafts] = useState<Record<number, string>>({});
   const [savedCarNames, setSavedCarNames] = useState<Record<number, string>>({});
   const [savingCarId, setSavingCarId] = useState<number | null>(null);
@@ -184,6 +189,9 @@ export const useGarageState = () => {
       setOrders(list);
       setCashbackDeducted(typeof data.cashback_deducted === 'number' ? data.cashback_deducted : 0);
       setCashbackHistory(Array.isArray(data.cashback_history) ? data.cashback_history : []);
+      setReferralCode(typeof data.referral_code === 'string' ? data.referral_code : null);
+      setReferralBonusTotal(typeof data.referral_bonus_total === 'number' ? data.referral_bonus_total : 0);
+      setReferrals(Array.isArray(data.referrals) ? data.referrals : []);
       // По умолчанию открываем «Новые», но если там пусто — сразу показываем «В работе»
       const activeList = list.filter((o) => !o.archived);
       if (!activeList.some((o) => o.status === 'new') && activeList.some((o) => o.status === 'in_progress')) {
@@ -435,7 +443,7 @@ export const useGarageState = () => {
     }
   };
 
-  const totalCashback = orders.reduce((sum, o) => sum + (o.cashback || 0), 0) - cashbackDeducted;
+  const totalCashback = orders.reduce((sum, o) => sum + (o.cashback || 0), 0) + referralBonusTotal - cashbackDeducted;
   const knownName = orders[0]?.name;
   const vinHistory = Array.from(new Set(orders.map((o) => o.vin).filter((v): v is string => !!v)));
   const activeOrders = orders.filter((o) => !o.archived);
@@ -554,6 +562,9 @@ export const useGarageState = () => {
       setOrders(list);
       setCashbackDeducted(typeof data.cashback_deducted === 'number' ? data.cashback_deducted : 0);
       setCashbackHistory(Array.isArray(data.cashback_history) ? data.cashback_history : []);
+      setReferralCode(typeof data.referral_code === 'string' ? data.referral_code : null);
+      setReferralBonusTotal(typeof data.referral_bonus_total === 'number' ? data.referral_bonus_total : 0);
+      setReferrals(Array.isArray(data.referrals) ? data.referrals : []);
       const names = Object.fromEntries(list.map((o) => [o.id, o.car_name || '']));
       setCarNameDrafts(names);
       setSavedCarNames(names);
@@ -657,6 +668,11 @@ export const useGarageState = () => {
     cashbackHistory,
     cashbackHistoryOpen,
     setCashbackHistoryOpen,
+    referralCode,
+    referralBonusTotal,
+    referrals,
+    referralDialogOpen,
+    setReferralDialogOpen,
     newOrders,
     inProgressOrders,
     doneOrders,

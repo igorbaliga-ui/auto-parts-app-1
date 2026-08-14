@@ -78,6 +78,7 @@ def handler(event: dict, context) -> dict:
     photos_base64 = [p for p in photos_base64 if p][:MAX_PHOTOS]
     car_name = (body.get('car_name') or '').strip() or None
     city = (body.get('city') or '').strip() or None
+    referral_code = re.sub(r'[^A-Z0-9]', '', (body.get('referral_code') or '').strip().upper())[:10] or None
 
     # Фото грузим первыми: если хотя бы одно успешно загрузится, VIN становится необязательным.
     # Если фото не прислали или ни одно не удалось загрузить — VIN обязателен, как раньше.
@@ -132,8 +133,26 @@ def handler(event: dict, context) -> dict:
             (phone_last10,),
         )
         row = cur.fetchone()
+        is_first_lead = row is None
         if row:
             name = row[0]
+        # Если это самая первая заявка клиента и он пришёл по ссылке друга — запоминаем,
+        # кто его пригласил (один раз, дальше не меняется). Самоприглашение по своему же
+        # коду и код, который никому не принадлежит, тихо игнорируем.
+        if is_first_lead and referral_code:
+            cur.execute(
+                f"SELECT phone_last10 FROM {schema}.garage_accounts WHERE referral_code = %s",
+                (referral_code,),
+            )
+            ref_row = cur.fetchone()
+            if ref_row and ref_row[0] != phone_last10:
+                cur.execute(
+                    f"INSERT INTO {schema}.garage_accounts (phone_last10, referred_by_phone_last10, updated_at) "
+                    f"VALUES (%s, %s, now()) "
+                    f"ON CONFLICT (phone_last10) DO UPDATE SET referred_by_phone_last10 = "
+                    f"COALESCE(garage_accounts.referred_by_phone_last10, EXCLUDED.referred_by_phone_last10), updated_at = now()",
+                    (phone_last10, ref_row[0]),
+                )
         # Если название авто не передали явно — подтягиваем его из другой заявки с тем же VIN
         if not car_name and vin_to_save:
             cur.execute(

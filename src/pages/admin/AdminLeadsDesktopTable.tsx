@@ -179,12 +179,16 @@ const AdminLeadsDesktopTable = ({
                         </a>
                       )}
                     />
-                    <Icon
-                      name={l.phone_verified ? 'ShieldCheck' : 'ShieldQuestion'}
-                      size={13}
-                      className={`shrink-0 ${l.phone_verified ? 'text-green-600' : 'text-muted-foreground'}`}
+                    <span
                       title={l.phone_verified ? 'Номер подтверждён звонком' : 'Номер не подтверждён звонком'}
-                    />
+                      className="shrink-0 inline-flex"
+                    >
+                      <Icon
+                        name={l.phone_verified ? 'ShieldCheck' : 'ShieldQuestion'}
+                        size={13}
+                        className={l.phone_verified ? 'text-green-600' : 'text-muted-foreground'}
+                      />
+                    </span>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <button

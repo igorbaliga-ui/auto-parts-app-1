@@ -14,6 +14,7 @@ import GarageHeader from './garage/GarageHeader';
 import GarageOrdersList from './garage/GarageOrdersList';
 import CashbackHistoryDialog from './garage/CashbackHistoryDialog';
 import GarageArchiveDialog from './garage/GarageArchiveDialog';
+import ReferralDialog from './garage/ReferralDialog';
 
 const GarageContent = () => {
   const g = useGarageState();
@@ -146,6 +147,7 @@ const GarageContent = () => {
           orders={g.orders}
           totalCashback={g.totalCashback}
           onShowCashbackHistory={() => g.setCashbackHistoryOpen(true)}
+          onShowReferral={() => g.setReferralDialogOpen(true)}
           pushPermission={g.pushPermission}
           pushSubscribing={g.pushSubscribing}
           pushSubscribed={g.pushSubscribed}
@@ -177,6 +179,13 @@ const GarageContent = () => {
         history={g.cashbackHistory}
         open={g.cashbackHistoryOpen}
         onOpenChange={g.setCashbackHistoryOpen}
+      />
+      <ReferralDialog
+        open={g.referralDialogOpen}
+        onOpenChange={g.setReferralDialogOpen}
+        referralCode={g.referralCode}
+        referralBonusTotal={g.referralBonusTotal}
+        referrals={g.referrals}
       />
       <GarageArchiveDialog
         orders={g.archivedOrders}

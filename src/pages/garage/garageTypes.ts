@@ -36,6 +36,12 @@ export type CashbackHistoryItem = {
   created_at: string | null;
 };
 
+export type ReferralFriend = {
+  name: string | null;
+  done_orders: number;
+  bonus_earned: number;
+};
+
 export const messengerLabel: Record<string, string> = {
   telegram: 'Telegram',
   max: 'MAX',

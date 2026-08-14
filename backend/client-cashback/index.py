@@ -94,6 +94,21 @@ def handler(event: dict, context) -> dict:
                 r['phone_last10']: (float(r['deducted']), float(r['manual_accrued']))
                 for r in cur.fetchall()
             }
+
+            # Реферальный бонус 2%: сколько каждый клиент заработал на выполненных заказах
+            # приглашённых им друзей (по garage_accounts.referred_by_phone_last10)
+            cur.execute(
+                f"SELECT ga.referred_by_phone_last10 AS inviter, "
+                f"SUM(CASE WHEN l.status = 'done' THEN l.order_amount ELSE 0 END) AS friends_done_amount "
+                f"FROM {schema}.garage_accounts ga "
+                f"JOIN {schema}.leads l ON RIGHT(regexp_replace(l.phone, '\\D', '', 'g'), 10) = ga.phone_last10 "
+                f"WHERE ga.referred_by_phone_last10 IS NOT NULL "
+                f"GROUP BY 1"
+            )
+            referral_map = {
+                r['inviter']: round(float(r['friends_done_amount'] or 0) * 0.02, 2)
+                for r in cur.fetchall()
+            }
             cur.close()
         finally:
             conn.close()
@@ -105,13 +120,15 @@ def handler(event: dict, context) -> dict:
                 continue
             accrued = float(r['accrued']) if r['accrued'] is not None else 0
             deducted, manual_accrued = adjust_map.get(phone_last10, (0, 0))
+            referral_bonus = referral_map.get(phone_last10, 0)
             clients.append({
                 'phone_last10': phone_last10,
                 'name': r['name'],
                 'accrued': accrued,
                 'deducted': deducted,
                 'manual_accrued': manual_accrued,
-                'total_cashback': accrued + manual_accrued - deducted,
+                'referral_bonus': referral_bonus,
+                'total_cashback': accrued + manual_accrued + referral_bonus - deducted,
             })
 
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'clients': clients})}

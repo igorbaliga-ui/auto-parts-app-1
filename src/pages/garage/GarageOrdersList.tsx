@@ -19,6 +19,7 @@ type GarageOrdersListProps = {
   orders: Order[];
   totalCashback: number;
   onShowCashbackHistory: () => void;
+  onShowReferral: () => void;
   pushPermission: NotificationPermission | "unsupported";
   pushSubscribing: boolean;
   pushSubscribed: boolean;
@@ -54,6 +55,7 @@ const GarageOrdersList = ({
   orders,
   totalCashback,
   onShowCashbackHistory,
+  onShowReferral,
   pushPermission,
   pushSubscribing,
   pushSubscribed,
@@ -94,13 +96,22 @@ const GarageOrdersList = ({
               {formatBonus(totalCashback)}
             </span>
           </div>
-          <button
-            onClick={onShowCashbackHistory}
-            title="История начислений и списаний"
-            className="shrink-0 flex items-center justify-center w-8 h-8 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
-          >
-            <Icon name="History" size={15} />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={onShowReferral}
+              title="Пригласить друга"
+              className="flex items-center justify-center w-8 h-8 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+            >
+              <Icon name="Gift" size={15} />
+            </button>
+            <button
+              onClick={onShowCashbackHistory}
+              title="История начислений и списаний"
+              className="flex items-center justify-center w-8 h-8 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+            >
+              <Icon name="History" size={15} />
+            </button>
+          </div>
         </div>
       )}
 
