@@ -7,6 +7,7 @@
   "admin-push-subscribe": "https://functions.poehali.dev/06752791-4271-4e2d-91d5-43d770e6de83",
   "lead-changes": "https://functions.poehali.dev/3ae55815-e7e6-45e9-9ca9-4e1a4f7202f2",
   "push-subscribe": "https://functions.poehali.dev/30d578c6-e25c-4fdc-b648-85e2cbdc2a65",
+  "garage-auth": "https://functions.poehali.dev/d92ac11d-c6d2-4430-b948-a767c0048442",
   "garage-car-name": "https://functions.poehali.dev/22aa943f-f262-4beb-b2e2-c713d1684c82",
   "leads-update": "https://functions.poehali.dev/1612bdca-502b-46a9-b0ea-8d6d93876dc6",
   "garage-lookup": "https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1",
