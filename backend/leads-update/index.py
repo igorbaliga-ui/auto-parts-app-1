@@ -213,7 +213,7 @@ def handler(event: dict, context) -> dict:
         params.append(lead_id)
         cur.execute(
             f"UPDATE {schema}.leads SET {', '.join(set_clauses)} WHERE id = %s "
-            f"RETURNING cashback, remaining, completed_at, phone, car_name, vin, handled_by",
+            f"RETURNING cashback, remaining, completed_at, phone, car_name, vin, handled_by, order_amount, name",
             params,
         )
         row = cur.fetchone()
@@ -221,6 +221,8 @@ def handler(event: dict, context) -> dict:
         remaining = float(row[1]) if row and row[1] is not None else None
         completed_at = row[2].isoformat() if row and row[2] else None
         handled_by = row[6] if row else None
+        order_amount = float(row[7]) if row and row[7] is not None else None
+        friend_name = row[8] if row else None
 
         # Записываем изменения в журнал
         if 'order_amount' in body:
@@ -276,6 +278,27 @@ def handler(event: dict, context) -> dict:
                         title='Начислены бонусы',
                         body=f'{car_label}: начислено {cashback_str} бонусов. Проверьте баланс в «Гараже».',
                     )
+                # Если этого клиента когда-то пригласил друг по реферальной программе —
+                # уведомляем пригласившего о бонусе 2% за выполненный заказ приглашённого
+                if order_amount:
+                    phone_last10 = re.sub(r'\D', '', phone or '')[-10:]
+                    cur2 = conn.cursor()
+                    cur2.execute(
+                        f"SELECT referred_by_phone_last10 FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+                        (phone_last10,),
+                    )
+                    inviter_row = cur2.fetchone()
+                    cur2.close()
+                    if inviter_row and inviter_row[0]:
+                        referral_bonus = round(order_amount * 0.02, 2)
+                        if referral_bonus > 0:
+                            referral_bonus_str = f'{referral_bonus:,.0f}'.replace(',', ' ')
+                            friend_label = friend_name or 'Ваш друг'
+                            send_push_to_phone(
+                                dsn, schema, inviter_row[0],
+                                title='Бонус за друга',
+                                body=f'{friend_label} выполнил заказ. Начислено {referral_bonus_str} бонусов за приглашение.',
+                            )
             elif status == 'in_progress' and prev_status == 'new':
                 send_push_to_phone(
                     dsn, schema, phone,
