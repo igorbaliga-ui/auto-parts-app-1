@@ -6,7 +6,10 @@ import { useIsStandalone } from "@/hooks/use-standalone";
 import { useNav, Tab } from "@/components/site/NavContext";
 import { useGarageAuth } from "@/hooks/use-garage-auth";
 import { useGarageArrived } from "@/hooks/use-garage-arrived";
+import { safeGetItem, safeSetItem } from "@/lib/storage";
 import InstallGuide from "./InstallGuide";
+
+const INSTALL_HINT_SEEN_KEY = "install-hint-seen";
 
 const links: { label: string; tab: Tab }[] = [
   { label: "Как заказать", tab: "how" },
@@ -20,14 +23,21 @@ const Header = () => {
   const isStandalone = useIsStandalone();
   const [guideOpen, setGuideOpen] = useState(false);
   const [guideTab, setGuideTab] = useState<"ios" | "android">("ios");
-  const [installHint, setInstallHint] = useState(true);
+  const [installHint, setInstallHint] = useState(
+    () => safeGetItem(INSTALL_HINT_SEEN_KEY) !== "1",
+  );
   const { goTo } = useNav();
   const { authed: garageAuthed } = useGarageAuth();
   const hasArrived = useGarageArrived();
 
+  const dismissInstallHint = () => {
+    setInstallHint(false);
+    safeSetItem(INSTALL_HINT_SEEN_KEY, "1");
+  };
+
   const openGuide = (tab: "ios" | "android") => {
     setOpen(false);
-    setInstallHint(false);
+    dismissInstallHint();
     setGuideTab(tab);
     setGuideOpen(true);
   };
@@ -82,7 +92,7 @@ const Header = () => {
               <div
                 role="button"
                 tabIndex={-1}
-                onClick={() => setInstallHint(false)}
+                onClick={dismissInstallHint}
                 className="absolute top-full mt-2 whitespace-nowrap px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-[0.68rem] font-head font-bold uppercase tracking-wide shadow-[0_4px_16px_rgba(0,0,0,0.35)] ring-1 ring-primary/40 cursor-pointer animate-[fade-in_0.5s_ease-out_both,glow-pulse_2s_ease-in-out_0.5s_infinite] z-10"
                 style={{ left: "-2.5rem" }}
               >
