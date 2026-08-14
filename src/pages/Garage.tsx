@@ -8,6 +8,7 @@ import {
   ResetPasswordView,
   PasswordRequiredView,
   PhoneEntryView,
+  CallVerificationView,
 } from './garage/GarageAuthForms';
 import GarageHeader from './garage/GarageHeader';
 import GarageOrdersList from './garage/GarageOrdersList';
@@ -23,6 +24,24 @@ const GarageContent = () => {
 
   if (g.checkingSaved) {
     return <CheckingSavedView />;
+  }
+
+  if (!g.authed && g.callVerificationRequired) {
+    return (
+      <CallVerificationView
+        phone={g.phone}
+        callRequested={g.callRequested}
+        callLoading={g.callLoading}
+        codeInput={g.codeInput}
+        setCodeInput={g.setCodeInput}
+        error={g.error}
+        verifyLoading={g.verifyLoading}
+        cooldown={g.callCooldown}
+        requestCall={g.requestCall}
+        submitCode={g.submitCode}
+        backToPhone={g.backToPhoneFromCall}
+      />
+    );
   }
 
   if (!g.authed && g.passwordRequired && g.resetPasswordMode) {

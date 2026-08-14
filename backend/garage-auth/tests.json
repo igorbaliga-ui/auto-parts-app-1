@@ -18,6 +18,13 @@
       "path": "/",
       "body": {"action": "login", "phone": "123"},
       "expectedStatus": 400
+    },
+    {
+      "name": "Invalid code rejected on verify_call",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "verify_call", "phone": "9001234567", "code": "12"},
+      "expectedStatus": 400
     }
   ]
 }

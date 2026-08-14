@@ -6,6 +6,7 @@ import psycopg2
 import psycopg2.extras
 from rate_limit import get_client_ip, check_rate_limit
 from device_info import parse_device
+from zvonok import start_flashcall, ZvonokError
 
 
 def normalize_phone(phone: str) -> str:
@@ -82,7 +83,7 @@ def handler(event: dict, context) -> dict:
         try:
             cur = conn.cursor()
             cur.execute(
-                f"SELECT password_hash, is_blocked FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+                f"SELECT password_hash, is_blocked, phone_verified FROM {schema}.garage_accounts WHERE phone_last10 = %s",
                 (phone_last10,),
             )
             row = cur.fetchone()
@@ -92,7 +93,8 @@ def handler(event: dict, context) -> dict:
 
         has_password = bool(row and row[0])
         is_blocked = bool(row and row[1])
-        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'has_password': has_password, 'is_blocked': is_blocked})}
+        phone_verified = bool(row and row[2])
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'has_password': has_password, 'is_blocked': is_blocked, 'phone_verified': phone_verified})}
 
     if method != 'POST':
         return {'statusCode': 405, 'headers': headers, 'body': json.dumps({'error': 'Method not allowed'})}
@@ -113,22 +115,93 @@ def handler(event: dict, context) -> dict:
     try:
         cur = conn.cursor()
         cur.execute(
-            f"SELECT password_hash, is_blocked FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+            f"SELECT password_hash, is_blocked, phone_verified FROM {schema}.garage_accounts WHERE phone_last10 = %s",
             (phone_last10,),
         )
         row = cur.fetchone()
         current_hash = row[0] if row else None
         is_blocked = bool(row[1]) if row else False
+        phone_verified = bool(row[2]) if row else False
 
         if action == 'login':
             if is_blocked:
                 return {'statusCode': 403, 'headers': headers, 'body': json.dumps({'error': 'Доступ в «Гараж» временно заблокирован. Обратитесь к менеджеру'})}
+            if not phone_verified:
+                return {'statusCode': 428, 'headers': headers, 'body': json.dumps({'error': 'Требуется подтверждение номера звонком', 'phone_verified': False})}
             password = body.get('password') or ''
             if current_hash:
                 if not password or not bcrypt.checkpw(password.encode(), current_hash.encode()):
                     return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный пароль'})}
             user_agent = req_headers.get('User-Agent') or req_headers.get('user-agent') or ''
             log_login(cur, schema, phone_last10, 'login', user_agent, client_ip)
+            conn.commit()
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+
+        if action == 'start_call_verification':
+            if is_blocked:
+                return {'statusCode': 403, 'headers': headers, 'body': json.dumps({'error': 'Доступ в «Гараж» временно заблокирован. Обратитесь к менеджеру'})}
+            if phone_verified:
+                return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True, 'already_verified': True})}
+            # Не даём заказывать новый звонок чаще раза в минуту на один номер
+            cur.execute(
+                f"SELECT created_at FROM {schema}.call_verifications "
+                f"WHERE phone_last10 = %s ORDER BY created_at DESC LIMIT 1",
+                (phone_last10,),
+            )
+            last_row = cur.fetchone()
+            if last_row:
+                cur.execute("SELECT now() - %s < INTERVAL '60 seconds'", (last_row[0],))
+                too_soon = cur.fetchone()[0]
+                if too_soon:
+                    return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Повторный звонок можно заказать через минуту'})}
+            phone_e164 = '+7' + phone_last10
+            try:
+                call = start_flashcall(phone_e164)
+            except ZvonokError as exc:
+                return {'statusCode': 502, 'headers': headers, 'body': json.dumps({'error': str(exc)})}
+            cur.execute(
+                f"INSERT INTO {schema}.call_verifications (phone_last10, call_id, expected_suffix) "
+                f"VALUES (%s, %s, %s)",
+                (phone_last10, call['call_id'], call['pincode']),
+            )
+            conn.commit()
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+
+        if action == 'verify_call':
+            entered = re.sub(r'\D', '', body.get('code') or '')
+            if len(entered) != 4:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Введите 4 цифры'})}
+            cur.execute(
+                f"SELECT id, expected_suffix, attempts FROM {schema}.call_verifications "
+                f"WHERE phone_last10 = %s AND status = 'pending' "
+                f"ORDER BY created_at DESC LIMIT 1",
+                (phone_last10,),
+            )
+            v_row = cur.fetchone()
+            if not v_row:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Сначала закажите звонок'})}
+            v_id, expected_suffix, attempts = v_row
+            if attempts >= 5:
+                return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Слишком много попыток. Закажите новый звонок'})}
+            if entered != expected_suffix:
+                cur.execute(
+                    f"UPDATE {schema}.call_verifications SET attempts = attempts + 1 WHERE id = %s",
+                    (v_id,),
+                )
+                conn.commit()
+                return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный код'})}
+            cur.execute(
+                f"UPDATE {schema}.call_verifications SET status = 'verified', verified_at = now() WHERE id = %s",
+                (v_id,),
+            )
+            cur.execute(
+                f"INSERT INTO {schema}.garage_accounts (phone_last10, phone_verified, phone_verified_at, updated_at) "
+                f"VALUES (%s, true, now(), now()) "
+                f"ON CONFLICT (phone_last10) DO UPDATE SET phone_verified = true, phone_verified_at = now(), updated_at = now()",
+                (phone_last10,),
+            )
+            user_agent = req_headers.get('User-Agent') or req_headers.get('user-agent') or ''
+            log_login(cur, schema, phone_last10, 'call_verified', user_agent, client_ip)
             conn.commit()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
 

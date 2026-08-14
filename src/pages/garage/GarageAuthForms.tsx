@@ -50,6 +50,110 @@ export const CheckingSavedView = (_props: CheckingSavedViewProps) => (
   </PageBackground>
 );
 
+type CallVerificationViewProps = {
+  phone: string;
+  callRequested: boolean;
+  callLoading: boolean;
+  codeInput: string;
+  setCodeInput: (v: string) => void;
+  error: string;
+  verifyLoading: boolean;
+  cooldown: number;
+  requestCall: () => void;
+  submitCode: (e: React.FormEvent) => void;
+  backToPhone: () => void;
+};
+
+export const CallVerificationView = ({
+  phone,
+  callRequested,
+  callLoading,
+  codeInput,
+  setCodeInput,
+  error,
+  verifyLoading,
+  cooldown,
+  requestCall,
+  submitCode,
+  backToPhone,
+}: CallVerificationViewProps) => (
+  <PageBackground>
+    <div className="min-h-screen flex items-center justify-center px-5">
+      <form
+        onSubmit={submitCode}
+        className="relative w-full max-w-[380px] bg-card border border-steel rounded-sm p-8 flex flex-col gap-4 animate-fade-in"
+      >
+        <SupportHint />
+        <div className="flex justify-center mb-2">
+          <span className="w-14 h-14 rounded-sm bg-primary/15 flex items-center justify-center">
+            <Icon name="PhoneCall" className="text-primary" size={28} />
+          </span>
+        </div>
+        <h1 className="font-head uppercase tracking-wide text-2xl text-center">
+          Подтверждение номера
+        </h1>
+        {!callRequested ? (
+          <p className="text-muted-foreground text-sm text-center">
+            Первый вход с номера {phone}. Нажмите кнопку — мы позвоним, и вам
+            нужно будет ввести последние 4 цифры номера, с которого поступит звонок.
+          </p>
+        ) : (
+          <p className="text-muted-foreground text-sm text-center">
+            Ждите звонка на номер {phone} и введите последние 4 цифры номера звонившего.
+          </p>
+        )}
+        {callRequested && (
+          <Input
+            value={codeInput}
+            onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            maxLength={4}
+            inputMode="numeric"
+            placeholder="0000"
+            className="text-center tracking-[0.4em] text-lg"
+            autoFocus
+          />
+        )}
+        {error && <p className="text-primary text-sm text-center">{error}</p>}
+        {!callRequested ? (
+          <Button
+            type="button"
+            onClick={requestCall}
+            disabled={callLoading}
+            className="font-head uppercase tracking-wide h-11"
+          >
+            {callLoading ? "Звоним…" : "Позвонить мне"}
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            disabled={verifyLoading || codeInput.length !== 4}
+            className="font-head uppercase tracking-wide h-11"
+          >
+            {verifyLoading ? "Проверяем…" : "Подтвердить"}
+          </Button>
+        )}
+        {callRequested && (
+          <button
+            type="button"
+            onClick={requestCall}
+            disabled={cooldown > 0 || callLoading}
+            className="text-center text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline"
+          >
+            {cooldown > 0 ? `Повторный звонок через ${cooldown} с` : "Позвонить ещё раз"}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={backToPhone}
+          className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Ввести другой номер
+        </button>
+      </form>
+    </div>
+  </PageBackground>
+);
+
 type ResetPasswordViewProps = {
   phone: string;
   resetVinInput: string;

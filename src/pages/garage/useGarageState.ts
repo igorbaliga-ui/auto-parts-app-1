@@ -62,18 +62,94 @@ export const useGarageState = () => {
   const [resetPasswordInput, setResetPasswordInput] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
+  const [callVerificationRequired, setCallVerificationRequired] = useState(false);
+  const [callRequested, setCallRequested] = useState(false);
+  const [callLoading, setCallLoading] = useState(false);
+  const [codeInput, setCodeInput] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [callCooldown, setCallCooldown] = useState(0);
   const { permission: pushPermission, subscribing: pushSubscribing, subscribed: pushSubscribed, subscribe: subscribePush } =
     usePushSubscription(authed ? phone : null);
 
-  const checkHasPassword = async (ph: string) => {
+  const checkAccountStatus = async (ph: string) => {
     try {
       const res = await fetch(`${GARAGE_AUTH_URL}?phone=${encodeURIComponent(ph)}`);
-      if (!res.ok) return false;
+      if (!res.ok) return { hasPassword: false, phoneVerified: false };
       const data = await res.json();
-      return !!data.has_password;
+      return { hasPassword: !!data.has_password, phoneVerified: !!data.phone_verified };
     } catch {
-      return false;
+      return { hasPassword: false, phoneVerified: false };
     }
+  };
+
+  const checkHasPassword = async (ph: string) => (await checkAccountStatus(ph)).hasPassword;
+
+  useEffect(() => {
+    if (callCooldown <= 0) return;
+    const t = setTimeout(() => setCallCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [callCooldown]);
+
+  const requestCall = async () => {
+    setError('');
+    setCallLoading(true);
+    try {
+      const res = await fetch(GARAGE_AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start_call_verification', phone }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || 'Не удалось совершить звонок');
+        return;
+      }
+      setCallRequested(true);
+      setCodeInput('');
+      setCallCooldown(60);
+    } catch {
+      setError('Не удалось совершить звонок. Попробуйте ещё раз.');
+    } finally {
+      setCallLoading(false);
+    }
+  };
+
+  const submitCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setVerifyLoading(true);
+    try {
+      const res = await fetch(GARAGE_AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify_call', phone, code: codeInput }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || 'Неверный код');
+        return;
+      }
+      setCallVerificationRequired(false);
+      setCallRequested(false);
+      setCodeInput('');
+      const needsPassword = await checkHasPassword(phone);
+      if (needsPassword) {
+        setPasswordRequired(true);
+        return;
+      }
+      load(phone);
+    } catch {
+      setError('Не удалось подтвердить код. Попробуйте ещё раз.');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  const backToPhoneFromCall = () => {
+    setCallVerificationRequired(false);
+    setCallRequested(false);
+    setCodeInput('');
+    setError('');
   };
 
   const load = async (ph: string) => {
@@ -146,8 +222,11 @@ export const useGarageState = () => {
         return;
       }
       (async () => {
-        const needsPassword = await checkHasPassword(saved);
-        if (needsPassword) {
+        const { hasPassword, phoneVerified } = await checkAccountStatus(saved);
+        if (!phoneVerified) {
+          setCallVerificationRequired(true);
+          setCheckingSaved(false);
+        } else if (hasPassword) {
           setPasswordRequired(true);
           setCheckingSaved(false);
         } else {
@@ -167,9 +246,14 @@ export const useGarageState = () => {
       return;
     }
     setCheckingPassword(true);
-    const needsPassword = await checkHasPassword(phone);
+    const { hasPassword, phoneVerified } = await checkAccountStatus(phone);
     setCheckingPassword(false);
-    if (needsPassword) {
+    if (!phoneVerified) {
+      setCallVerificationRequired(true);
+      setError('');
+      return;
+    }
+    if (hasPassword) {
       setPasswordRequired(true);
       setError('');
       return;
@@ -262,6 +346,9 @@ export const useGarageState = () => {
     setPhone('');
     setPasswordRequired(false);
     setResetPasswordMode(false);
+    setCallVerificationRequired(false);
+    setCallRequested(false);
+    setCodeInput('');
     notifyGarageAuthChanged();
   };
 
@@ -544,6 +631,16 @@ export const useGarageState = () => {
     resetLoading,
     resetError,
     setResetError,
+    callVerificationRequired,
+    callRequested,
+    callLoading,
+    codeInput,
+    setCodeInput,
+    verifyLoading,
+    callCooldown,
+    requestCall,
+    submitCode,
+    backToPhoneFromCall,
     pushPermission,
     pushSubscribing,
     pushSubscribed,
