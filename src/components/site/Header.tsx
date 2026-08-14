@@ -94,7 +94,7 @@ const Header = () => {
               </div>
             )}
             <div
-              className="flex items-center gap-0.5 px-1.5 py-1 rounded-full border border-border/60 bg-card/40"
+              className={`flex items-center gap-0.5 px-1.5 py-1 rounded-full border border-border/60 bg-card/40 ${installHint ? "animate-glow-pulse" : ""}`}
               style={{
                 boxShadow:
                   "inset 0 2px 4px rgba(0,0,0,0.55), inset 0 -1px 0 rgba(255,255,255,0.04)",
