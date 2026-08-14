@@ -24,7 +24,7 @@ import Icon from '@/components/ui/icon';
 import ColumnSearchInput from './ColumnSearchInput';
 import InlineEditableCell from './InlineEditableCell';
 import ImageLightbox from '@/components/shared/ImageLightbox';
-import { Lead, ColumnKey, columns, messengerLabel, statusLabel, formatDate } from './adminTypes';
+import { Lead, ColumnKey, columns, messengerLabel, statusLabel, formatDate, formatBonus } from './adminTypes';
 
 const MESSENGER_OPTIONS = [
   { value: 'telegram', label: 'Telegram' },
@@ -163,6 +163,15 @@ const AdminLeadsDesktopTable = ({
                         className="shrink-0 inline-flex"
                       >
                         <Icon name="Gift" size={13} className="text-primary" />
+                      </span>
+                    )}
+                    {l.friends_invited_count > 0 && (
+                      <span
+                        title={`Пригласил друзей: ${l.friends_invited_count}. Заработано на рефералах: ${formatBonus(l.referral_bonus_earned)}`}
+                        className="shrink-0 inline-flex items-center gap-0.5 text-xs text-muted-foreground"
+                      >
+                        <Icon name="Users" size={13} className="text-primary" />
+                        {l.friends_invited_count}
                       </span>
                     )}
                   </div>

@@ -25,6 +25,8 @@ export type Lead = {
   phone_note: string | null;
   invited_by_name: string | null;
   invited_by_phone: string | null;
+  friends_invited_count: number;
+  referral_bonus_earned: number;
   handled_by: string | null;
 };
 
@@ -39,6 +41,18 @@ export const statusLabel: Record<Lead['status'], string> = {
   in_progress: 'Выполнено',
   done: 'Выполнен',
 };
+
+const bonusWord = (n: number) => {
+  const abs = Math.abs(Math.round(n));
+  const mod10 = abs % 10;
+  const mod100 = abs % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'бонус';
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return 'бонуса';
+  return 'бонусов';
+};
+
+export const formatBonus = (n: number) =>
+  `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n)} ${bonusWord(n)}`;
 
 export const formatDate = (iso: string) => {
   const d = new Date(iso);
