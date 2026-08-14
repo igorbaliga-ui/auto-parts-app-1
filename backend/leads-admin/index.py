@@ -69,6 +69,20 @@ def handler(event: dict, context) -> dict:
         cur.execute(f"SELECT phone_last10 FROM {schema}.garage_accounts WHERE phone_verified = true")
         verified_phones = {r['phone_last10'] for r in cur.fetchall()}
 
+        # Кто кого пригласил (реферальная программа) — сопоставляем номер клиента с номером
+        # пригласившего, а затем с его именем и телефоном для отображения в /admin
+        cur.execute(
+            f"SELECT phone_last10, referred_by_phone_last10 FROM {schema}.garage_accounts "
+            f"WHERE referred_by_phone_last10 IS NOT NULL"
+        )
+        referred_by_map = {r['phone_last10']: r['referred_by_phone_last10'] for r in cur.fetchall()}
+        cur.execute(
+            f"SELECT RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) AS phone_last10, "
+            f"MAX(name) AS name, MAX(phone) AS phone "
+            f"FROM {schema}.leads GROUP BY 1"
+        )
+        client_info_map = {r['phone_last10']: {'name': r['name'], 'phone': r['phone']} for r in cur.fetchall()}
+
         # Заметки менеджера, привязанные к номеру телефона (не к конкретной заявке) —
         # видны во всех заявках этого клиента, включая новые
         cur.execute(f"SELECT phone_last10, note FROM {schema}.client_notes")
@@ -80,6 +94,8 @@ def handler(event: dict, context) -> dict:
     leads = []
     for r in rows:
         phone_last10 = ''.join(ch for ch in (r['phone'] or '') if ch.isdigit())[-10:]
+        inviter_phone_last10 = referred_by_map.get(phone_last10)
+        inviter = client_info_map.get(inviter_phone_last10) if inviter_phone_last10 else None
         leads.append({
             'id': r['id'],
             'vin': r['vin'],
@@ -106,6 +122,8 @@ def handler(event: dict, context) -> dict:
             'garage_blocked': phone_last10 in blocked_phones,
             'phone_verified': phone_last10 in verified_phones,
             'phone_note': notes_map.get(phone_last10),
+            'invited_by_name': inviter['name'] if inviter else None,
+            'invited_by_phone': inviter['phone'] if inviter else None,
         })
 
     return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'leads': leads})}

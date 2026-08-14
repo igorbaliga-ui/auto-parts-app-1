@@ -98,6 +98,14 @@ const AdminLeadCard = ({
           >
             <Icon name="History" size={13} />
           </button>
+          {l.invited_by_name && (
+            <span
+              title={`Приглашён клиентом: ${l.invited_by_name} (${l.invited_by_phone})`}
+              className="shrink-0 inline-flex"
+            >
+              <Icon name="Gift" size={13} className="text-primary" />
+            </span>
+          )}
         </div>
         <span className="text-muted-foreground text-xs shrink-0">
           {formatDate(l.created_at)}

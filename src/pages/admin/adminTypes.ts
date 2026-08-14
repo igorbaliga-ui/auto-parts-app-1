@@ -23,6 +23,8 @@ export type Lead = {
   garage_blocked: boolean;
   phone_verified: boolean;
   phone_note: string | null;
+  invited_by_name: string | null;
+  invited_by_phone: string | null;
   handled_by: string | null;
 };
 
