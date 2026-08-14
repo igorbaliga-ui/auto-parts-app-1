@@ -65,6 +65,10 @@ def handler(event: dict, context) -> dict:
         cur.execute(f"SELECT phone_last10 FROM {schema}.garage_accounts WHERE is_blocked = true")
         blocked_phones = {r['phone_last10'] for r in cur.fetchall()}
 
+        # Номера, подтверждённые звонком в «Гараже»
+        cur.execute(f"SELECT phone_last10 FROM {schema}.garage_accounts WHERE phone_verified = true")
+        verified_phones = {r['phone_last10'] for r in cur.fetchall()}
+
         # Заметки менеджера, привязанные к номеру телефона (не к конкретной заявке) —
         # видны во всех заявках этого клиента, включая новые
         cur.execute(f"SELECT phone_last10, note FROM {schema}.client_notes")
@@ -100,6 +104,7 @@ def handler(event: dict, context) -> dict:
             'mileage': r['mileage'],
             'handled_by': r['handled_by'],
             'garage_blocked': phone_last10 in blocked_phones,
+            'phone_verified': phone_last10 in verified_phones,
             'phone_note': notes_map.get(phone_last10),
         })
 

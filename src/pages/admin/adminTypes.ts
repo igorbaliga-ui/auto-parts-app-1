@@ -21,6 +21,7 @@ export type Lead = {
   internal_note: string | null;
   archived: boolean;
   garage_blocked: boolean;
+  phone_verified: boolean;
   phone_note: string | null;
   handled_by: string | null;
 };
