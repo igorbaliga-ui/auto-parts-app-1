@@ -88,6 +88,7 @@ const GarageContent = () => {
         error={g.error}
         loading={g.loading}
         checkingPassword={g.checkingPassword}
+        onNewRequest={g.onNewRequest}
       />
     );
   }

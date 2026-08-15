@@ -336,7 +336,10 @@ type PhoneEntryViewProps = {
   error: string;
   loading: boolean;
   checkingPassword: boolean;
+  onNewRequest: () => void;
 };
+
+const NO_ORDERS_ERROR = 'По этому номеру заявок не найдено. Оставьте заявку, чтобы получить доступ в гараж.';
 
 export const PhoneEntryView = ({
   submit,
@@ -345,6 +348,7 @@ export const PhoneEntryView = ({
   error,
   loading,
   checkingPassword,
+  onNewRequest,
 }: PhoneEntryViewProps) => (
   <PageBackground>
     <div className="min-h-screen flex items-center justify-center px-5">
@@ -371,7 +375,21 @@ export const PhoneEntryView = ({
           placeholder="+7 900 000-00-00"
           autoFocus
         />
-        {error && <p className="text-primary text-sm text-center">{error}</p>}
+        {error && error !== NO_ORDERS_ERROR && (
+          <p className="text-primary text-sm text-center">{error}</p>
+        )}
+        {error === NO_ORDERS_ERROR && (
+          <div className="text-center">
+            <p className="text-primary text-sm">По этому номеру заявок не найдено.</p>
+            <button
+              type="button"
+              onClick={onNewRequest}
+              className="font-head uppercase tracking-wide text-2xl text-primary hover:underline mt-1"
+            >
+              Оставьте заявку
+            </button>
+          </div>
+        )}
         <Button
           type="submit"
           disabled={loading || checkingPassword}
