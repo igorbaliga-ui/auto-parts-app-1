@@ -22,6 +22,36 @@
             document.querySelector('link[rel="manifest"]').setAttribute('href', '/admin-manifest.webmanifest');
             document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'ЗАП ОПТОМ');
             document.title = 'ЗАП ОПТОМ — Заявки';
+        } else {
+            // Реферальный код друга: и iOS («Добавить на экран Домой»), и Chrome на
+            // Android («Установить приложение») берут стартовый адрес ярлыка из поля
+            // start_url веб-манифеста, а НЕ из текущей ссылки в адресной строке —
+            // поэтому статичный манифест открывал бы установленное приложение уже без
+            // кода друга. Подменяем манифест на динамически собранный (через Blob URL)
+            // со start_url, содержащим код, пока он «жив» в рамках текущего захода на
+            // сайт (та же вкладка — см. sessionStorage, ключ должен совпадать с
+            // REFERRAL_STORAGE_KEY из src/lib/referral.ts).
+            try {
+                var REF_KEY = 'zapoptom_referral_code';
+                var refParams = new URLSearchParams(location.search);
+                var ref = (refParams.get('ref') || '').trim().toUpperCase();
+                if (ref) {
+                    sessionStorage.setItem(REF_KEY, ref);
+                    localStorage.setItem(REF_KEY, ref);
+                } else {
+                    ref = sessionStorage.getItem(REF_KEY) || '';
+                }
+                if (ref) {
+                    fetch('/manifest.webmanifest')
+                        .then(function (r) { return r.json(); })
+                        .then(function (manifest) {
+                            manifest.start_url = '/?ref=' + ref;
+                            var blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+                            document.querySelector('link[rel="manifest"]').setAttribute('href', URL.createObjectURL(blob));
+                        })
+                        .catch(function () {});
+                }
+            } catch (e) {}
         }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
