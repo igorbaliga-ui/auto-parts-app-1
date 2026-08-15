@@ -136,9 +136,11 @@ def handler(event: dict, context) -> dict:
         is_first_lead = row is None
         if row:
             name = row[0]
-        # Если это самая первая заявка клиента и он пришёл по ссылке друга — запоминаем,
+        # Если это самая первая заявка клиента и он указал промокод друга — запоминаем,
         # кто его пригласил (один раз, дальше не меняется). Самоприглашение по своему же
-        # коду и код, который никому не принадлежит, тихо игнорируем.
+        # коду и код, который никому не принадлежит, тихо игнорируем. Имя пригласившего
+        # запоминаем отдельно — подставим в push-уведомление менеджеру.
+        referrer_name = None
         if is_first_lead and referral_code:
             cur.execute(
                 f"SELECT phone_last10 FROM {schema}.garage_accounts WHERE referral_code = %s",
@@ -153,6 +155,14 @@ def handler(event: dict, context) -> dict:
                     f"COALESCE(garage_accounts.referred_by_phone_last10, EXCLUDED.referred_by_phone_last10), updated_at = now()",
                     (phone_last10, ref_row[0]),
                 )
+                cur.execute(
+                    f"SELECT name FROM {schema}.leads "
+                    f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s "
+                    f"ORDER BY created_at ASC LIMIT 1",
+                    (ref_row[0],),
+                )
+                referrer_row = cur.fetchone()
+                referrer_name = referrer_row[0] if referrer_row else None
         # Если название авто не передали явно — подтягиваем его из другой заявки с тем же VIN
         if not car_name and vin_to_save:
             cur.execute(
@@ -176,10 +186,13 @@ def handler(event: dict, context) -> dict:
         cur.close()
 
         car_label = car_name or vin_to_save or 'без VIN'
+        push_body = f'{name}, {phone} — {car_label}'
+        if referrer_name:
+            push_body += f' (по промокоду от {referrer_name})'
         send_push_to_admins(
             dsn, schema,
             title='Новая заявка',
-            body=f'{name}, {phone} — {car_label}',
+            body=push_body,
         )
     finally:
         conn.close()
