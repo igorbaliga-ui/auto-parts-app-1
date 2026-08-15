@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Icon from "@/components/ui/icon";
+import { getStoredReferralCode } from "@/lib/referral";
 
 type Props = {
   open: boolean;
@@ -15,8 +16,12 @@ type Props = {
   defaultTab?: "ios" | "android";
 };
 
+const SITE_HOST = "запоптом.рф";
+
+// {SITE} — место, куда подставляется название сайта (обычным текстом или
+// ссылкой с реферальным кодом, если человек пришёл по ссылке друга)
 const iosSteps = [
-  "Откройте сайт запоптом.рф в браузере Safari (важно — именно Safari, не Chrome).",
+  "Откройте сайт {SITE} в браузере Safari (важно — именно Safari, не Chrome).",
   "Нажмите на иконку «Поделиться» внизу экрана — квадрат со стрелкой вверх.",
   "В открывшемся списке выберите «На экран Домой».",
   "Нажмите «Добавить» в правом верхнем углу.",
@@ -24,28 +29,56 @@ const iosSteps = [
 ];
 
 const androidSteps = [
-  "Откройте сайт запоптом.рф в браузере Chrome.",
+  "Откройте сайт {SITE} в браузере Chrome.",
   "Нажмите на иконку ⬇ «Установить» рядом с названием сайта, либо на три точки в правом верхнем углу браузера.",
   "Выберите «Установить приложение» ( «Добавить на главный экран» или «Установить и создать ярлык»).",
   "Подтвердите установку в появившемся окне.",
   "Готово — значок ЗАП ОПТОМ появится на главном экране и в списке приложений.",
 ];
 
-const StepList = ({ steps }: { steps: string[] }) => (
+const StepList = ({ steps, siteHref }: { steps: string[]; siteHref: string | null }) => (
   <ol className="flex flex-col gap-3 mt-4">
-    {steps.map((s, i) => (
-      <li key={i} className="flex gap-3">
-        <span className="shrink-0 w-7 h-7 rounded-full bg-primary/15 text-primary font-head font-bold flex items-center justify-center text-sm">
-          {i + 1}
-        </span>
-        <span className="text-sm text-foreground/90 pt-0.5">{s}</span>
-      </li>
-    ))}
+    {steps.map((s, i) => {
+      const parts = s.split("{SITE}");
+      return (
+        <li key={i} className="flex gap-3">
+          <span className="shrink-0 w-7 h-7 rounded-full bg-primary/15 text-primary font-head font-bold flex items-center justify-center text-sm">
+            {i + 1}
+          </span>
+          <span className="text-sm text-foreground/90 pt-0.5">
+            {parts.length === 2 ? (
+              <>
+                {parts[0]}
+                {siteHref ? (
+                  <a
+                    href={siteHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline underline-offset-2"
+                  >
+                    {SITE_HOST}
+                  </a>
+                ) : (
+                  SITE_HOST
+                )}
+                {parts[1]}
+              </>
+            ) : (
+              s
+            )}
+          </span>
+        </li>
+      );
+    })}
   </ol>
 );
 
 const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
   const [tab, setTab] = useState<"ios" | "android">(defaultTab);
+  // Если человек пришёл по ссылке друга — в инструкции показываем «запоптом.рф»
+  // той же реферальной ссылкой, чтобы код не потерялся после установки приложения
+  const referralCode = getStoredReferralCode();
+  const siteHref = referralCode ? `https://запоптом.рф/?ref=${referralCode}` : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -72,10 +105,10 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="ios">
-            <StepList steps={iosSteps} />
+            <StepList steps={iosSteps} siteHref={siteHref} />
           </TabsContent>
           <TabsContent value="android">
-            <StepList steps={androidSteps} />
+            <StepList steps={androidSteps} siteHref={siteHref} />
           </TabsContent>
         </Tabs>
       </DialogContent>
