@@ -23,3 +23,14 @@ export const isAndroidChrome = (): boolean => {
   const isThirdPartyBrowser = /SamsungBrowser|YaBrowser|OPR\/|EdgA|MiuiBrowser|HuaweiBrowser/i.test(ua);
   return isAndroid && /chrome/i.test(ua) && !isThirdPartyBrowser;
 };
+
+/** Определяет операционную систему устройства (не браузер) — используется,
+ * чтобы в инструкции установки показывать только релевантную вкладку
+ * (iPhone/Android), скрывая инструкцию для чужой платформы. */
+export const getMobileOs = (): 'ios' | 'android' | null => {
+  if (typeof navigator === 'undefined') return null;
+  const ua = navigator.userAgent;
+  if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+  if (/android/i.test(ua)) return 'android';
+  return null;
+};

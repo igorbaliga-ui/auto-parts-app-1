@@ -9,7 +9,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Icon from "@/components/ui/icon";
 import { getStoredReferralCode } from "@/lib/referral";
-import { isIosSafari, isAndroidChrome } from "@/lib/browser-detect";
+import { isIosSafari, isAndroidChrome, getMobileOs } from "@/lib/browser-detect";
 
 type Props = {
   open: boolean;
@@ -84,6 +84,10 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
   // уже в нём находится (Safari на iOS / Chrome на Android)
   const visibleIosSteps = isIosSafari() ? iosSteps.slice(1) : iosSteps;
   const visibleAndroidSteps = isAndroidChrome() ? androidSteps.slice(1) : androidSteps;
+  // Устройство уже однозначно определено (iPhone или Android) — инструкция для
+  // другой платформы человеку не нужна и не показывается вовсе, вместе с
+  // переключателем вкладок
+  const detectedOs = getMobileOs();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -98,24 +102,31 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "ios" | "android")}>
-          <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="ios" className="flex items-center gap-2">
-              <Icon name="Apple" size={16} />
-              iPhone
-            </TabsTrigger>
-            <TabsTrigger value="android" className="flex items-center gap-2">
-              <Icon name="Smartphone" size={16} />
-              Android
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="ios">
-            <StepList steps={visibleIosSteps} siteHref={siteHref} />
-          </TabsContent>
-          <TabsContent value="android">
-            <StepList steps={visibleAndroidSteps} siteHref={siteHref} />
-          </TabsContent>
-        </Tabs>
+        {detectedOs ? (
+          <StepList
+            steps={detectedOs === "ios" ? visibleIosSteps : visibleAndroidSteps}
+            siteHref={siteHref}
+          />
+        ) : (
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "ios" | "android")}>
+            <TabsList className="grid grid-cols-2 w-full">
+              <TabsTrigger value="ios" className="flex items-center gap-2">
+                <Icon name="Apple" size={16} />
+                iPhone
+              </TabsTrigger>
+              <TabsTrigger value="android" className="flex items-center gap-2">
+                <Icon name="Smartphone" size={16} />
+                Android
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="ios">
+              <StepList steps={visibleIosSteps} siteHref={siteHref} />
+            </TabsContent>
+            <TabsContent value="android">
+              <StepList steps={visibleAndroidSteps} siteHref={siteHref} />
+            </TabsContent>
+          </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   );
