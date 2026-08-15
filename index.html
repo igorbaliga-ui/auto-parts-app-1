@@ -22,38 +22,6 @@
             document.querySelector('link[rel="manifest"]').setAttribute('href', '/admin-manifest.webmanifest');
             document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'ЗАП ОПТОМ');
             document.title = 'ЗАП ОПТОМ — Заявки';
-        } else if (location.pathname.indexOf('/install') === 0) {
-            // Реферальная ссылка друга ведёт именно на этот отдельный путь /install
-            // (см. src/pages/Install.tsx), а не на "/" с query-параметром — потому что
-            // iOS Safari («Добавить на экран Домой») и Chrome на Android («Установить
-            // приложение») берут star_url манифеста СИНХРОННО, в момент открытия
-            // системного меню (без ожидания сети), из файла, привязанного к текущему
-            // пути — так же, как и на /admin. Код друга к этому моменту уже сохранён в
-            // localStorage/sessionStorage (см. ниже), поэтому start_url в манифесте
-            // просто "/" — установленный ярлык откроет обычную главную, а атрибуция
-            // случившегося захода по ссылке друга уже надёжно записана в storage.
-            document.querySelector('link[rel="manifest"]').setAttribute('href', '/install-manifest.webmanifest');
-            try {
-                var REF_KEY = 'zapoptom_referral_code';
-                var refParams = new URLSearchParams(location.search);
-                var ref = (refParams.get('ref') || '').trim().toUpperCase();
-                if (ref) {
-                    sessionStorage.setItem(REF_KEY, ref);
-                    localStorage.setItem(REF_KEY, ref);
-                }
-            } catch (e) {}
-        } else {
-            // Обычные визиты (в т.ч. по ссылке друга, если он уже открывал /install
-            // раньше в этой же вкладке) — просто запоминаем код, если он есть в адресе.
-            try {
-                var REF_KEY2 = 'zapoptom_referral_code';
-                var refParams2 = new URLSearchParams(location.search);
-                var ref2 = (refParams2.get('ref') || '').trim().toUpperCase();
-                if (ref2) {
-                    sessionStorage.setItem(REF_KEY2, ref2);
-                    localStorage.setItem(REF_KEY2, ref2);
-                }
-            } catch (e) {}
         }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
