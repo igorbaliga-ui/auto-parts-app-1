@@ -15,6 +15,7 @@ import Index from "./pages/Index";
 // на соответствующий адрес. Главная страница за счёт этого открывается быстрее.
 const Admin = lazyWithReload(() => import("./pages/Admin"));
 const Garage = lazyWithReload(() => import("./pages/Garage"));
+const Install = lazyWithReload(() => import("./pages/Install"));
 const NotFound = lazyWithReload(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/garage" element={<Garage />} />
+              <Route path="/install" element={<Install />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

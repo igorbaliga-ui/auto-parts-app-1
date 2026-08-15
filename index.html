@@ -22,19 +22,17 @@
             document.querySelector('link[rel="manifest"]').setAttribute('href', '/admin-manifest.webmanifest');
             document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'ЗАП ОПТОМ');
             document.title = 'ЗАП ОПТОМ — Заявки';
-        } else {
-            // Реферальный код друга: и iOS («Добавить на экран Домой»), и Chrome на
-            // Android («Установить приложение») берут стартовый адрес ярлыка из поля
-            // start_url веб-манифеста в момент открытия системного меню. Обычный
-            // статичный файл /manifest.webmanifest не может содержать код конкретного
-            // посетителя, а сборка манифеста на лету через data:/Blob URL прямо в
-            // браузере ненадёжна — Safari его не всегда принимает. Поэтому вместо
-            // статичного файла подставляем адрес облачной функции, которая настоящим
-            // HTTP-ответом (как обычный файл манифеста) отдаёт JSON с нужным start_url —
-            // сам браузер запросит и прочитает его в момент добавления на экран.
-            // Код «живёт» в рамках текущего захода на сайт (та же вкладка —
-            // см. sessionStorage, ключ совпадает с REFERRAL_STORAGE_KEY из
-            // src/lib/referral.ts).
+        } else if (location.pathname.indexOf('/install') === 0) {
+            // Реферальная ссылка друга ведёт именно на этот отдельный путь /install
+            // (см. src/pages/Install.tsx), а не на "/" с query-параметром — потому что
+            // iOS Safari («Добавить на экран Домой») и Chrome на Android («Установить
+            // приложение») берут star_url манифеста СИНХРОННО, в момент открытия
+            // системного меню (без ожидания сети), из файла, привязанного к текущему
+            // пути — так же, как и на /admin. Код друга к этому моменту уже сохранён в
+            // localStorage/sessionStorage (см. ниже), поэтому start_url в манифесте
+            // просто "/" — установленный ярлык откроет обычную главную, а атрибуция
+            // случившегося захода по ссылке друга уже надёжно записана в storage.
+            document.querySelector('link[rel="manifest"]').setAttribute('href', '/install-manifest.webmanifest');
             try {
                 var REF_KEY = 'zapoptom_referral_code';
                 var refParams = new URLSearchParams(location.search);
@@ -42,14 +40,18 @@
                 if (ref) {
                     sessionStorage.setItem(REF_KEY, ref);
                     localStorage.setItem(REF_KEY, ref);
-                } else {
-                    ref = sessionStorage.getItem(REF_KEY) || '';
                 }
-                if (ref) {
-                    document.querySelector('link[rel="manifest"]').setAttribute(
-                        'href',
-                        'https://functions.poehali.dev/e893771a-21f2-41e0-b976-528fd53b4554?ref=' + encodeURIComponent(ref)
-                    );
+            } catch (e) {}
+        } else {
+            // Обычные визиты (в т.ч. по ссылке друга, если он уже открывал /install
+            // раньше в этой же вкладке) — просто запоминаем код, если он есть в адресе.
+            try {
+                var REF_KEY2 = 'zapoptom_referral_code';
+                var refParams2 = new URLSearchParams(location.search);
+                var ref2 = (refParams2.get('ref') || '').trim().toUpperCase();
+                if (ref2) {
+                    sessionStorage.setItem(REF_KEY2, ref2);
+                    localStorage.setItem(REF_KEY2, ref2);
                 }
             } catch (e) {}
         }

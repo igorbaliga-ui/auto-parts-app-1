@@ -26,7 +26,7 @@ const ReferralDialog = ({
   referrals,
 }: ReferralDialogProps) => {
   const referralLink = referralCode
-    ? `https://запоптом.рф/?ref=${referralCode}`
+    ? `https://запоптом.рф/install?ref=${referralCode}`
     : "";
 
   const copyLink = async () => {
