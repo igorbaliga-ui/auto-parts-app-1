@@ -200,14 +200,16 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       title: 'Заявка отправлена',
       description: 'Спасибо! Свяжемся с Вами в ближайшее время.',
     });
-    // Неавторизованный в «Гараже» клиент после успешной заявки сразу попадает в свой личный кабинет
+    // После успешной заявки клиент сразу попадает в свой личный кабинет «Гараж»
     if (!garageAuthed && form.phone) {
       safeSetItem(GARAGE_PHONE_KEY, form.phone);
       notifyGarageAuthChanged();
-      navigate('/garage');
-    } else if (location.pathname === '/garage') {
+    }
+    if (location.pathname === '/garage') {
       // Уже в «Моём гараже» — тихо обновляем список в фоне
       notifyGarageOrdersChanged();
+    } else {
+      navigate('/garage');
     }
     setForm(emptyForm);
     setMessenger(null);
