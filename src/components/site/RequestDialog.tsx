@@ -239,6 +239,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       city: form.city,
       messenger,
       photos: [...vinPhotoUrls, ...partsPhotoUrls],
+      promoCode: form.promoCode,
     });
   };
 

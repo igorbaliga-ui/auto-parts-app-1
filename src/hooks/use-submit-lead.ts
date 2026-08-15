@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
-import { getStoredReferralCode } from "@/lib/referral";
 
 const LEADS_SUBMIT_URL =
   "https://functions.poehali.dev/defcccf2-d62a-428a-98ec-9a007f560b83";
@@ -14,6 +13,7 @@ type LeadPayload = {
   photos?: string[];
   car_name?: string;
   city?: string;
+  promoCode?: string;
 };
 
 export const useSubmitLead = (onSuccess: () => void) => {
@@ -22,11 +22,11 @@ export const useSubmitLead = (onSuccess: () => void) => {
   const submitLead = async (payload: LeadPayload) => {
     setSubmitting(true);
     try {
-      const referralCode = getStoredReferralCode();
+      const { promoCode, ...rest } = payload;
       const res = await fetch(LEADS_SUBMIT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(referralCode ? { ...payload, referral_code: referralCode } : payload),
+        body: JSON.stringify(promoCode ? { ...rest, referral_code: promoCode } : rest),
       });
       if (!res.ok) {
         const errText = await res.text().catch(() => "");

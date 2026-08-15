@@ -22,7 +22,7 @@ export const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40
 
 export const STORAGE_KEY = 'zapoptom_request_draft';
 
-export const emptyForm = { vin: '', name: '', phone: '', parts: '', city: '' };
+export const emptyForm = { vin: '', name: '', phone: '', parts: '', city: '', promoCode: '' };
 
 export const loadDraft = () =>
   safeGetJSON<{ form: typeof emptyForm; messenger: string | null }>(STORAGE_KEY);

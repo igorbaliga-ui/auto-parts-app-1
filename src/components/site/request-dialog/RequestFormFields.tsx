@@ -18,7 +18,7 @@ import { sanitizeNameInput } from '@/lib/name';
 import { sanitizePartsInput } from '@/lib/text';
 import { messengers, GarageCar } from './RequestContext';
 
-type FormState = { vin: string; name: string; phone: string; parts: string; city: string };
+type FormState = { vin: string; name: string; phone: string; parts: string; city: string; promoCode: string };
 
 type RequestFormFieldsProps = {
   form: FormState;
@@ -317,6 +317,31 @@ const RequestFormFields = ({
           <p className="text-primary text-xs mt-1">{errors.city}</p>
         )}
       </div>
+
+      {!knownContact && (
+        <div>
+          <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+            Промокод друга (необязательно)
+          </label>
+          <Input
+            value={form.promoCode}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10),
+              }))
+            }
+            maxLength={10}
+            inputMode="text"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="Например, X7K9QZ"
+            className="mt-1.5 bg-background tracking-[0.14em] uppercase"
+          />
+        </div>
+      )}
 
       <Button
         type="submit"

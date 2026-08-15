@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Icon from "@/components/ui/icon";
-import { getStoredReferralCode } from "@/lib/referral";
 import { isIosSafari, isAndroidChrome, getMobileOs } from "@/lib/browser-detect";
 
 type Props = {
@@ -19,8 +18,7 @@ type Props = {
 
 const SITE_HOST = "запоптом.рф";
 
-// {SITE} — место, куда подставляется название сайта (обычным текстом или
-// ссылкой с реферальным кодом, если человек пришёл по ссылке друга)
+// {SITE} — место, куда подставляется название сайта
 const iosSteps = [
   "Откройте сайт {SITE} в браузере Safari (важно — именно Safari, не Chrome).",
   "Нажмите на иконку «Поделиться» внизу экрана — квадрат со стрелкой вверх.",
@@ -37,7 +35,7 @@ const androidSteps = [
   "Готово — значок ЗАП ОПТОМ появится на главном экране и в списке приложений.",
 ];
 
-const StepList = ({ steps, siteHref }: { steps: string[]; siteHref: string | null }) => (
+const StepList = ({ steps }: { steps: string[] }) => (
   <ol className="flex flex-col gap-3 mt-4">
     {steps.map((s, i) => {
       const parts = s.split("{SITE}");
@@ -50,18 +48,7 @@ const StepList = ({ steps, siteHref }: { steps: string[]; siteHref: string | nul
             {parts.length === 2 ? (
               <>
                 {parts[0]}
-                {siteHref ? (
-                  <a
-                    href={siteHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary underline underline-offset-2"
-                  >
-                    {SITE_HOST}
-                  </a>
-                ) : (
-                  SITE_HOST
-                )}
+                {SITE_HOST}
                 {parts[1]}
               </>
             ) : (
@@ -76,10 +63,6 @@ const StepList = ({ steps, siteHref }: { steps: string[]; siteHref: string | nul
 
 const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
   const [tab, setTab] = useState<"ios" | "android">(defaultTab);
-  // Если человек пришёл по ссылке друга — в инструкции показываем «запоптом.рф»
-  // той же реферальной ссылкой, чтобы код не потерялся после установки приложения
-  const referralCode = getStoredReferralCode();
-  const siteHref = referralCode ? `https://запоптом.рф/?ref=${referralCode}` : null;
   // Шаг «откройте сайт в нужном браузере» не нужен, если пользователь и так
   // уже в нём находится (Safari на iOS / Chrome на Android)
   const visibleIosSteps = isIosSafari() ? iosSteps.slice(1) : iosSteps;
@@ -103,10 +86,7 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
         </DialogHeader>
 
         {detectedOs ? (
-          <StepList
-            steps={detectedOs === "ios" ? visibleIosSteps : visibleAndroidSteps}
-            siteHref={siteHref}
-          />
+          <StepList steps={detectedOs === "ios" ? visibleIosSteps : visibleAndroidSteps} />
         ) : (
           <Tabs value={tab} onValueChange={(v) => setTab(v as "ios" | "android")}>
             <TabsList className="grid grid-cols-2 w-full">
@@ -120,10 +100,10 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="ios">
-              <StepList steps={visibleIosSteps} siteHref={siteHref} />
+              <StepList steps={visibleIosSteps} />
             </TabsContent>
             <TabsContent value="android">
-              <StepList steps={visibleAndroidSteps} siteHref={siteHref} />
+              <StepList steps={visibleAndroidSteps} />
             </TabsContent>
           </Tabs>
         )}
