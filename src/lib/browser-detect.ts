@@ -24,6 +24,21 @@ export const isAndroidChrome = (): boolean => {
   return isAndroid && /chrome/i.test(ua) && !isThirdPartyBrowser;
 };
 
+/** Определяет, что сайт открыт именно в браузере Safari (мобильном или
+ * десктопном) — в отличие от isIosSafari, не привязан к iOS: десктопный
+ * Safari на Mac тоже считается. Chrome, Edge, Firefox, Яндекс и другие
+ * браузеры на любой платформе тоже содержат "Safari" в строке UA (это
+ * особенность WebKit/Blink), поэтому их явно исключаем. */
+export const isSafariBrowser = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  const isThirdPartyBrowser =
+    /Chrome|Chromium|CriOS|FxiOS|EdgiOS|Edg\/|EdgA|OPiOS|OPR\/|YaBrowser|SamsungBrowser|MiuiBrowser|HuaweiBrowser|UCBrowser|GSA/i.test(
+      ua,
+    );
+  return /safari/i.test(ua) && !isThirdPartyBrowser;
+};
+
 /** Определяет операционную систему устройства (не браузер) — используется,
  * чтобы в инструкции установки показывать только релевантную вкладку
  * (iPhone/Android), скрывая инструкцию для чужой платформы. */

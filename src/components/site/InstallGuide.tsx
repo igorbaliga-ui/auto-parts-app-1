@@ -9,7 +9,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Icon from "@/components/ui/icon";
 import { getStoredReferralCode } from "@/lib/referral";
-import { isIosSafari, isAndroidChrome, getMobileOs } from "@/lib/browser-detect";
+import { isIosSafari, isAndroidChrome, isSafariBrowser, getMobileOs } from "@/lib/browser-detect";
 
 type Props = {
   open: boolean;
@@ -76,10 +76,15 @@ const StepList = ({ steps, siteHref }: { steps: string[]; siteHref: string | nul
 
 const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
   const [tab, setTab] = useState<"ios" | "android">(defaultTab);
-  // Если человек пришёл по ссылке друга — в инструкции показываем «запоптом.рф»
-  // той же реферальной ссылкой, чтобы код не потерялся после установки приложения
+  // Если человек пришёл по ссылке друга (код сохранён в localStorage) — в инструкции
+  // показываем «запоптом.рф» той же реферальной ссылкой, чтобы код не потерялся
+  // после установки приложения. Только в браузерах, где это безопасно кликнуть
+  // прямо в шаге инструкции (не Safari — там первый шаг «откройте сайт»
+  // подразумевает переход в Safari, а ссылка открылась бы в текущем браузере,
+  // не в нужном). Зашедшим напрямую без кода друга — ссылку не подставляем.
   const referralCode = getStoredReferralCode();
-  const siteHref = referralCode ? `https://запоптом.рф/?ref=${referralCode}` : null;
+  const siteHref =
+    referralCode && !isSafariBrowser() ? `https://запоптом.рф/?ref=${referralCode}` : null;
   // Шаг «откройте сайт в нужном браузере» не нужен, если пользователь и так
   // уже в нём находится (Safari на iOS / Chrome на Android)
   const visibleIosSteps = isIosSafari() ? iosSteps.slice(1) : iosSteps;
