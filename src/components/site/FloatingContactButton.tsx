@@ -53,6 +53,8 @@ const FloatingContactButton = () => {
       .then((res) => (res.ok ? res.json() : null))
       .then((d) => {
         if (!d) return;
+        // Кнопку можно полностью скрыть с сайта переключателем в /admin
+        if (d.floating_button_visible === false) return;
         if (d.whatsapp_href) {
           setBaseLink({ href: d.whatsapp_href, icon: "MessageCircle", label: "Написать в WhatsApp" });
           return;

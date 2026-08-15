@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import Icon from '@/components/ui/icon';
 import { toast } from '@/hooks/use-toast';
 
@@ -19,6 +20,7 @@ type ContactsData = {
   instagram_href: string | null;
   website_value: string | null;
   website_href: string | null;
+  floating_button_visible: boolean;
 };
 
 type AdminContactsTabProps = {
@@ -46,11 +48,13 @@ const AdminContactsTab = ({ adminPassword }: AdminContactsTabProps) => {
       .finally(() => setLoading(false));
   }, []);
 
-  const setField = (field: keyof ContactsData, value: string) => {
+  type StringField = Exclude<keyof ContactsData, 'floating_button_visible'>;
+
+  const setField = (field: StringField, value: string) => {
     setData((d) => (d ? { ...d, [field]: value } : d));
   };
 
-  const socialFields: { field: keyof ContactsData; label: string; icon: string; placeholder: string }[] = [
+  const socialFields: { field: StringField; label: string; icon: string; placeholder: string }[] = [
     { field: 'whatsapp_href', label: 'WhatsApp', icon: 'MessageCircle', placeholder: 'https://wa.me/79324027937' },
     { field: 'telegram_href', label: 'Telegram', icon: 'Send', placeholder: 'https://t.me/username' },
     { field: 'vk_href', label: 'ВКонтакте', icon: 'Share2', placeholder: 'https://vk.com/username' },
@@ -197,6 +201,24 @@ const AdminContactsTab = ({ adminPassword }: AdminContactsTabProps) => {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="border-t border-steel pt-5 flex items-center justify-between gap-4">
+        <div>
+          <h3 className="font-head uppercase tracking-wide text-sm mb-1 flex items-center gap-1.5">
+            <Icon name="CircleDot" size={14} />
+            Плавающая кнопка связи
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Кнопка в правом нижнем углу сайта, ведущая в WhatsApp/Telegram. Выключите, если она не нужна.
+          </p>
+        </div>
+        <Switch
+          checked={data.floating_button_visible}
+          onCheckedChange={(checked) =>
+            setData((d) => (d ? { ...d, floating_button_visible: checked } : d))
+          }
+        />
       </div>
 
       <Button

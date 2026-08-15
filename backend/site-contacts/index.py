@@ -7,6 +7,7 @@ from rate_limit import get_client_ip, check_rate_limit
 
 SOCIAL_FIELDS = ['whatsapp_href', 'telegram_href', 'vk_href', 'instagram_href', 'website_value', 'website_href']
 REQUIRED_FIELDS = ['phone_value', 'phone_href', 'email_value', 'email_href', 'address_value', 'hours_value']
+BOOL_FIELDS = ['floating_button_visible']
 
 
 def handler(event: dict, context) -> dict:
@@ -39,7 +40,8 @@ def handler(event: dict, context) -> dict:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cur.execute(
                 f"SELECT phone_value, phone_href, email_value, email_href, address_value, hours_value, "
-                f"whatsapp_href, telegram_href, vk_href, instagram_href, website_value, website_href "
+                f"whatsapp_href, telegram_href, vk_href, instagram_href, website_value, website_href, "
+                f"floating_button_visible "
                 f"FROM {schema}.site_contacts WHERE id = 1"
             )
             row = cur.fetchone()
@@ -83,6 +85,10 @@ def handler(event: dict, context) -> dict:
         if field in body:
             value = (body[field] or '').strip()
             values[field] = value or None
+
+    for field in BOOL_FIELDS:
+        if field in body:
+            values[field] = bool(body[field])
 
     if not values:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Нечего сохранять'})}

@@ -1,0 +1,1 @@
+ALTER TABLE site_contacts ADD COLUMN IF NOT EXISTS floating_button_visible boolean NOT NULL DEFAULT true;
