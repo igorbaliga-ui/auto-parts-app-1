@@ -61,15 +61,15 @@ const ReferralDialog = ({
         </DialogHeader>
 
         {referralCode ? (
-          <div className="flex items-center gap-2 bg-muted rounded-sm px-3 py-2.5">
-            <span className="flex-1 font-head text-sm tracking-[0.08em] truncate">
+          <div className="flex flex-col gap-2 bg-muted rounded-sm px-3 py-2.5">
+            <span className="font-head text-sm tracking-[0.08em] break-all">
               {referralLink}
             </span>
             <Button
               type="button"
               size="sm"
               onClick={copyLink}
-              className="font-head uppercase tracking-wide text-xs shrink-0"
+              className="font-head uppercase tracking-wide text-xs w-full"
             >
               <Icon name="Share2" size={14} className="mr-1.5" />
               Поделиться
