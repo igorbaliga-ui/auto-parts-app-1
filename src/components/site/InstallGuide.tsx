@@ -9,7 +9,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Icon from "@/components/ui/icon";
 import { toast } from "@/hooks/use-toast";
-import { getStoredReferralCode } from "@/lib/referral";
+import { getSessionReferralCode } from "@/lib/referral";
 import {
   isIosSafari,
   isAndroidChrome,
@@ -109,13 +109,16 @@ const StepList = ({
 
 const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
   const [tab, setTab] = useState<"ios" | "android">(defaultTab);
-  // Если человек пришёл по ссылке друга (код сохранён в localStorage) — в инструкции
-  // показываем «запоптом.рф» той же реферальной ссылкой, чтобы код не потерялся
-  // после установки приложения. Только в браузерах, где это безопасно кликнуть
-  // прямо в шаге инструкции (не Safari — там первый шаг «откройте сайт»
-  // подразумевает переход в Safari, а ссылка открылась бы в текущем браузере,
-  // не в нужном). Зашедшим напрямую без кода друга — ссылку не подставляем.
-  const referralCode = getStoredReferralCode();
+  // Если человек пришёл по ссылке друга именно СЕЙЧАС (код есть в сессии
+  // текущего захода на сайт) — в инструкции показываем «запоптом.рф» той же
+  // реферальной ссылкой, чтобы код не потерялся после установки приложения.
+  // Только в браузерах, где это безопасно кликнуть прямо в шаге инструкции
+  // (не Safari — там первый шаг «откройте сайт» подразумевает переход в
+  // Safari, а ссылка открылась бы в текущем браузере, не в нужном).
+  // Зашедшим напрямую (в том числе повторно, без ?ref= в этот раз) — ссылку
+  // не подставляем, даже если когда-то раньше они уже приходили по ссылке
+  // друга.
+  const referralCode = getSessionReferralCode();
   const rawReferralUrl = referralCode ? `https://запоптом.рф/?ref=${referralCode}` : null;
   // На Android, если человек ещё не в Chrome — ссылка принудительно открывает
   // именно Chrome (через intent://), чтобы дальнейшая установка приложения
