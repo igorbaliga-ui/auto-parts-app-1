@@ -25,12 +25,15 @@
         } else {
             // Реферальный код друга: и iOS («Добавить на экран Домой»), и Chrome на
             // Android («Установить приложение») берут стартовый адрес ярлыка из поля
-            // start_url веб-манифеста, а НЕ из текущей ссылки в адресной строке —
-            // поэтому статичный манифест открывал бы установленное приложение уже без
-            // кода друга. Подменяем манифест на динамически собранный (через Blob URL)
-            // со start_url, содержащим код, пока он «жив» в рамках текущего захода на
-            // сайт (та же вкладка — см. sessionStorage, ключ должен совпадать с
-            // REFERRAL_STORAGE_KEY из src/lib/referral.ts).
+            // start_url веб-манифеста в момент открытия системного меню — СИНХРОННО,
+            // без ожидания сети. Поэтому подмену манифеста нельзя делать через fetch()
+            // (асинхронно, Safari может не успеть) — вместо этого прямо здесь собираем
+            // копию содержимого manifest.webmanifest как data:-URI со start_url,
+            // включающим код (без обращения к сети и без Blob URL, который для
+            // манифеста в Safari ненадёжен). Код «живёт» в рамках текущего захода на
+            // сайт (та же вкладка — см. sessionStorage, ключ совпадает с
+            // REFERRAL_STORAGE_KEY из src/lib/referral.ts). ВАЖНО: при изменении
+            // public/manifest.webmanifest нужно обновить и объект ниже.
             try {
                 var REF_KEY = 'zapoptom_referral_code';
                 var refParams = new URLSearchParams(location.search);
@@ -42,14 +45,29 @@
                     ref = sessionStorage.getItem(REF_KEY) || '';
                 }
                 if (ref) {
-                    fetch('/manifest.webmanifest')
-                        .then(function (r) { return r.json(); })
-                        .then(function (manifest) {
-                            manifest.start_url = '/?ref=' + ref;
-                            var blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-                            document.querySelector('link[rel="manifest"]').setAttribute('href', URL.createObjectURL(blob));
-                        })
-                        .catch(function () {});
+                    var manifest = {
+                        id: '/',
+                        name: 'ЗАП Оптом — автозапчасти по VIN',
+                        short_name: 'ЗАП Оптом',
+                        description: 'Подбор автозапчастей по VIN-коду: оригинал и аналоги, опт и розница',
+                        start_url: '/?ref=' + ref,
+                        scope: '/',
+                        display: 'standalone',
+                        background_color: '#0e0e0f',
+                        theme_color: '#0e0e0f',
+                        orientation: 'portrait-primary',
+                        lang: 'ru',
+                        icons: [
+                            { src: '/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+                            { src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+                            { src: '/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+                            { src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+                        ]
+                    };
+                    document.querySelector('link[rel="manifest"]').setAttribute(
+                        'href',
+                        'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(manifest))
+                    );
                 }
             } catch (e) {}
         }
