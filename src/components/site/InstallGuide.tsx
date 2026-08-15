@@ -9,14 +9,13 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Icon from "@/components/ui/icon";
 import { isIosSafari, isAndroidChrome, getMobileOs } from "@/lib/browser-detect";
+import { SITE_HOST } from "@/lib/site";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultTab?: "ios" | "android";
 };
-
-const SITE_HOST = "запоптом.рф";
 
 // {SITE} — место, куда подставляется название сайта
 const iosSteps = [

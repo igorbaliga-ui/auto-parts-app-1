@@ -8,6 +8,7 @@ import { useNav, Tab } from "@/components/site/NavContext";
 import { useGarageAuth } from "@/hooks/use-garage-auth";
 import { useGarageArrived } from "@/hooks/use-garage-arrived";
 import { safeGetItem, safeSetItem } from "@/lib/storage";
+import { SITE_URL } from "@/lib/site";
 import InstallGuide from "./InstallGuide";
 
 const INSTALL_HINT_SEEN_KEY = "install-hint-seen";
@@ -54,7 +55,7 @@ const Header = () => {
     const shareData = {
       title: "ЗАП ОПТОМ",
       text: "Подбор автозапчастей по VIN-коду — ЗАП ОПТОМ",
-      url: window.location.origin,
+      url: SITE_URL,
     };
     if (navigator.share) {
       try {

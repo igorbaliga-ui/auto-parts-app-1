@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { useIsStandalone } from '@/hooks/use-standalone';
+import { SITE_URL } from '@/lib/site';
 
 type AdminInstallBannersProps = {
   canInstall: boolean;
@@ -25,7 +26,7 @@ const AdminInstallBanners = ({
     const shareData = {
       title: 'ЗАП ОПТОМ — Заявки',
       text: 'Админка заявок ЗАП ОПТОМ',
-      url: window.location.origin + '/admin-install.html',
+      url: SITE_URL + 'admin-install.html',
     };
     if (navigator.share) {
       try {
