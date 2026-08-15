@@ -1,0 +1,26 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Manifest without ref",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {"start_url": "/", "display": "standalone"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Manifest with ref code",
+      "method": "GET",
+      "path": "/?ref=ABC123",
+      "expectedStatus": 200,
+      "expectedBody": {"start_url": "/?ref=ABC123"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}
