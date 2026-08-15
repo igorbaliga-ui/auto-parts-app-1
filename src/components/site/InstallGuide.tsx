@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Icon from "@/components/ui/icon";
+import { toast } from "@/hooks/use-toast";
 import { getStoredReferralCode } from "@/lib/referral";
 import { isIosSafari, isAndroidChrome, isSafariBrowser, getMobileOs } from "@/lib/browser-detect";
 
@@ -37,6 +38,15 @@ const androidSteps = [
   "Готово — значок ЗАП ОПТОМ появится на главном экране и в списке приложений.",
 ];
 
+const copySiteText = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast({ title: "Скопировано" });
+  } catch {
+    // буфер обмена недоступен — тихо игнорируем
+  }
+};
+
 const StepList = ({ steps, siteHref }: { steps: string[]; siteHref: string | null }) => (
   <ol className="flex flex-col gap-3 mt-4">
     {steps.map((s, i) => {
@@ -62,6 +72,15 @@ const StepList = ({ steps, siteHref }: { steps: string[]; siteHref: string | nul
                 ) : (
                   SITE_HOST
                 )}
+                <button
+                  type="button"
+                  onClick={() => copySiteText(siteHref || SITE_HOST)}
+                  aria-label="Скопировать адрес сайта"
+                  title="Скопировать"
+                  className="inline-flex align-middle ml-1 text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Icon name="Copy" size={14} />
+                </button>
                 {parts[1]}
               </>
             ) : (
