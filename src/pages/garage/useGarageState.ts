@@ -590,6 +590,24 @@ export const useGarageState = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, phone]);
 
+  // Клиент был на «Гараже» ещё не авторизован (номер не найден среди заявок),
+  // прямо там же оставил заявку через «Оставьте заявку» — сразу после её
+  // успешной отправки переключаем экран со входа на список заказов, без
+  // повторного ввода телефона.
+  useEffect(() => {
+    if (authed) return;
+    const onAuthChanged = () => {
+      const saved = safeGetItem(STORAGE_KEY);
+      if (saved) {
+        setPhone(saved);
+        load(saved);
+      }
+    };
+    window.addEventListener('garage-auth-changed', onAuthChanged);
+    return () => window.removeEventListener('garage-auth-changed', onAuthChanged);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed]);
+
   return {
     phone,
     setPhone,
