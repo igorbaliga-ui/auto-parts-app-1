@@ -1,4 +1,4 @@
-const CACHE_NAME = "zap-optom-v4";
+const CACHE_NAME = "zap-optom-v5";
 const PRECACHE_URLS = ["/pwa-192.png", "/pwa-512.png"];
 
 self.addEventListener("install", (event) => {
