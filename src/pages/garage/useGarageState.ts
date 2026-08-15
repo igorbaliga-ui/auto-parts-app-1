@@ -73,7 +73,7 @@ export const useGarageState = () => {
   const [codeInput, setCodeInput] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [callCooldown, setCallCooldown] = useState(0);
-  const { permission: pushPermission, subscribing: pushSubscribing, subscribed: pushSubscribed, subscribe: subscribePush } =
+  const { permission: pushPermission, subscribing: pushSubscribing, subscribed: pushSubscribed, subscribe: subscribePush, unsubscribe: unsubscribePush } =
     usePushSubscription(authed ? phone : null);
 
   const checkAccountStatus = async (ph: string) => {
@@ -347,6 +347,10 @@ export const useGarageState = () => {
   };
 
   const logout = () => {
+    // Отписываем это устройство от push-уведомлений о заказах вышедшего клиента — иначе
+    // при входе другого человека в «Гараж» на том же телефоне/браузере ему бы не пришлось
+    // включать уведомления заново, но и старый клиент продолжал бы их получать
+    unsubscribePush();
     safeRemoveItem(STORAGE_KEY);
     safeRemoveItem(PASSWORD_VERIFIED_KEY);
     setAuthed(false);

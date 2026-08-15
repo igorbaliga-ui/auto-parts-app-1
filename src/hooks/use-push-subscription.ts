@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { safeGetItem, safeSetItem } from '@/lib/storage';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { safeGetItem, safeSetItem, safeRemoveItem } from '@/lib/storage';
 
 const PUSH_SUBSCRIBE_URL = 'https://functions.poehali.dev/30d578c6-e25c-4fdc-b648-85e2cbdc2a65';
 
@@ -33,6 +33,11 @@ export const usePushSubscription = (phone: string | null) => {
   );
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  // Запоминаем последний известный телефон в ref (не только в state), чтобы unsubscribe
+  // мог отправить его на сервер, даже если вызван сразу после logout (когда phone уже
+  // сброшен на null в родительском компоненте и хук успел перерендериться)
+  const lastPhoneRef = useRef<string | null>(null);
+  if (phone) lastPhoneRef.current = phone;
 
   useEffect(() => {
     if (!isPushSupported() || !phone) {
@@ -86,5 +91,33 @@ export const usePushSubscription = (phone: string | null) => {
     }
   }, [phone]);
 
-  return { permission, subscribing, subscribed, subscribe };
+  // Отписывает браузер от push-уведомлений и удаляет подписку на сервере — вызывается
+  // при выходе из «Гаража», чтобы после логаута этот же браузер/устройство не продолжал
+  // получать уведомления о заказах вышедшего клиента, если войдёт другой человек.
+  const unsubscribe = useCallback(async () => {
+    if (!isPushSupported()) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        const endpoint = sub.endpoint;
+        await sub.unsubscribe();
+        const knownPhone = lastPhoneRef.current;
+        if (knownPhone) {
+          await fetch(PUSH_SUBSCRIBE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'unsubscribe', phone: knownPhone, endpoint }),
+          });
+        }
+      }
+    } catch {
+      // не критично — при следующем логине подписка просто будет оформлена заново
+    } finally {
+      safeRemoveItem(SUBSCRIBED_PHONE_KEY);
+      setSubscribed(false);
+    }
+  }, []);
+
+  return { permission, subscribing, subscribed, subscribe, unsubscribe };
 };
