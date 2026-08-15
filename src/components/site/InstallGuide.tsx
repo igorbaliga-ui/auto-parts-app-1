@@ -9,6 +9,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Icon from "@/components/ui/icon";
 import { getStoredReferralCode } from "@/lib/referral";
+import { isIosSafari, isAndroidChrome } from "@/lib/browser-detect";
 
 type Props = {
   open: boolean;
@@ -79,6 +80,10 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
   // той же реферальной ссылкой, чтобы код не потерялся после установки приложения
   const referralCode = getStoredReferralCode();
   const siteHref = referralCode ? `https://запоптом.рф/?ref=${referralCode}` : null;
+  // Шаг «откройте сайт в нужном браузере» не нужен, если пользователь и так
+  // уже в нём находится (Safari на iOS / Chrome на Android)
+  const visibleIosSteps = isIosSafari() ? iosSteps.slice(1) : iosSteps;
+  const visibleAndroidSteps = isAndroidChrome() ? androidSteps.slice(1) : androidSteps;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,10 +110,10 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="ios">
-            <StepList steps={iosSteps} siteHref={siteHref} />
+            <StepList steps={visibleIosSteps} siteHref={siteHref} />
           </TabsContent>
           <TabsContent value="android">
-            <StepList steps={androidSteps} siteHref={siteHref} />
+            <StepList steps={visibleAndroidSteps} siteHref={siteHref} />
           </TabsContent>
         </Tabs>
       </DialogContent>
