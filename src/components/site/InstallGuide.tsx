@@ -10,7 +10,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Icon from "@/components/ui/icon";
 import { toast } from "@/hooks/use-toast";
 import { getStoredReferralCode } from "@/lib/referral";
-import { isIosSafari, isAndroidChrome, isSafariBrowser, getMobileOs } from "@/lib/browser-detect";
+import {
+  isIosSafari,
+  isAndroidChrome,
+  isSafariBrowser,
+  getMobileOs,
+  toAndroidChromeIntentUrl,
+} from "@/lib/browser-detect";
 
 type Props = {
   open: boolean;
@@ -47,7 +53,15 @@ const copySiteText = async (text: string) => {
   }
 };
 
-const StepList = ({ steps, siteHref }: { steps: string[]; siteHref: string | null }) => (
+const StepList = ({
+  steps,
+  siteHref,
+  copyHref,
+}: {
+  steps: string[];
+  siteHref: string | null;
+  copyHref: string | null;
+}) => (
   <ol className="flex flex-col gap-3 mt-4">
     {steps.map((s, i) => {
       const parts = s.split("{SITE}");
@@ -74,7 +88,7 @@ const StepList = ({ steps, siteHref }: { steps: string[]; siteHref: string | nul
                 )}
                 <button
                   type="button"
-                  onClick={() => copySiteText(siteHref || SITE_HOST)}
+                  onClick={() => copySiteText(copyHref || SITE_HOST)}
                   aria-label="Скопировать адрес сайта"
                   title="Скопировать"
                   className="inline-flex align-middle ml-1 text-muted-foreground hover:text-primary transition-colors"
@@ -102,8 +116,17 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
   // подразумевает переход в Safari, а ссылка открылась бы в текущем браузере,
   // не в нужном). Зашедшим напрямую без кода друга — ссылку не подставляем.
   const referralCode = getStoredReferralCode();
-  const siteHref =
-    referralCode && !isSafariBrowser() ? `https://запоптом.рф/?ref=${referralCode}` : null;
+  const rawReferralUrl = referralCode ? `https://запоптом.рф/?ref=${referralCode}` : null;
+  // На Android, если человек ещё не в Chrome — ссылка принудительно открывает
+  // именно Chrome (через intent://), чтобы дальнейшая установка приложения
+  // происходила в том же браузере, где закрепился реферальный код
+  const siteHref = !rawReferralUrl
+    ? null
+    : isSafariBrowser()
+      ? null
+      : getMobileOs() === "android" && !isAndroidChrome()
+        ? toAndroidChromeIntentUrl(rawReferralUrl)
+        : rawReferralUrl;
   // Шаг «откройте сайт в нужном браузере» не нужен, если пользователь и так
   // уже в нём находится (Safari на iOS / Chrome на Android)
   const visibleIosSteps = isIosSafari() ? iosSteps.slice(1) : iosSteps;
@@ -130,6 +153,7 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
           <StepList
             steps={detectedOs === "ios" ? visibleIosSteps : visibleAndroidSteps}
             siteHref={siteHref}
+            copyHref={rawReferralUrl}
           />
         ) : (
           <Tabs value={tab} onValueChange={(v) => setTab(v as "ios" | "android")}>
@@ -144,10 +168,10 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="ios">
-              <StepList steps={visibleIosSteps} siteHref={siteHref} />
+              <StepList steps={visibleIosSteps} siteHref={siteHref} copyHref={rawReferralUrl} />
             </TabsContent>
             <TabsContent value="android">
-              <StepList steps={visibleAndroidSteps} siteHref={siteHref} />
+              <StepList steps={visibleAndroidSteps} siteHref={siteHref} copyHref={rawReferralUrl} />
             </TabsContent>
           </Tabs>
         )}

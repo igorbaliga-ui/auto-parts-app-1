@@ -49,3 +49,15 @@ export const getMobileOs = (): 'ios' | 'android' | null => {
   if (/android/i.test(ua)) return 'android';
   return null;
 };
+
+/** Превращает обычную https-ссылку в Android intent-ссылку, которая
+ * принудительно открывает именно Chrome, даже если у пользователя выбран
+ * другой браузер по умолчанию (Samsung Internet, Яндекс и т.д.) — так
+ * реферальный код гарантированно фиксируется в том же браузере, где потом
+ * будет установлено приложение. На iOS такого системного механизма нет —
+ * там принудительно открыть Safari из ссылки технически невозможно. */
+export const toAndroidChromeIntentUrl = (url: string): string => {
+  const u = new URL(url);
+  const rest = u.pathname + u.search + u.hash;
+  return `intent://${u.host}${rest}#Intent;scheme=${u.protocol.replace(':', '')};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url)};end`;
+};
