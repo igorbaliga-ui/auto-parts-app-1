@@ -7,6 +7,7 @@ import { useIsMobileOs } from "@/hooks/use-mobile-os";
 import { useNav, Tab } from "@/components/site/NavContext";
 import { useGarageAuth } from "@/hooks/use-garage-auth";
 import { useGarageArrived } from "@/hooks/use-garage-arrived";
+import { useGarageReferralCode } from "@/hooks/use-garage-referral-code";
 import { safeGetItem, safeSetItem } from "@/lib/storage";
 import { SITE_URL } from "@/lib/site";
 import InstallGuide from "./InstallGuide";
@@ -32,6 +33,7 @@ const Header = () => {
   const { goTo } = useNav();
   const { authed: garageAuthed } = useGarageAuth();
   const hasArrived = useGarageArrived();
+  const referralCode = useGarageReferralCode();
 
   const dismissInstallHint = () => {
     setInstallHint(false);
@@ -52,11 +54,14 @@ const Header = () => {
 
   const handleShare = async () => {
     setOpen(false);
-    const shareData = {
-      title: "ЗАП ОПТОМ",
-      text: "Подбор автозапчастей по VIN-коду — ЗАП ОПТОМ",
-      url: SITE_URL,
-    };
+    // Та же ссылка и текст, что и в кнопке «Поделиться промокодом» в «Гараже» —
+    // клиент делится своим персональным промокодом, а не просто ссылкой на сайт
+    const shareText = referralCode
+      ? `Промокод ${referralCode} даёт мне бонус при заказе на ЗАП ОПТОМ. Оставь заявку на запоптом.рф и укажи этот промокод при оформлении`
+      : "Подбор автозапчастей по VIN-коду — ЗАП ОПТОМ";
+    const shareData = referralCode
+      ? { title: "ЗАП ОПТОМ", text: shareText }
+      : { title: "ЗАП ОПТОМ", text: shareText, url: SITE_URL };
     if (navigator.share) {
       try {
         await navigator.share(shareData);
@@ -64,7 +69,7 @@ const Header = () => {
         // пользователь отменил — ничего не делаем
       }
     } else if (navigator.clipboard) {
-      await navigator.clipboard.writeText(shareData.url);
+      await navigator.clipboard.writeText(referralCode || SITE_URL);
     }
   };
 
@@ -81,14 +86,16 @@ const Header = () => {
         </button>
 
         {isStandalone ? (
-          <button
-            onClick={handleShare}
-            aria-label="Поделиться приложением"
-            title="Поделиться приложением"
-            className="flex items-center justify-center w-9 h-9 ml-4 rounded-full border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-share-glow"
-          >
-            <Icon name="Share2" size={16} />
-          </button>
+          garageAuthed && (
+            <button
+              onClick={handleShare}
+              aria-label="Поделиться промокодом"
+              title="Поделиться промокодом"
+              className="flex items-center justify-center w-9 h-9 ml-4 rounded-full border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-share-glow"
+            >
+              <Icon name="Share2" size={16} />
+            </button>
+          )
         ) : isMobileOs ? (
           <div className="relative ml-4">
             {installHint && (
