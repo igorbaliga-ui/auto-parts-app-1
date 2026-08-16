@@ -1,38 +1,10 @@
-import { useState, useEffect, useRef, ReactNode } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-} from '@/components/ui/drawer';
-import { useSubmitLead } from '@/hooks/use-submit-lead';
+import { ReactNode } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { toast } from '@/hooks/use-toast';
-import { useGarageAuth, GARAGE_PHONE_KEY, notifyGarageAuthChanged, notifyGarageOrdersChanged } from '@/hooks/use-garage-auth';
-import { usePhotoAttach } from '@/hooks/use-photo-attach';
-import { usePhoneCallVerification } from '@/hooks/use-phone-call-verification';
-import { getStoredCity } from '@/lib/garage-city';
-import { safeSetItem, safeRemoveItem } from '@/lib/storage';
-import { setLastVin } from '@/hooks/use-last-vin';
-import {
-  RequestContext,
-  isValidName,
-  isValidPhone,
-  GARAGE_LOOKUP_URL,
-  STORAGE_KEY,
-  emptyForm,
-  loadDraft,
-  GarageCar,
-} from './request-dialog/RequestContext';
+import { useGarageAuth } from '@/hooks/use-garage-auth';
+import { RequestContext } from './request-dialog/RequestContext';
+import { useRequestFormState } from './request-dialog/useRequestFormState';
+import { useRequestSubmit } from './request-dialog/useRequestSubmit';
+import RequestDialogShell from './request-dialog/RequestDialogShell';
 import RequestFormFields from './request-dialog/RequestFormFields';
 import RequestPhoneVerificationStep from './request-dialog/RequestPhoneVerificationStep';
 
@@ -40,397 +12,58 @@ export { useRequest } from './request-dialog/RequestContext';
 
 export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
-  const location = useLocation();
   const { authed: garageAuthed, phone: garagePhone } = useGarageAuth();
-  const [isOpen, setIsOpen] = useState(false);
-  const [form, setForm] = useState(emptyForm);
-  const [messenger, setMessenger] = useState<string | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  // Два независимых набора фото — у поля VIN свои миниатюры, у поля «Интересующие запчасти»
-  // свои; при отправке оба набора объединяются в один список фото заявки.
-  const vinPhoto = usePhotoAttach();
-  const partsPhoto = usePhotoAttach();
-  const [knownContact, setKnownContact] = useState(false);
-  const [vinHistory, setVinHistory] = useState<string[]>([]);
-  const [garageCars, setGarageCars] = useState<GarageCar[]>([]);
-  const [vinSource, setVinSource] = useState<'garage' | 'manual' | null>(null);
-  const nameLookupTimer = useRef<ReturnType<typeof setTimeout>>();
-  const lastLookupPhone = useRef<string>('');
-  // Проверка промокода друга прямо в форме, без ожидания ответа на всю заявку —
-  // как только клиент дописал код, спрашиваем бэкенд, существует ли он
-  const [promoStatus, setPromoStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
-  const promoCheckTimer = useRef<ReturnType<typeof setTimeout>>();
-  const lastCheckedPromo = useRef<string>('');
-  // Когда по введённому телефону нашлось имя клиента — прячем поле «Имя» плавным
-  // исчезновением, храним пару телефон/имя, чтобы понять, что подстановка ещё актуальна
-  const [autoFilledName, setAutoFilledName] = useState<{ phone: string; name: string } | null>(null);
-  // Для неавторизованного посетителя имя не подставляем (нельзя узнавать чужие имена), но
-  // если номер уже есть в базе — прячем само поле «Имя» целиком (оно возьмётся на бэкенде
-  // из первой заявки клиента по этому номеру)
-  const [knownPhoneNoAuth, setKnownPhoneNoAuth] = useState<string | null>(null);
-  const existsCheckTimer = useRef<ReturnType<typeof setTimeout>>();
-  const lastExistsCheckPhone = useRef<string>('');
-  // Промокод друга можно указать только один раз: если к введённому телефону уже
-  // привязан чужой промокод — поле «Промокод друга» скрывается, как и поле «Имя»
-  const [promoAlreadyUsed, setPromoAlreadyUsed] = useState(false);
-  const promoUsedCheckTimer = useRef<ReturnType<typeof setTimeout>>();
-  const lastPromoUsedCheckPhone = useRef<string>('');
-  // Шаг подтверждения номера звонком: показывается только если у клиента ещё нет
-  // подтверждённого номера (проверяем перед фактической отправкой заявки в базу)
-  const [verificationStep, setVerificationStep] = useState(false);
-  const [pendingSubmit, setPendingSubmit] = useState<(() => void) | null>(null);
-  const verification = usePhoneCallVerification();
 
-  // Клиент вошёл в «Гараж» — подгружаем список его автомобилей с названиями (привязаны к VIN)
-  useEffect(() => {
-    if (!garageAuthed || !garagePhone) {
-      setGarageCars([]);
-      return;
-    }
-    let cancelled = false;
-    fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(garagePhone)}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled || !data) return;
-        const orders: { vin: string | null; car_name: string | null }[] = data.orders || [];
-        const seen = new Set<string>();
-        const cars: GarageCar[] = [];
-        orders.forEach((o) => {
-          if (o.vin && o.car_name && !seen.has(o.vin)) {
-            seen.add(o.vin);
-            cars.push({ vin: o.vin, car_name: o.car_name });
-          }
-        });
-        setGarageCars(cars);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [garageAuthed, garagePhone]);
+  const {
+    isOpen,
+    setIsOpen,
+    form,
+    setForm,
+    messenger,
+    setMessenger,
+    vinPhoto,
+    partsPhoto,
+    knownContact,
+    vinHistory,
+    garageCars,
+    vinSource,
+    setVinSource,
+    promoStatus,
+    autoFilledName,
+    knownPhoneNoAuth,
+    promoAlreadyUsed,
+    open: openForm,
+    resetForm,
+  } = useRequestFormState({ garageAuthed, garagePhone });
 
-  useEffect(() => {
-    const draft = loadDraft();
-    if (draft) {
-      setForm(draft.form);
-      setMessenger(draft.messenger);
-    }
-  }, []);
-
-  useEffect(() => {
-    const hasData = form.vin || form.name || form.phone || form.parts || messenger;
-    if (hasData) {
-      safeSetItem(STORAGE_KEY, JSON.stringify({ form, messenger }));
-    } else {
-      safeRemoveItem(STORAGE_KEY);
-    }
-  }, [form, messenger]);
-
-  // Запоминаем VIN сразу по мере ввода (не дожидаясь отправки формы) — чтобы плавающая
-  // кнопка WhatsApp/Telegram могла подставить его в сообщение, даже если клиент откроет
-  // чат раньше, чем отправит саму заявку
-  useEffect(() => {
-    if (form.vin) setLastVin(form.vin);
-  }, [form.vin]);
-
-  // Телефон привязан к одному имени: при вводе известного номера имя подставляется автоматически.
-  // Только для клиента, уже вошедшего в свой «Гараж» — иначе по чужому номеру телефона
-  // можно было бы узнать имя другого человека, ранее оставившего заявку.
-  useEffect(() => {
-    if (knownContact || !garageAuthed) return;
-    const digits = form.phone.replace(/\D/g, '');
-    if (digits.length < 10) return;
-    if (lastLookupPhone.current === digits) return;
-
-    clearTimeout(nameLookupTimer.current);
-    nameLookupTimer.current = setTimeout(async () => {
-      lastLookupPhone.current = digits;
-      try {
-        const res = await fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(digits)}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        const foundName = data.orders?.[0]?.name;
-        if (foundName) {
-          setForm((f) => (f.phone.replace(/\D/g, '') === digits ? { ...f, name: foundName } : f));
-          setAutoFilledName({ phone: digits, name: foundName });
-        }
-      } catch {
-        // тихо игнорируем — это необязательная подсказка
-      }
-    }, 500);
-
-    return () => clearTimeout(nameLookupTimer.current);
-  }, [form.phone, knownContact, garageAuthed]);
-
-  // Как только телефон перестаёт совпадать с тем, по которому подставили имя — снова
-  // показываем поле «Имя» (клиент мог изменить номер после автоподстановки)
-  useEffect(() => {
-    if (!autoFilledName) return;
-    const digits = form.phone.replace(/\D/g, '');
-    if (digits !== autoFilledName.phone) {
-      setAutoFilledName(null);
-    }
-  }, [form.phone, autoFilledName]);
-
-  // Неавторизованный посетитель: имя не раскрываем, но если введённый номер уже есть
-  // в базе — прячем поле «Имя» целиком (бэкенд сам подставит имя из первой заявки)
-  useEffect(() => {
-    if (knownContact || garageAuthed) return;
-    const digits = form.phone.replace(/\D/g, '');
-    if (digits.length < 10) {
-      setKnownPhoneNoAuth(null);
-      return;
-    }
-    if (lastExistsCheckPhone.current === digits) return;
-
-    clearTimeout(existsCheckTimer.current);
-    existsCheckTimer.current = setTimeout(async () => {
-      lastExistsCheckPhone.current = digits;
-      try {
-        const res = await fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(digits)}&exists_only=1`);
-        if (!res.ok) return;
-        const data = await res.json();
-        setKnownPhoneNoAuth((prev) => {
-          const current = form.phone.replace(/\D/g, '');
-          if (current !== digits) return prev;
-          return data.exists ? digits : null;
-        });
-      } catch {
-        // тихо игнорируем — это необязательная подсказка
-      }
-    }, 500);
-
-    return () => clearTimeout(existsCheckTimer.current);
-  }, [form.phone, knownContact, garageAuthed]);
-
-  useEffect(() => {
-    if (!knownPhoneNoAuth) return;
-    const digits = form.phone.replace(/\D/g, '');
-    if (digits !== knownPhoneNoAuth) {
-      setKnownPhoneNoAuth(null);
-    }
-  }, [form.phone, knownPhoneNoAuth]);
-
-  // Как только телефон введён полностью — проверяем, не привязан ли к нему уже
-  // чей-то промокод (промокод друга можно указать только один раз)
-  useEffect(() => {
-    const digits = form.phone.replace(/\D/g, '');
-    if (digits.length < 10) {
-      setPromoAlreadyUsed(false);
-      lastPromoUsedCheckPhone.current = '';
-      return;
-    }
-    if (lastPromoUsedCheckPhone.current === digits) return;
-
-    clearTimeout(promoUsedCheckTimer.current);
-    promoUsedCheckTimer.current = setTimeout(async () => {
-      lastPromoUsedCheckPhone.current = digits;
-      try {
-        const res = await fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(digits)}&promo_used=1`);
-        if (!res.ok) return;
-        const data = await res.json();
-        setPromoAlreadyUsed((prev) => {
-          const current = form.phone.replace(/\D/g, '');
-          if (current !== digits) return prev;
-          return !!data.used;
-        });
-      } catch {
-        // тихо игнорируем — это необязательная подсказка
-      }
-    }, 500);
-
-    return () => clearTimeout(promoUsedCheckTimer.current);
-  }, [form.phone]);
-
-  // Промокод друга проверяется прямо в форме, без ожидания отправки всей заявки —
-  // как только клиент вводит код полностью, спрашиваем бэкенд, существует ли он
-  useEffect(() => {
-    const code = form.promoCode.trim();
-    if (!code) {
-      setPromoStatus('idle');
-      lastCheckedPromo.current = '';
-      return;
-    }
-    if (lastCheckedPromo.current === code) return;
-
-    setPromoStatus('checking');
-    clearTimeout(promoCheckTimer.current);
-    promoCheckTimer.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`${GARAGE_LOOKUP_URL}?check_promo=${encodeURIComponent(code)}`);
-        if (!res.ok) throw new Error('request failed');
-        const data = await res.json();
-        lastCheckedPromo.current = code;
-        setPromoStatus((prev) => {
-          if (form.promoCode.trim() !== code) return prev;
-          return data.valid ? 'valid' : 'invalid';
-        });
-      } catch {
-        setPromoStatus('idle');
-      }
-    }, 500);
-
-    return () => clearTimeout(promoCheckTimer.current);
-  }, [form.promoCode]);
-
-  const open = (vin?: string, incomingPhotos?: File[], phone?: string, name?: string, history?: string[], city?: string) => {
-    setErrors({});
-    setForm((f) => ({
-      ...f,
-      vin: vin ?? f.vin,
-      phone: phone ?? f.phone,
-      name: name ?? f.name,
-      city: city ?? (f.city || getStoredCity()),
-    }));
-    setKnownContact(isValidName(name) && isValidPhone(phone));
-    setAutoFilledName(null);
-    setKnownPhoneNoAuth(null);
-    lastLookupPhone.current = '';
-    lastExistsCheckPhone.current = '';
-    setVinHistory(history ?? []);
-    setVinSource(vin ? 'manual' : null);
-    setPromoStatus('idle');
-    lastCheckedPromo.current = '';
-    setPromoAlreadyUsed(false);
-    lastPromoUsedCheckPhone.current = '';
-    if (incomingPhotos && incomingPhotos.length > 0) {
-      vinPhoto.addPhotos(incomingPhotos);
-    }
-    setIsOpen(true);
-  };
-
-  const validate = () => {
-    const e: Record<string, string> = {};
-    const vin = form.vin.trim();
-    const vinValid = vin.length === 10 || vin.length === 17;
-    if (!vinValid) {
-      if (vin.length === 0) {
-        if (vinPhoto.photos.length === 0 && partsPhoto.photos.length === 0) {
-          e.vin = 'Укажите VIN или прикрепите фото';
-        }
-      } else {
-        e.vin = 'VIN должен содержать 10 или 17 символов';
-      }
-    }
-    if (!knownContact && !knownPhoneNoAuth && form.name.trim().length < 2) {
-      e.name = 'Укажите имя';
-    }
-    const phoneDigits = form.phone.replace(/\D/g, '');
-    if (!knownContact && phoneDigits.length < 10) {
-      e.phone = 'Укажите корректный телефон';
-    }
-    if (!messenger) {
-      e.messenger = 'Выберите мессенджер';
-    }
-    if (!form.city) {
-      e.city = 'Выберите город';
-    }
-    if (form.parts.trim().length < 2) {
-      e.parts = 'Укажите интересующие запчасти';
-    }
-    if (!knownContact && !promoAlreadyUsed && promoStatus === 'invalid') {
-      e.promoCode = 'Такого промокода не существует';
-    }
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const { submitLead, submitting } = useSubmitLead(() => {
-    setIsOpen(false);
-    toast({
-      title: 'Заявка отправлена',
-      description: 'Спасибо! Свяжемся с Вами в ближайшее время.',
-    });
-    // После успешной заявки клиент сразу попадает в свой личный кабинет «Гараж»
-    if (!garageAuthed && form.phone) {
-      safeSetItem(GARAGE_PHONE_KEY, form.phone);
-      notifyGarageAuthChanged();
-    }
-    if (location.pathname === '/garage') {
-      // Уже в «Моём гараже» — тихо обновляем список в фоне
-      notifyGarageOrdersChanged();
-    } else {
-      navigate('/garage');
-    }
-    setForm(emptyForm);
-    setMessenger(null);
-    setKnownContact(false);
-    setAutoFilledName(null);
-    setKnownPhoneNoAuth(null);
-    setVinSource(null);
-    setPromoStatus('idle');
-    lastCheckedPromo.current = '';
-    setPromoAlreadyUsed(false);
-    lastPromoUsedCheckPhone.current = '';
-    vinPhoto.resetPhotos();
-    partsPhoto.resetPhotos();
-    safeRemoveItem(STORAGE_KEY);
-    setVerificationStep(false);
-    verification.reset();
-    setPendingSubmit(null);
+  const {
+    errors,
+    setErrors,
+    submitting,
+    checkingVerification,
+    verificationStep,
+    verification,
+    submit,
+    handleVerifyCode,
+    handleRequestCall,
+    handleBackFromVerification,
+  } = useRequestSubmit({
+    form,
+    messenger,
+    knownContact,
+    knownPhoneNoAuth,
+    promoStatus,
+    promoAlreadyUsed,
+    garageAuthed,
+    vinPhoto,
+    partsPhoto,
+    setIsOpen,
+    resetForm,
   });
 
-  const [checkingVerification, setCheckingVerification] = useState(false);
-
-  const performSubmit = async () => {
-    setLastVin(form.vin);
-    const [vinPhotoUrls, partsPhotoUrls] = await Promise.all([
-      vinPhoto.preparePhotosForUpload(),
-      partsPhoto.preparePhotosForUpload(),
-    ]);
-    submitLead({
-      vin: form.vin,
-      name: form.name,
-      phone: form.phone,
-      parts: form.parts,
-      city: form.city,
-      messenger,
-      photos: [...vinPhotoUrls, ...partsPhotoUrls],
-      promoCode: form.promoCode,
-    });
-  };
-
-  // Заявка реально отправляется в базу только после того, как номер телефона
-  // подтверждён звонком. Уже авторизованный в «Гараже» клиент проходит эту
-  // проверку один раз при входе, поэтому здесь его не переспрашиваем.
-  const submit = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!validate()) return;
-    const phoneDigits = form.phone.replace(/\D/g, '');
-    if (!garageAuthed) {
-      setCheckingVerification(true);
-      const verified = await verification.checkPhoneVerified(phoneDigits);
-      setCheckingVerification(false);
-      if (!verified) {
-        setPendingSubmit(() => performSubmit);
-        setVerificationStep(true);
-        return;
-      }
-    }
-    await performSubmit();
-  };
-
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const phoneDigits = form.phone.replace(/\D/g, '');
-    const ok = await verification.verifyCode(phoneDigits);
-    if (ok) {
-      setVerificationStep(false);
-      verification.reset();
-      pendingSubmit?.();
-      setPendingSubmit(null);
-    }
-  };
-
-  const handleRequestCall = () => {
-    verification.requestCall(form.phone.replace(/\D/g, ''));
-  };
-
-  const handleBackFromVerification = () => {
-    setVerificationStep(false);
-    verification.reset();
-    setPendingSubmit(null);
+  const open = (vin?: string, photos?: File[], phone?: string, name?: string, history?: string[], city?: string) => {
+    setErrors({});
+    openForm(vin, photos, phone, name, history, city);
   };
 
   const formContent = (
@@ -479,54 +112,17 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
 
   const dialogBody = verificationStep ? verificationContent : formContent;
 
-  if (isMobile) {
-    return (
-      <RequestContext.Provider value={{ open }}>
-        {children}
-        <Drawer
-          open={isOpen}
-          onOpenChange={setIsOpen}
-          repositionInputs={false}
-          shouldScaleBackground={false}
-        >
-          <DrawerContent className="bg-card border-border max-h-[85vh]">
-            <div className="overflow-y-auto px-4 pb-6">
-              <DrawerHeader className="px-0 text-left">
-                <DrawerTitle className="font-head uppercase tracking-wide text-2xl">
-                  {verificationStep ? 'Подтверждение номера' : 'Заявка на подбор'}
-                </DrawerTitle>
-                <DrawerDescription className="text-muted-foreground">
-                  {verificationStep
-                    ? 'Осталось подтвердить номер телефона.'
-                    : 'Оставьте VIN и контакты — найдём деталь и сообщим цену.'}
-                </DrawerDescription>
-              </DrawerHeader>
-              {dialogBody}
-            </div>
-          </DrawerContent>
-        </Drawer>
-      </RequestContext.Provider>
-    );
-  }
-
   return (
     <RequestContext.Provider value={{ open }}>
       {children}
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="bg-card border-border sm:max-w-[460px]">
-          <DialogHeader>
-            <DialogTitle className="font-head uppercase tracking-wide text-2xl">
-              {verificationStep ? 'Подтверждение номера' : 'Заявка на подбор'}
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              {verificationStep
-                ? 'Осталось подтвердить номер телефона.'
-                : 'Оставьте VIN и контакты — найдём деталь и сообщим цену.'}
-            </DialogDescription>
-          </DialogHeader>
-          {dialogBody}
-        </DialogContent>
-      </Dialog>
+      <RequestDialogShell
+        isMobile={isMobile}
+        isOpen={isOpen}
+        setIsOpen={setIsOpen}
+        verificationStep={verificationStep}
+      >
+        {dialogBody}
+      </RequestDialogShell>
     </RequestContext.Provider>
   );
 };

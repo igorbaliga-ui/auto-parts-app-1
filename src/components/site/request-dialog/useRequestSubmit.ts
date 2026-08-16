@@ -1,0 +1,182 @@
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useSubmitLead } from '@/hooks/use-submit-lead';
+import { toast } from '@/hooks/use-toast';
+import { GARAGE_PHONE_KEY, notifyGarageAuthChanged, notifyGarageOrdersChanged } from '@/hooks/use-garage-auth';
+import { usePhoneCallVerification } from '@/hooks/use-phone-call-verification';
+import { safeSetItem } from '@/lib/storage';
+import { setLastVin } from '@/hooks/use-last-vin';
+import { PromoStatus } from './useRequestFormState';
+
+type FormState = { vin: string; name: string; phone: string; parts: string; city: string; promoCode: string };
+
+type UseRequestSubmitParams = {
+  form: FormState;
+  messenger: string | null;
+  knownContact: boolean;
+  knownPhoneNoAuth: string | null;
+  promoStatus: PromoStatus;
+  promoAlreadyUsed: boolean;
+  garageAuthed: boolean;
+  vinPhoto: { photos: File[]; preparePhotosForUpload: () => Promise<string[]> };
+  partsPhoto: { photos: File[]; preparePhotosForUpload: () => Promise<string[]> };
+  setIsOpen: (open: boolean) => void;
+  resetForm: () => void;
+};
+
+/** Валидация, отправка заявки и шаг подтверждения телефона звонком. */
+export const useRequestSubmit = ({
+  form,
+  messenger,
+  knownContact,
+  knownPhoneNoAuth,
+  promoStatus,
+  promoAlreadyUsed,
+  garageAuthed,
+  vinPhoto,
+  partsPhoto,
+  setIsOpen,
+  resetForm,
+}: UseRequestSubmitParams) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  // Шаг подтверждения номера звонком: показывается только если у клиента ещё нет
+  // подтверждённого номера (проверяем перед фактической отправкой заявки в базу)
+  const [verificationStep, setVerificationStep] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState<(() => void) | null>(null);
+  const [checkingVerification, setCheckingVerification] = useState(false);
+  const verification = usePhoneCallVerification();
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    const vin = form.vin.trim();
+    const vinValid = vin.length === 10 || vin.length === 17;
+    if (!vinValid) {
+      if (vin.length === 0) {
+        if (vinPhoto.photos.length === 0 && partsPhoto.photos.length === 0) {
+          e.vin = 'Укажите VIN или прикрепите фото';
+        }
+      } else {
+        e.vin = 'VIN должен содержать 10 или 17 символов';
+      }
+    }
+    if (!knownContact && !knownPhoneNoAuth && form.name.trim().length < 2) {
+      e.name = 'Укажите имя';
+    }
+    const phoneDigits = form.phone.replace(/\D/g, '');
+    if (!knownContact && phoneDigits.length < 10) {
+      e.phone = 'Укажите корректный телефон';
+    }
+    if (!messenger) {
+      e.messenger = 'Выберите мессенджер';
+    }
+    if (!form.city) {
+      e.city = 'Выберите город';
+    }
+    if (form.parts.trim().length < 2) {
+      e.parts = 'Укажите интересующие запчасти';
+    }
+    if (!knownContact && !promoAlreadyUsed && promoStatus === 'invalid') {
+      e.promoCode = 'Такого промокода не существует';
+    }
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const { submitLead, submitting } = useSubmitLead(() => {
+    setIsOpen(false);
+    toast({
+      title: 'Заявка отправлена',
+      description: 'Спасибо! Свяжемся с Вами в ближайшее время.',
+    });
+    // После успешной заявки клиент сразу попадает в свой личный кабинет «Гараж»
+    if (!garageAuthed && form.phone) {
+      safeSetItem(GARAGE_PHONE_KEY, form.phone);
+      notifyGarageAuthChanged();
+    }
+    if (location.pathname === '/garage') {
+      // Уже в «Моём гараже» — тихо обновляем список в фоне
+      notifyGarageOrdersChanged();
+    } else {
+      navigate('/garage');
+    }
+    resetForm();
+    setVerificationStep(false);
+    verification.reset();
+    setPendingSubmit(null);
+  });
+
+  const performSubmit = async () => {
+    setLastVin(form.vin);
+    const [vinPhotoUrls, partsPhotoUrls] = await Promise.all([
+      vinPhoto.preparePhotosForUpload(),
+      partsPhoto.preparePhotosForUpload(),
+    ]);
+    submitLead({
+      vin: form.vin,
+      name: form.name,
+      phone: form.phone,
+      parts: form.parts,
+      city: form.city,
+      messenger,
+      photos: [...vinPhotoUrls, ...partsPhotoUrls],
+      promoCode: form.promoCode,
+    });
+  };
+
+  // Заявка реально отправляется в базу только после того, как номер телефона
+  // подтверждён звонком. Уже авторизованный в «Гараже» клиент проходит эту
+  // проверку один раз при входе, поэтому здесь его не переспрашиваем.
+  const submit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!validate()) return;
+    const phoneDigits = form.phone.replace(/\D/g, '');
+    if (!garageAuthed) {
+      setCheckingVerification(true);
+      const verified = await verification.checkPhoneVerified(phoneDigits);
+      setCheckingVerification(false);
+      if (!verified) {
+        setPendingSubmit(() => performSubmit);
+        setVerificationStep(true);
+        return;
+      }
+    }
+    await performSubmit();
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const phoneDigits = form.phone.replace(/\D/g, '');
+    const ok = await verification.verifyCode(phoneDigits);
+    if (ok) {
+      setVerificationStep(false);
+      verification.reset();
+      pendingSubmit?.();
+      setPendingSubmit(null);
+    }
+  };
+
+  const handleRequestCall = () => {
+    verification.requestCall(form.phone.replace(/\D/g, ''));
+  };
+
+  const handleBackFromVerification = () => {
+    setVerificationStep(false);
+    verification.reset();
+    setPendingSubmit(null);
+  };
+
+  return {
+    errors,
+    setErrors,
+    submitting,
+    checkingVerification,
+    verificationStep,
+    verification,
+    submit,
+    handleVerifyCode,
+    handleRequestCall,
+    handleBackFromVerification,
+  };
+};
