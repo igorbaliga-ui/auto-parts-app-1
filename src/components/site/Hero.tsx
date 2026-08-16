@@ -108,7 +108,7 @@ const Hero = () => {
                         autoCorrect="off"
                         autoComplete="off"
                         spellCheck={false}
-                        placeholder="XW8ZZZ • • • •"
+                        placeholder=" VIN / Frame-номер или фото СТС • • • •"
                         aria-label="VIN-код автомобиля"
                         className="flex-1 min-w-0 bg-transparent text-foreground text-sm tracking-[0.1em] px-3 outline-none placeholder:text-steel"
                       />
