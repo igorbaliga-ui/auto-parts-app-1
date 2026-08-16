@@ -15,6 +15,7 @@ import GarageOrdersList from './garage/GarageOrdersList';
 import CashbackHistoryDialog from './garage/CashbackHistoryDialog';
 import GarageArchiveDialog from './garage/GarageArchiveDialog';
 import ReferralDialog from './garage/ReferralDialog';
+import PhoneChangeDialog from './garage/PhoneChangeDialog';
 
 const GarageContent = () => {
   const g = useGarageState();
@@ -142,6 +143,7 @@ const GarageContent = () => {
           removePasswordSettings={g.removePasswordSettings}
           logoutConfirmOpen={g.logoutConfirmOpen}
           logout={g.logout}
+          openPhoneChange={g.phoneChange.openDialog}
         />
 
         <GarageOrdersList
@@ -192,6 +194,23 @@ const GarageContent = () => {
         orders={g.archivedOrders}
         open={g.archiveDialogOpen}
         onOpenChange={g.setArchiveDialogOpen}
+      />
+      <PhoneChangeDialog
+        open={g.phoneChange.open}
+        onOpenChange={(o) => (o ? g.phoneChange.setOpen(true) : g.phoneChange.closeDialog())}
+        step={g.phoneChange.step}
+        newPhone={g.phoneChange.newPhone}
+        setNewPhone={g.phoneChange.setNewPhone}
+        callRequested={g.phoneChange.callRequested}
+        callLoading={g.phoneChange.callLoading}
+        codeInput={g.phoneChange.codeInput}
+        setCodeInput={g.phoneChange.setCodeInput}
+        verifyLoading={g.phoneChange.verifyLoading}
+        cooldown={g.phoneChange.cooldown}
+        error={g.phoneChange.error}
+        requestCall={g.phoneChange.requestCall}
+        submitCode={g.phoneChange.submitCode}
+        backToInput={g.phoneChange.backToInput}
       />
     </div>
     </PageBackground>

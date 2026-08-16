@@ -63,7 +63,7 @@ def handler(event: dict, context) -> dict:
             try:
                 cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                 cur.execute(
-                    f"SELECT login_type, user_agent, created_at FROM {schema}.garage_login_history "
+                    f"SELECT login_type, user_agent, created_at, note FROM {schema}.garage_login_history "
                     f"WHERE phone_last10 = %s ORDER BY created_at DESC LIMIT 50",
                     (phone_last10,),
                 )
@@ -76,6 +76,7 @@ def handler(event: dict, context) -> dict:
                 'login_type': r['login_type'],
                 'device': parse_device(r['user_agent']),
                 'created_at': r['created_at'].isoformat() if r['created_at'] else None,
+                'note': r['note'],
             } for r in rows]
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'history': history})}
 
@@ -297,6 +298,137 @@ def handler(event: dict, context) -> dict:
             )
             conn.commit()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+
+        # Смена номера телефона в личном кабинете «Гараж»: здесь phone_last10 — СТАРЫЙ
+        # (текущий) номер клиента, уже прошедшего вход. Новый номер передаётся отдельным
+        # полем new_phone и должен быть подтверждён отдельным звонком, прежде чем все
+        # данные клиента (заявки, заметка, кэшбэк, история входов, push-подписки,
+        # рефералы) будут перенесены на него.
+        if action in ('start_phone_change_call', 'verify_phone_change'):
+            new_phone_last10 = normalize_phone(body.get('new_phone') or '')
+            if len(new_phone_last10) < 10:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите корректный новый телефон'})}
+            if new_phone_last10 == phone_last10:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Новый номер совпадает с текущим'})}
+
+            # Новый номер не должен быть уже занят другим клиентом — иначе перенос
+            # данных перезаписал бы чужую историю заказов
+            cur.execute(
+                f"SELECT 1 FROM {schema}.leads WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s LIMIT 1",
+                (new_phone_last10,),
+            )
+            phone_taken = cur.fetchone() is not None
+            if not phone_taken:
+                cur.execute(
+                    f"SELECT 1 FROM {schema}.garage_accounts WHERE phone_last10 = %s LIMIT 1",
+                    (new_phone_last10,),
+                )
+                phone_taken = cur.fetchone() is not None
+            if phone_taken:
+                return {'statusCode': 409, 'headers': headers, 'body': json.dumps({'error': 'Этот номер уже привязан к другому аккаунту'})}
+
+            if action == 'start_phone_change_call':
+                cur.execute(
+                    f"SELECT created_at FROM {schema}.call_verifications "
+                    f"WHERE phone_last10 = %s ORDER BY created_at DESC LIMIT 1",
+                    (new_phone_last10,),
+                )
+                last_row = cur.fetchone()
+                if last_row:
+                    cur.execute("SELECT now() - %s < INTERVAL '60 seconds'", (last_row[0],))
+                    too_soon = cur.fetchone()[0]
+                    if too_soon:
+                        return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Повторный звонок можно заказать через минуту'})}
+                phone_e164 = '+7' + new_phone_last10
+                try:
+                    call = start_flashcall(phone_e164)
+                except ZvonokError as exc:
+                    return {'statusCode': 502, 'headers': headers, 'body': json.dumps({'error': str(exc)})}
+                cur.execute(
+                    f"INSERT INTO {schema}.call_verifications (phone_last10, call_id, expected_suffix) "
+                    f"VALUES (%s, %s, %s)",
+                    (new_phone_last10, call['call_id'], call['pincode']),
+                )
+                conn.commit()
+                return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+
+            # action == 'verify_phone_change'
+            entered = re.sub(r'\D', '', body.get('code') or '')
+            if len(entered) != 4:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Введите 4 цифры'})}
+            cur.execute(
+                f"SELECT id, expected_suffix, attempts FROM {schema}.call_verifications "
+                f"WHERE phone_last10 = %s AND status = 'pending' "
+                f"ORDER BY created_at DESC LIMIT 1",
+                (new_phone_last10,),
+            )
+            v_row = cur.fetchone()
+            if not v_row:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Сначала закажите звонок'})}
+            v_id, expected_suffix, attempts = v_row
+            if attempts >= 5:
+                return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Слишком много попыток. Закажите новый звонок'})}
+            if entered != expected_suffix:
+                cur.execute(
+                    f"UPDATE {schema}.call_verifications SET attempts = attempts + 1 WHERE id = %s",
+                    (v_id,),
+                )
+                conn.commit()
+                return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный код'})}
+            cur.execute(
+                f"UPDATE {schema}.call_verifications SET status = 'verified', verified_at = now() WHERE id = %s",
+                (v_id,),
+            )
+
+            new_phone_e164 = '+7' + new_phone_last10
+            old_phone_e164 = '+7' + phone_last10
+
+            # Переносим все данные клиента со старого номера на новый одной транзакцией
+            cur.execute(
+                f"UPDATE {schema}.leads SET phone = %s "
+                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s",
+                (new_phone_e164, phone_last10),
+            )
+            cur.execute(
+                f"UPDATE {schema}.client_notes SET phone_last10 = %s WHERE phone_last10 = %s",
+                (new_phone_last10, phone_last10),
+            )
+            cur.execute(
+                f"UPDATE {schema}.client_cashback_deductions SET phone_last10 = %s WHERE phone_last10 = %s",
+                (new_phone_last10, phone_last10),
+            )
+            cur.execute(
+                f"UPDATE {schema}.client_cashback_overrides SET phone_last10 = %s WHERE phone_last10 = %s",
+                (new_phone_last10, phone_last10),
+            )
+            cur.execute(
+                f"UPDATE {schema}.push_subscriptions SET phone_last10 = %s WHERE phone_last10 = %s",
+                (new_phone_last10, phone_last10),
+            )
+            cur.execute(
+                f"UPDATE {schema}.garage_login_history SET phone_last10 = %s WHERE phone_last10 = %s",
+                (new_phone_last10, phone_last10),
+            )
+            # Друзья, приглашённые этим клиентом — реферальная ссылка должна и дальше
+            # указывать на него, уже под новым номером
+            cur.execute(
+                f"UPDATE {schema}.garage_accounts SET referred_by_phone_last10 = %s WHERE referred_by_phone_last10 = %s",
+                (new_phone_last10, phone_last10),
+            )
+            cur.execute(
+                f"UPDATE {schema}.garage_accounts SET phone_last10 = %s, updated_at = now() WHERE phone_last10 = %s",
+                (new_phone_last10, phone_last10),
+            )
+            # Оставляем менеджеру заметный след смены номера в истории входов —
+            # под обоими номерами, чтобы найти клиента можно было по любому из них
+            user_agent = req_headers.get('User-Agent') or req_headers.get('user-agent') or ''
+            cur.execute(
+                f"INSERT INTO {schema}.garage_login_history (phone_last10, login_type, user_agent, ip, note) "
+                f"VALUES (%s, 'phone_changed', %s, %s, %s)",
+                (new_phone_last10, user_agent, client_ip, f'Сменил номер: {old_phone_e164} → {new_phone_e164}'),
+            )
+            conn.commit()
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True, 'new_phone': new_phone_e164})}
 
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректное действие'})}
     finally:

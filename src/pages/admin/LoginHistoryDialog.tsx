@@ -12,9 +12,10 @@ import { formatDate } from './adminTypes';
 const GARAGE_AUTH_URL = 'https://functions.poehali.dev/d92ac11d-c6d2-4430-b948-a767c0048442';
 
 type LoginHistoryItem = {
-  login_type: 'login' | 'reset_password';
+  login_type: 'login' | 'reset_password' | 'call_verified' | 'phone_changed';
   device: string;
   created_at: string | null;
+  note: string | null;
 };
 
 type LoginHistoryDialogProps = {
@@ -65,20 +66,44 @@ const LoginHistoryDialog = ({ phone, clientLabel, adminPassword, open, onOpenCha
               <div
                 key={i}
                 className={`flex items-center justify-between gap-3 border-l-2 pl-3 ${
-                  h.login_type === 'reset_password' ? 'border-primary/40' : 'border-steel'
+                  h.login_type === 'phone_changed'
+                    ? 'border-amber-500/60'
+                    : h.login_type === 'reset_password'
+                      ? 'border-primary/40'
+                      : 'border-steel'
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <Icon
-                    name={h.login_type === 'reset_password' ? 'KeyRound' : 'LogIn'}
+                    name={
+                      h.login_type === 'phone_changed'
+                        ? 'Smartphone'
+                        : h.login_type === 'reset_password'
+                          ? 'KeyRound'
+                          : 'LogIn'
+                    }
                     size={14}
-                    className={h.login_type === 'reset_password' ? 'text-primary' : 'text-muted-foreground'}
+                    className={
+                      h.login_type === 'phone_changed'
+                        ? 'text-amber-500'
+                        : h.login_type === 'reset_password'
+                          ? 'text-primary'
+                          : 'text-muted-foreground'
+                    }
                   />
                   <div>
                     <p className="text-sm">
-                      {h.login_type === 'reset_password' ? 'Восстановление пароля' : 'Обычный вход'}
+                      {h.login_type === 'phone_changed'
+                        ? 'Смена номера телефона'
+                        : h.login_type === 'reset_password'
+                          ? 'Восстановление пароля'
+                          : 'Обычный вход'}
                     </p>
-                    <p className="text-xs text-muted-foreground">{h.device}</p>
+                    {h.login_type === 'phone_changed' && h.note ? (
+                      <p className="text-xs text-amber-500/90">{h.note}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">{h.device}</p>
+                    )}
                   </div>
                 </div>
                 {h.created_at && (

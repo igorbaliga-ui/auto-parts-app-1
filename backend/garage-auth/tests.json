@@ -25,6 +25,20 @@
       "path": "/",
       "body": {"action": "verify_call", "phone": "9001234567", "code": "12"},
       "expectedStatus": 400
+    },
+    {
+      "name": "Invalid new_phone rejected on start_phone_change_call",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "start_phone_change_call", "phone": "9001234567", "new_phone": "123"},
+      "expectedStatus": 400
+    },
+    {
+      "name": "Same new_phone rejected on start_phone_change_call",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "start_phone_change_call", "phone": "9001234567", "new_phone": "9001234567"},
+      "expectedStatus": 400
     }
   ]
 }

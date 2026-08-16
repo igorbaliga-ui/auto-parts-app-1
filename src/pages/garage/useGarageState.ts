@@ -6,6 +6,7 @@ import { safeGetItem, safeSetItem, safeRemoveItem } from '@/lib/storage';
 import { usePushSubscription } from '@/hooks/use-push-subscription';
 import { toast } from '@/hooks/use-toast';
 import { sanitizeMileageInput, MILEAGE_MAX_VALUE } from '@/lib/text';
+import { usePhoneChange } from './usePhoneChange';
 import {
   GARAGE_LOOKUP_URL,
   GARAGE_CAR_NAME_URL,
@@ -555,6 +556,18 @@ export const useGarageState = () => {
 
   const onNewRequest = () => open(undefined, undefined, phone, knownName, vinHistory, city);
 
+  // После успешной смены номера (подтверждённой звонком, данные уже перенесены на бэкенде)
+  // переключаем сессию на новый номер и тихо перезагружаем список заказов под ним
+  const onPhoneChanged = (updatedPhone: string) => {
+    setPhone(updatedPhone);
+    safeSetItem(STORAGE_KEY, updatedPhone);
+    safeRemoveItem(PASSWORD_VERIFIED_KEY);
+    toast({ title: 'Номер телефона изменён', description: 'Все ваши данные перенесены на новый номер.' });
+    load(updatedPhone);
+  };
+
+  const phoneChange = usePhoneChange(phone, onPhoneChanged);
+
   const refresh = async () => {
     if (!phone) return;
     try {
@@ -705,5 +718,6 @@ export const useGarageState = () => {
     saveCarName,
     saveMileage,
     onNewRequest,
+    phoneChange,
   };
 };
