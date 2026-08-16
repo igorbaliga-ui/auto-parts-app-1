@@ -192,6 +192,7 @@ const AdminLeadsTable = ({
           adminPassword={adminPassword}
           open={loginHistoryClient !== null}
           onOpenChange={(open) => !open && setLoginHistoryClient(null)}
+          onReverted={onRefresh}
         />
       )}
       {sendPushLead && (

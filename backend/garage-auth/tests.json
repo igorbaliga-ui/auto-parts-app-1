@@ -39,6 +39,13 @@
       "path": "/",
       "body": {"action": "start_phone_change_call", "phone": "9001234567", "new_phone": "9001234567"},
       "expectedStatus": 400
+    },
+    {
+      "name": "admin_revert_phone_change requires admin password",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "admin_revert_phone_change", "phone": "9001234567"},
+      "expectedStatus": 401
     }
   ]
 }

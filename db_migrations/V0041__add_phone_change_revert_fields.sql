@@ -1,0 +1,2 @@
+ALTER TABLE garage_login_history ADD COLUMN IF NOT EXISTS old_phone_last10 VARCHAR(10) NULL;
+ALTER TABLE garage_login_history ADD COLUMN IF NOT EXISTS reverted BOOLEAN NOT NULL DEFAULT false;

@@ -63,7 +63,8 @@ def handler(event: dict, context) -> dict:
             try:
                 cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                 cur.execute(
-                    f"SELECT login_type, user_agent, created_at, note FROM {schema}.garage_login_history "
+                    f"SELECT login_type, user_agent, created_at, note, reverted, old_phone_last10 "
+                    f"FROM {schema}.garage_login_history "
                     f"WHERE phone_last10 = %s ORDER BY created_at DESC LIMIT 50",
                     (phone_last10,),
                 )
@@ -77,7 +78,19 @@ def handler(event: dict, context) -> dict:
                 'device': parse_device(r['user_agent']),
                 'created_at': r['created_at'].isoformat() if r['created_at'] else None,
                 'note': r['note'],
+                'reverted': bool(r['reverted']),
+                'can_revert': r['login_type'] == 'phone_changed' and not r['reverted'] and bool(r['old_phone_last10']),
             } for r in rows]
+            # Откатить можно только САМУЮ ПОСЛЕДНЮЮ смену номера (rows уже отсортированы по
+            # дате убывания) — более старые записи оставляем в истории без кнопки отката,
+            # чтобы не откатывать «сквозь» более позднюю смену
+            seen_revertable = False
+            for h in history:
+                if h['can_revert']:
+                    if seen_revertable:
+                        h['can_revert'] = False
+                    else:
+                        seen_revertable = True
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'history': history})}
 
         conn = psycopg2.connect(dsn)
@@ -287,6 +300,97 @@ def handler(event: dict, context) -> dict:
             conn.commit()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True, 'is_blocked': new_blocked})}
 
+        if action == 'admin_revert_phone_change':
+            # Отмена последней смены номера клиентом — доступна только менеджеру из /admin.
+            # Здесь phone_last10 — ТЕКУЩИЙ (новый) номер клиента. Находим последнюю
+            # непровёрнутую запись 'phone_changed' под этим номером и переносим все данные
+            # (заявки, заметку, кэшбэк, push-подписки, рефералов, историю входов) обратно
+            # на старый номер, которым она была помечена при смене.
+            admin_password = req_headers.get('X-Admin-Password') or req_headers.get('x-admin-password')
+            if not admin_password_env or admin_password != admin_password_env:
+                return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный пароль администратора'})}
+
+            cur.execute(
+                f"SELECT id, old_phone_last10 FROM {schema}.garage_login_history "
+                f"WHERE phone_last10 = %s AND login_type = 'phone_changed' AND reverted = false "
+                f"ORDER BY created_at DESC LIMIT 1",
+                (phone_last10,),
+            )
+            change_row = cur.fetchone()
+            if not change_row:
+                return {'statusCode': 404, 'headers': headers, 'body': json.dumps({'error': 'Смена номера для этого клиента не найдена'})}
+            change_id, old_phone_last10 = change_row
+            if not old_phone_last10:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Для этой смены номера нет данных для отката (старая запись)'})}
+
+            # Старый номер должен быть свободен — если клиент (или кто-то другой) уже
+            # успел зарегистрироваться на нём заново, автоматический откат невозможен
+            cur.execute(
+                f"SELECT 1 FROM {schema}.leads WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s LIMIT 1",
+                (old_phone_last10,),
+            )
+            old_phone_taken = cur.fetchone() is not None
+            if not old_phone_taken:
+                cur.execute(
+                    f"SELECT 1 FROM {schema}.garage_accounts WHERE phone_last10 = %s LIMIT 1",
+                    (old_phone_last10,),
+                )
+                old_phone_taken = cur.fetchone() is not None
+            if old_phone_taken:
+                return {'statusCode': 409, 'headers': headers, 'body': json.dumps({'error': 'Старый номер уже занят — откат невозможен'})}
+
+            new_phone_e164 = '+7' + phone_last10
+            old_phone_e164 = '+7' + old_phone_last10
+
+            cur.execute(
+                f"UPDATE {schema}.leads SET phone = %s "
+                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s",
+                (old_phone_e164, phone_last10),
+            )
+            cur.execute(
+                f"UPDATE {schema}.client_notes SET phone_last10 = %s WHERE phone_last10 = %s",
+                (old_phone_last10, phone_last10),
+            )
+            cur.execute(
+                f"UPDATE {schema}.client_cashback_deductions SET phone_last10 = %s WHERE phone_last10 = %s",
+                (old_phone_last10, phone_last10),
+            )
+            cur.execute(
+                f"UPDATE {schema}.client_cashback_overrides SET phone_last10 = %s WHERE phone_last10 = %s",
+                (old_phone_last10, phone_last10),
+            )
+            cur.execute(
+                f"UPDATE {schema}.push_subscriptions SET phone_last10 = %s WHERE phone_last10 = %s",
+                (old_phone_last10, phone_last10),
+            )
+            cur.execute(
+                f"UPDATE {schema}.garage_login_history SET phone_last10 = %s "
+                f"WHERE phone_last10 = %s AND id != %s",
+                (old_phone_last10, phone_last10, change_id),
+            )
+            cur.execute(
+                f"UPDATE {schema}.garage_accounts SET referred_by_phone_last10 = %s WHERE referred_by_phone_last10 = %s",
+                (old_phone_last10, phone_last10),
+            )
+            cur.execute(
+                f"UPDATE {schema}.garage_accounts SET phone_last10 = %s, updated_at = now() WHERE phone_last10 = %s",
+                (old_phone_last10, phone_last10),
+            )
+            # Помечаем саму запись о смене как отменённую и переносим её тоже — чтобы
+            # в истории старого номера остался явный след отмены, а повторно её
+            # нельзя было откатить ещё раз
+            cur.execute(
+                f"UPDATE {schema}.garage_login_history SET reverted = true, phone_last10 = %s WHERE id = %s",
+                (old_phone_last10, change_id),
+            )
+            cur.execute(
+                f"INSERT INTO {schema}.garage_login_history (phone_last10, login_type, user_agent, ip, note) "
+                f"VALUES (%s, 'phone_change_reverted', '', %s, %s)",
+                (old_phone_last10, client_ip, f'Менеджер отменил смену номера: {new_phone_e164} → {old_phone_e164}'),
+            )
+            conn.commit()
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True, 'old_phone': old_phone_e164})}
+
         if action == 'remove_password':
             old_password = body.get('old_password') or ''
             if current_hash:
@@ -442,12 +546,14 @@ def handler(event: dict, context) -> dict:
                 (new_phone_last10, phone_last10),
             )
             # Оставляем менеджеру заметный след смены номера в истории входов —
-            # под обоими номерами, чтобы найти клиента можно было по любому из них
+            # под обоими номерами, чтобы найти клиента можно было по любому из них.
+            # old_phone_last10 хранится отдельным полем (не только в тексте note), чтобы
+            # менеджер мог одной кнопкой отменить именно эту смену и вернуть всё как было
             user_agent = req_headers.get('User-Agent') or req_headers.get('user-agent') or ''
             cur.execute(
-                f"INSERT INTO {schema}.garage_login_history (phone_last10, login_type, user_agent, ip, note) "
-                f"VALUES (%s, 'phone_changed', %s, %s, %s)",
-                (new_phone_last10, user_agent, client_ip, f'Сменил номер: {old_phone_e164} → {new_phone_e164}'),
+                f"INSERT INTO {schema}.garage_login_history (phone_last10, login_type, user_agent, ip, note, old_phone_last10) "
+                f"VALUES (%s, 'phone_changed', %s, %s, %s, %s)",
+                (new_phone_last10, user_agent, client_ip, f'Сменил номер: {old_phone_e164} → {new_phone_e164}', phone_last10),
             )
             conn.commit()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True, 'new_phone': new_phone_e164})}
