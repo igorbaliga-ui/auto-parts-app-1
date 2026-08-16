@@ -85,8 +85,8 @@ const ReferralDialog = ({
           </DialogTitle>
           <DialogDescription>
             Дайте другу свой промокод — пусть укажет его при оформлении первой
-            заявки. Друг получает те же условия, а вы — 2% от суммы каждого
-            его выполненного заказа сверх обычных бонусов.
+            заявки. Друг получает те же условия, а вы — 2% от суммы каждого его
+            выполненного заказа сверх обычных бонусов.
           </DialogDescription>
         </DialogHeader>
 
@@ -114,20 +114,30 @@ const ReferralDialog = ({
             </Button>
           </div>
         ) : (
-          <p className="text-muted-foreground text-sm">Загружаем ваш промокод…</p>
+          <p className="text-muted-foreground text-sm">
+            Загружаем ваш промокод…
+          </p>
         )}
 
         {/* Промокод друга: если клиент не указал его в форме заявки, можно ввести здесь —
             но только один раз, дальше поле показывает, чей промокод уже применён */}
         {referredByName ? (
           <div className="flex items-center gap-2 border-t border-steel pt-3 mt-1">
-            <Icon name="CheckCircle2" size={16} className="text-primary shrink-0" />
+            <Icon
+              name="CheckCircle2"
+              size={16}
+              className="text-primary shrink-0"
+            />
             <span className="text-sm text-muted-foreground">
-              Вы воспользовались промокодом друга: <span className="text-foreground">{referredByName}</span>
+              Вы воспользовались промокодом друга:{" "}
+              <span className="text-foreground">{referredByName}</span>
             </span>
           </div>
         ) : (
-          <form onSubmit={submitPromo} className="flex flex-col gap-2 border-t border-steel pt-3 mt-1">
+          <form
+            onSubmit={submitPromo}
+            className="flex flex-col gap-2 border-t border-steel pt-3 mt-1"
+          >
             <span className="text-muted-foreground text-xs uppercase tracking-[0.1em]">
               Есть промокод друга?
             </span>
@@ -135,7 +145,12 @@ const ReferralDialog = ({
               <Input
                 value={promoInput}
                 onChange={(e) => {
-                  setPromoInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10));
+                  setPromoInput(
+                    e.target.value
+                      .toUpperCase()
+                      .replace(/[^A-Z0-9]/g, "")
+                      .slice(0, 10),
+                  );
                   if (applyReferralCodeError) setApplyReferralCodeError("");
                 }}
                 maxLength={10}
@@ -164,7 +179,7 @@ const ReferralDialog = ({
 
         <div className="flex items-center justify-between border-t border-steel pt-3 mt-1">
           <span className="text-muted-foreground text-xs uppercase tracking-[0.1em]">
-            Заработано на друзьях
+            Заработано по приглашению
           </span>
           <span className="font-head text-lg text-primary">
             {formatBonus(referralBonusTotal)}
