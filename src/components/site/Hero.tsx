@@ -74,8 +74,9 @@ const Hero = () => {
               </Link>
             ) : (
               <>
-                <p className="max-w-[34ch] text-muted-foreground leading-relaxed text-base sm:text-lg mb-4"></p>
-
+                <p className="max-w-[34ch] text-muted-foreground leading-relaxed text-base sm:text-lg mb-4">
+                  Напишите VIN / Frame-номер автомобиля, или отправьте фото СТС
+                </p>
                 {photoPreviews.length > 0 && (
                   <p className="text-primary text-xs mb-4 flex items-center gap-1.5">
                     <Icon name="Check" size={14} />
