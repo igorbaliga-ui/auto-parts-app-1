@@ -60,6 +60,12 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   // Когда по введённому телефону нашлось имя клиента — прячем поле «Имя» плавным
   // исчезновением, храним пару телефон/имя, чтобы понять, что подстановка ещё актуальна
   const [autoFilledName, setAutoFilledName] = useState<{ phone: string; name: string } | null>(null);
+  // Для неавторизованного посетителя имя не подставляем (нельзя узнавать чужие имена), но
+  // если номер уже есть в базе — прячем само поле «Имя» целиком (оно возьмётся на бэкенде
+  // из первой заявки клиента по этому номеру)
+  const [knownPhoneNoAuth, setKnownPhoneNoAuth] = useState<string | null>(null);
+  const existsCheckTimer = useRef<ReturnType<typeof setTimeout>>();
+  const lastExistsCheckPhone = useRef<string>('');
   // Шаг подтверждения номера звонком: показывается только если у клиента ещё нет
   // подтверждённого номера (проверяем перед фактической отправкой заявки в базу)
   const [verificationStep, setVerificationStep] = useState(false);
@@ -157,6 +163,45 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [form.phone, autoFilledName]);
 
+  // Неавторизованный посетитель: имя не раскрываем, но если введённый номер уже есть
+  // в базе — прячем поле «Имя» целиком (бэкенд сам подставит имя из первой заявки)
+  useEffect(() => {
+    if (knownContact || garageAuthed) return;
+    const digits = form.phone.replace(/\D/g, '');
+    if (digits.length < 10) {
+      setKnownPhoneNoAuth(null);
+      return;
+    }
+    if (lastExistsCheckPhone.current === digits) return;
+
+    clearTimeout(existsCheckTimer.current);
+    existsCheckTimer.current = setTimeout(async () => {
+      lastExistsCheckPhone.current = digits;
+      try {
+        const res = await fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(digits)}&exists_only=1`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setKnownPhoneNoAuth((prev) => {
+          const current = form.phone.replace(/\D/g, '');
+          if (current !== digits) return prev;
+          return data.exists ? digits : null;
+        });
+      } catch {
+        // тихо игнорируем — это необязательная подсказка
+      }
+    }, 500);
+
+    return () => clearTimeout(existsCheckTimer.current);
+  }, [form.phone, knownContact, garageAuthed]);
+
+  useEffect(() => {
+    if (!knownPhoneNoAuth) return;
+    const digits = form.phone.replace(/\D/g, '');
+    if (digits !== knownPhoneNoAuth) {
+      setKnownPhoneNoAuth(null);
+    }
+  }, [form.phone, knownPhoneNoAuth]);
+
   const open = (vin?: string, incomingPhotos?: File[], phone?: string, name?: string, history?: string[], city?: string) => {
     setErrors({});
     setForm((f) => ({
@@ -168,7 +213,9 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     }));
     setKnownContact(isValidName(name) && isValidPhone(phone));
     setAutoFilledName(null);
+    setKnownPhoneNoAuth(null);
     lastLookupPhone.current = '';
+    lastExistsCheckPhone.current = '';
     setVinHistory(history ?? []);
     setVinSource(vin ? 'manual' : null);
     if (incomingPhotos && incomingPhotos.length > 0) {
@@ -190,7 +237,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
         e.vin = 'VIN должен содержать 10 или 17 символов';
       }
     }
-    if (!knownContact && form.name.trim().length < 2) {
+    if (!knownContact && !knownPhoneNoAuth && form.name.trim().length < 2) {
       e.name = 'Укажите имя';
     }
     const phoneDigits = form.phone.replace(/\D/g, '');
@@ -231,6 +278,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     setMessenger(null);
     setKnownContact(false);
     setAutoFilledName(null);
+    setKnownPhoneNoAuth(null);
     setVinSource(null);
     vinPhoto.resetPhotos();
     partsPhoto.resetPhotos();
@@ -310,7 +358,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       messenger={messenger}
       setMessenger={setMessenger}
       knownContact={knownContact}
-      nameAutoFilled={!!autoFilledName}
+      nameAutoFilled={!!autoFilledName || !!knownPhoneNoAuth}
       vinHistory={vinHistory}
       garageCars={garageCars}
       vinSource={vinSource}

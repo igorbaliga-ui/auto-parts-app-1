@@ -87,6 +87,23 @@ def handler(event: dict, context) -> dict:
     # Сравниваем по последним 10 цифрам, чтобы +7900..., 8900... и 900... считались одним номером
     phone_last10 = phone_digits[-10:]
 
+    # Облегчённый режим для формы заявки неавторизованного посетителя: только факт наличия
+    # номера в базе, без имени и других данных — чтобы не раскрывать чужие персональные данные
+    if params.get('exists_only') == '1':
+        conn = psycopg2.connect(dsn)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                f"SELECT 1 FROM {schema}.leads "
+                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s LIMIT 1",
+                (phone_last10,),
+            )
+            exists = cur.fetchone() is not None
+            cur.close()
+        finally:
+            conn.close()
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'exists': exists})}
+
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)

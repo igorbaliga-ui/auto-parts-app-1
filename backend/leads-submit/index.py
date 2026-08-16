@@ -96,16 +96,32 @@ def handler(event: dict, context) -> dict:
             'headers': headers,
             'body': json.dumps({'error': 'Укажите VIN — фото не приложено или не удалось загрузить'}),
         }
-    # Имя: только буквы (рус/лат), пробел, дефис и апостроф — как на клиенте.
-    # Отсекает попытки протащить в базу HTML/скрипты или прочий мусор через прямой запрос к API.
-    if not (2 <= len(name) <= 30) or not re.fullmatch(r"[a-zA-Zа-яА-ЯёЁ\s'-]+", name):
-        return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите имя'})}
     phone_digits = re.sub(r'\D', '', phone)
     if len(phone_digits) < 10 or len(phone_digits) > 11:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный телефон'})}
     # Нормализуем в единый формат +7XXXXXXXXXX, чтобы 8.../7.../900... считались одним номером
     phone_last10 = phone_digits[-10:]
     phone = f'+7{phone_last10}'
+    # Имя: только буквы (рус/лат), пробел, дефис и апостроф — как на клиенте.
+    # Отсекает попытки протащить в базу HTML/скрипты или прочий мусор через прямой запрос к API.
+    # Если номер уже есть в базе — имя не обязательно (подставится из первой заявки клиента,
+    # форма для таких клиентов вообще скрывает поле «Имя»)
+    name_valid = 2 <= len(name) <= 30 and bool(re.fullmatch(r"[a-zA-Zа-яА-ЯёЁ\s'-]+", name))
+    if not name_valid:
+        conn_check = psycopg2.connect(dsn)
+        try:
+            cur_check = conn_check.cursor()
+            cur_check.execute(
+                f"SELECT 1 FROM {schema}.leads "
+                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s LIMIT 1",
+                (phone_last10,),
+            )
+            phone_known = cur_check.fetchone() is not None
+            cur_check.close()
+        finally:
+            conn_check.close()
+        if not phone_known:
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите имя'})}
     if messenger not in ('telegram', 'max', 'whatsapp'):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Выберите мессенджер'})}
     # Запчасти: свободный текст, но без символов, из которых можно собрать HTML/скрипт-инъекцию
