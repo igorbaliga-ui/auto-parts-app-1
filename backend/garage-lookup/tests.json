@@ -19,6 +19,14 @@
       "expectedStatus": 200,
       "expectedBody": {"valid": false},
       "bodyMatcher": "exact"
+    },
+    {
+      "name": "Promo used check for unknown phone returns false",
+      "method": "GET",
+      "path": "/?phone=9998887766&promo_used=1",
+      "expectedStatus": 200,
+      "expectedBody": {"used": false},
+      "bodyMatcher": "exact"
     }
   ]
 }

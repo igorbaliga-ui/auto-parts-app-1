@@ -71,6 +71,11 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const [knownPhoneNoAuth, setKnownPhoneNoAuth] = useState<string | null>(null);
   const existsCheckTimer = useRef<ReturnType<typeof setTimeout>>();
   const lastExistsCheckPhone = useRef<string>('');
+  // Промокод друга можно указать только один раз: если к введённому телефону уже
+  // привязан чужой промокод — поле «Промокод друга» скрывается, как и поле «Имя»
+  const [promoAlreadyUsed, setPromoAlreadyUsed] = useState(false);
+  const promoUsedCheckTimer = useRef<ReturnType<typeof setTimeout>>();
+  const lastPromoUsedCheckPhone = useRef<string>('');
   // Шаг подтверждения номера звонком: показывается только если у клиента ещё нет
   // подтверждённого номера (проверяем перед фактической отправкой заявки в базу)
   const [verificationStep, setVerificationStep] = useState(false);
@@ -207,6 +212,37 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [form.phone, knownPhoneNoAuth]);
 
+  // Как только телефон введён полностью — проверяем, не привязан ли к нему уже
+  // чей-то промокод (промокод друга можно указать только один раз)
+  useEffect(() => {
+    const digits = form.phone.replace(/\D/g, '');
+    if (digits.length < 10) {
+      setPromoAlreadyUsed(false);
+      lastPromoUsedCheckPhone.current = '';
+      return;
+    }
+    if (lastPromoUsedCheckPhone.current === digits) return;
+
+    clearTimeout(promoUsedCheckTimer.current);
+    promoUsedCheckTimer.current = setTimeout(async () => {
+      lastPromoUsedCheckPhone.current = digits;
+      try {
+        const res = await fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(digits)}&promo_used=1`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setPromoAlreadyUsed((prev) => {
+          const current = form.phone.replace(/\D/g, '');
+          if (current !== digits) return prev;
+          return !!data.used;
+        });
+      } catch {
+        // тихо игнорируем — это необязательная подсказка
+      }
+    }, 500);
+
+    return () => clearTimeout(promoUsedCheckTimer.current);
+  }, [form.phone]);
+
   // Промокод друга проверяется прямо в форме, без ожидания отправки всей заявки —
   // как только клиент вводит код полностью, спрашиваем бэкенд, существует ли он
   useEffect(() => {
@@ -256,6 +292,8 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     setVinSource(vin ? 'manual' : null);
     setPromoStatus('idle');
     lastCheckedPromo.current = '';
+    setPromoAlreadyUsed(false);
+    lastPromoUsedCheckPhone.current = '';
     if (incomingPhotos && incomingPhotos.length > 0) {
       vinPhoto.addPhotos(incomingPhotos);
     }
@@ -291,7 +329,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     if (form.parts.trim().length < 2) {
       e.parts = 'Укажите интересующие запчасти';
     }
-    if (!knownContact && promoStatus === 'invalid') {
+    if (!knownContact && !promoAlreadyUsed && promoStatus === 'invalid') {
       e.promoCode = 'Такого промокода не существует';
     }
     setErrors(e);
@@ -323,6 +361,8 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     setVinSource(null);
     setPromoStatus('idle');
     lastCheckedPromo.current = '';
+    setPromoAlreadyUsed(false);
+    lastPromoUsedCheckPhone.current = '';
     vinPhoto.resetPhotos();
     partsPhoto.resetPhotos();
     safeRemoveItem(STORAGE_KEY);
@@ -402,6 +442,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       setMessenger={setMessenger}
       knownContact={knownContact}
       promoStatus={promoStatus}
+      promoAlreadyUsed={promoAlreadyUsed}
       nameAutoFilled={!!autoFilledName || !!knownPhoneNoAuth}
       vinHistory={vinHistory}
       garageCars={garageCars}

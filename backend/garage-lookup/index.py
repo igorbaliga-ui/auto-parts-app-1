@@ -124,6 +124,23 @@ def handler(event: dict, context) -> dict:
             conn.close()
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'exists': exists})}
 
+    # Промокод друга можно указать только один раз: проверяем, не привязан ли к этому
+    # номеру уже чей-то реферальный код — чтобы форма заявки могла скрыть поле промокода
+    if params.get('promo_used') == '1':
+        conn = psycopg2.connect(dsn)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                f"SELECT referred_by_phone_last10 FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+                (phone_last10,),
+            )
+            row = cur.fetchone()
+            used = bool(row and row[0])
+            cur.close()
+        finally:
+            conn.close()
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'used': used})}
+
     conn = psycopg2.connect(dsn)
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
