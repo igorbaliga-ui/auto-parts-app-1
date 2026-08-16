@@ -165,7 +165,7 @@ const RequestFormFields = ({
             autoCorrect="off"
             autoComplete="off"
             spellCheck={false}
-            placeholder="VIN/FRAME-номер или фото СТС • • • • • •"
+            placeholder="• • • • • •"
             className={`tracking-[0.14em] uppercase bg-background ${form.vin ? "pr-9" : ""}`}
             list="vin-history-list"
             disabled={vinSource === "garage"}
