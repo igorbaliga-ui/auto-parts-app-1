@@ -57,6 +57,9 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const [vinSource, setVinSource] = useState<'garage' | 'manual' | null>(null);
   const nameLookupTimer = useRef<ReturnType<typeof setTimeout>>();
   const lastLookupPhone = useRef<string>('');
+  // Когда по введённому телефону нашлось имя клиента — прячем поле «Имя» плавным
+  // исчезновением, храним пару телефон/имя, чтобы понять, что подстановка ещё актуальна
+  const [autoFilledName, setAutoFilledName] = useState<{ phone: string; name: string } | null>(null);
   // Шаг подтверждения номера звонком: показывается только если у клиента ещё нет
   // подтверждённого номера (проверяем перед фактической отправкой заявки в базу)
   const [verificationStep, setVerificationStep] = useState(false);
@@ -134,6 +137,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
         const foundName = data.orders?.[0]?.name;
         if (foundName) {
           setForm((f) => (f.phone.replace(/\D/g, '') === digits ? { ...f, name: foundName } : f));
+          setAutoFilledName({ phone: digits, name: foundName });
         }
       } catch {
         // тихо игнорируем — это необязательная подсказка
@@ -142,6 +146,16 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
 
     return () => clearTimeout(nameLookupTimer.current);
   }, [form.phone, knownContact, garageAuthed]);
+
+  // Как только телефон перестаёт совпадать с тем, по которому подставили имя — снова
+  // показываем поле «Имя» (клиент мог изменить номер после автоподстановки)
+  useEffect(() => {
+    if (!autoFilledName) return;
+    const digits = form.phone.replace(/\D/g, '');
+    if (digits !== autoFilledName.phone) {
+      setAutoFilledName(null);
+    }
+  }, [form.phone, autoFilledName]);
 
   const open = (vin?: string, incomingPhotos?: File[], phone?: string, name?: string, history?: string[], city?: string) => {
     setErrors({});
@@ -153,6 +167,8 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       city: city ?? (f.city || getStoredCity()),
     }));
     setKnownContact(isValidName(name) && isValidPhone(phone));
+    setAutoFilledName(null);
+    lastLookupPhone.current = '';
     setVinHistory(history ?? []);
     setVinSource(vin ? 'manual' : null);
     if (incomingPhotos && incomingPhotos.length > 0) {
@@ -214,6 +230,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     setForm(emptyForm);
     setMessenger(null);
     setKnownContact(false);
+    setAutoFilledName(null);
     setVinSource(null);
     vinPhoto.resetPhotos();
     partsPhoto.resetPhotos();
@@ -293,6 +310,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       messenger={messenger}
       setMessenger={setMessenger}
       knownContact={knownContact}
+      nameAutoFilled={!!autoFilledName}
       vinHistory={vinHistory}
       garageCars={garageCars}
       vinSource={vinSource}

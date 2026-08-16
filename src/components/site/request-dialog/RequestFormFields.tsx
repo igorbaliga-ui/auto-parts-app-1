@@ -24,6 +24,7 @@ type RequestFormFieldsProps = {
   form: FormState;
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
   errors: Record<string, string>;
+  nameAutoFilled?: boolean;
   messenger: string | null;
   setMessenger: React.Dispatch<React.SetStateAction<string | null>>;
   knownContact: boolean;
@@ -47,6 +48,7 @@ const RequestFormFields = ({
   form,
   setForm,
   errors,
+  nameAutoFilled,
   messenger,
   setMessenger,
   knownContact,
@@ -180,7 +182,7 @@ const RequestFormFields = ({
       </div>
 
       {!knownContact && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className={`grid grid-cols-1 gap-4 transition-[grid-template-columns] duration-300 ${nameAutoFilled ? 'sm:grid-cols-1' : 'sm:grid-cols-2'}`}>
           <div>
             <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
               Телефон
@@ -203,28 +205,36 @@ const RequestFormFields = ({
               <p className="text-primary text-xs mt-1">{errors.phone}</p>
             )}
           </div>
-          <div>
-            <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-              Имя
-            </label>
-            <Input
-              value={form.name}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, name: sanitizeNameInput(e.target.value) }))
-              }
-              maxLength={30}
-              inputMode="text"
-              autoCapitalize="words"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder="Как к вам обращаться"
-              className="mt-1.5 bg-background"
-              autoComplete="off"
-              name="request-name"
-            />
-            {errors.name && (
-              <p className="text-primary text-xs mt-1">{errors.name}</p>
-            )}
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              nameAutoFilled ? 'grid-rows-[0fr] opacity-0 -mt-4 pointer-events-none' : 'grid-rows-[1fr] opacity-100'
+            } grid`}
+            aria-hidden={nameAutoFilled}
+          >
+            <div className="min-h-0">
+              <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
+                Имя
+              </label>
+              <Input
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: sanitizeNameInput(e.target.value) }))
+                }
+                maxLength={30}
+                inputMode="text"
+                autoCapitalize="words"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="Как к вам обращаться"
+                className="mt-1.5 bg-background"
+                autoComplete="off"
+                name="request-name"
+                tabIndex={nameAutoFilled ? -1 : 0}
+              />
+              {errors.name && (
+                <p className="text-primary text-xs mt-1">{errors.name}</p>
+              )}
+            </div>
           </div>
         </div>
       )}
