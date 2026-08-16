@@ -1,24 +1,31 @@
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import Icon from '@/components/ui/icon';
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import Icon from "@/components/ui/icon";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import CityInput from '@/components/shared/CityInput';
-import PhotoAttach from '@/components/site/PhotoAttach';
-import { setStoredCity } from '@/lib/garage-city';
-import { normalizePhoneInput } from '@/lib/phone';
-import { sanitizeVinInput, getVinLengthHint } from '@/lib/vin';
-import { sanitizeNameInput } from '@/lib/name';
-import { sanitizePartsInput } from '@/lib/text';
-import { messengers, GarageCar } from './RequestContext';
+} from "@/components/ui/select";
+import CityInput from "@/components/shared/CityInput";
+import PhotoAttach from "@/components/site/PhotoAttach";
+import { setStoredCity } from "@/lib/garage-city";
+import { normalizePhoneInput } from "@/lib/phone";
+import { sanitizeVinInput, getVinLengthHint } from "@/lib/vin";
+import { sanitizeNameInput } from "@/lib/name";
+import { sanitizePartsInput } from "@/lib/text";
+import { messengers, GarageCar } from "./RequestContext";
 
-type FormState = { vin: string; name: string; phone: string; parts: string; city: string; promoCode: string };
+type FormState = {
+  vin: string;
+  name: string;
+  phone: string;
+  parts: string;
+  city: string;
+  promoCode: string;
+};
 
 type RequestFormFieldsProps = {
   form: FormState;
@@ -29,8 +36,10 @@ type RequestFormFieldsProps = {
   knownContact: boolean;
   vinHistory: string[];
   garageCars: GarageCar[];
-  vinSource: 'garage' | 'manual' | null;
-  setVinSource: React.Dispatch<React.SetStateAction<'garage' | 'manual' | null>>;
+  vinSource: "garage" | "manual" | null;
+  setVinSource: React.Dispatch<
+    React.SetStateAction<"garage" | "manual" | null>
+  >;
   vinPhotos: File[];
   vinPhotoPreviews: string[];
   addVinPhotos: (files: File[]) => void;
@@ -66,7 +75,10 @@ const RequestFormFields = ({
   onSubmit,
 }: RequestFormFieldsProps) => {
   const setPhone = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm((f) => ({ ...f, phone: normalizePhoneInput(f.phone, e.target.value) }));
+    setForm((f) => ({
+      ...f,
+      phone: normalizePhoneInput(f.phone, e.target.value),
+    }));
   };
 
   return (
@@ -78,14 +90,21 @@ const RequestFormFields = ({
           </label>
           <div className="relative mt-1.5">
             <Select
-              value={vinSource === 'garage' && garageCars.some((c) => c.vin === form.vin) ? form.vin : ''}
+              value={
+                vinSource === "garage" &&
+                garageCars.some((c) => c.vin === form.vin)
+                  ? form.vin
+                  : ""
+              }
               onValueChange={(vin) => {
                 setForm((f) => ({ ...f, vin }));
-                setVinSource('garage');
+                setVinSource("garage");
               }}
-              disabled={vinSource === 'manual'}
+              disabled={vinSource === "manual"}
             >
-              <SelectTrigger className={`bg-background ${vinSource === 'garage' ? 'pr-9' : ''}`}>
+              <SelectTrigger
+                className={`bg-background ${vinSource === "garage" ? "pr-9" : ""}`}
+              >
                 <SelectValue placeholder="Выберите из гаража или введите VIN ниже" />
               </SelectTrigger>
               <SelectContent>
@@ -96,11 +115,11 @@ const RequestFormFields = ({
                 ))}
               </SelectContent>
             </Select>
-            {vinSource === 'garage' && (
+            {vinSource === "garage" && (
               <button
                 type="button"
                 onClick={() => {
-                  setForm((f) => ({ ...f, vin: '' }));
+                  setForm((f) => ({ ...f, vin: "" }));
                   setVinSource(null);
                 }}
                 aria-label="Сбросить выбор автомобиля"
@@ -117,7 +136,10 @@ const RequestFormFields = ({
       <div>
         <div className="flex items-center justify-between gap-3">
           <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-            VIN или Frame{(vinPhotos.length > 0 || partsPhotos.length > 0) ? ' (необязательно)' : ''}
+            VIN или Frame
+            {vinPhotos.length > 0 || partsPhotos.length > 0
+              ? " (необязательно)"
+              : ""}
           </label>
           <PhotoAttach
             photos={vinPhotos}
@@ -131,9 +153,11 @@ const RequestFormFields = ({
           <Input
             value={form.vin}
             onChange={(e) => {
-              const value = sanitizeVinInput(e.target.value).replace(/-/g, '').slice(0, 17);
+              const value = sanitizeVinInput(e.target.value)
+                .replace(/-/g, "")
+                .slice(0, 17);
               setForm((f) => ({ ...f, vin: value }));
-              setVinSource(value ? 'manual' : null);
+              setVinSource(value ? "manual" : null);
             }}
             maxLength={17}
             inputMode="text"
@@ -141,16 +165,16 @@ const RequestFormFields = ({
             autoCorrect="off"
             autoComplete="off"
             spellCheck={false}
-            placeholder="XW8ZZZ• • • • • • •"
-            className={`tracking-[0.14em] uppercase bg-background ${form.vin ? 'pr-9' : ''}`}
+            placeholder="VIN/FRAME-номер или фото СТС • • • • • •"
+            className={`tracking-[0.14em] uppercase bg-background ${form.vin ? "pr-9" : ""}`}
             list="vin-history-list"
-            disabled={vinSource === 'garage'}
+            disabled={vinSource === "garage"}
           />
           {form.vin && (
             <button
               type="button"
               onClick={() => {
-                setForm((f) => ({ ...f, vin: '' }));
+                setForm((f) => ({ ...f, vin: "" }));
                 setVinSource(null);
               }}
               aria-label="Очистить VIN"
@@ -210,7 +234,10 @@ const RequestFormFields = ({
             <Input
               value={form.name}
               onChange={(e) =>
-                setForm((f) => ({ ...f, name: sanitizeNameInput(e.target.value) }))
+                setForm((f) => ({
+                  ...f,
+                  name: sanitizeNameInput(e.target.value),
+                }))
               }
               maxLength={30}
               inputMode="text"
@@ -238,18 +265,24 @@ const RequestFormFields = ({
             <button
               key={m.id}
               type="button"
-              onClick={() => setMessenger((cur) => (cur === m.id ? null : m.id))}
+              onClick={() =>
+                setMessenger((cur) => (cur === m.id ? null : m.id))
+              }
               className={`relative flex items-center justify-center gap-2 h-11 rounded-sm border text-sm transition-colors ${
                 messenger === m.id
-                  ? 'border-primary bg-primary/10 text-foreground'
-                  : 'border-steel text-muted-foreground hover:border-primary/60'
+                  ? "border-primary bg-primary/10 text-foreground"
+                  : "border-steel text-muted-foreground hover:border-primary/60"
               }`}
             >
               <Icon name={m.icon} size={16} />
               {m.label}
               {messenger === m.id && (
                 <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                  <Icon name="Check" size={12} className="text-primary-foreground" />
+                  <Icon
+                    name="Check"
+                    size={12}
+                    className="text-primary-foreground"
+                  />
                 </span>
               )}
             </button>
@@ -276,12 +309,15 @@ const RequestFormFields = ({
         <Textarea
           value={form.parts}
           onChange={(e) =>
-            setForm((f) => ({ ...f, parts: sanitizePartsInput(e.target.value) }))
+            setForm((f) => ({
+              ...f,
+              parts: sanitizePartsInput(e.target.value),
+            }))
           }
           onFocus={(e) => {
             const target = e.currentTarget;
             setTimeout(() => {
-              target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              target.scrollIntoView({ behavior: "smooth", block: "center" });
             }, 300);
           }}
           maxLength={1000}
@@ -309,7 +345,9 @@ const RequestFormFields = ({
             }}
             placeholder="Выбрать город"
             className={`h-11 px-4 rounded-sm border text-sm bg-background ${
-              errors.city ? 'border-primary text-primary' : 'border-steel text-foreground'
+              errors.city
+                ? "border-primary text-primary"
+                : "border-steel text-foreground"
             }`}
           />
         </div>
@@ -328,7 +366,10 @@ const RequestFormFields = ({
             onChange={(e) =>
               setForm((f) => ({
                 ...f,
-                promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10),
+                promoCode: e.target.value
+                  .toUpperCase()
+                  .replace(/[^A-Z0-9]/g, "")
+                  .slice(0, 10),
               }))
             }
             maxLength={10}
@@ -348,7 +389,7 @@ const RequestFormFields = ({
         disabled={submitting}
         className="font-head uppercase tracking-wide font-bold h-12"
       >
-        {submitting ? 'Отправляем…' : 'Отправить заявку'}
+        {submitting ? "Отправляем…" : "Отправить заявку"}
       </Button>
       <p className="text-center text-xs text-muted-foreground">
         Нажимая кнопку, вы соглашаетесь на обработку данных.
