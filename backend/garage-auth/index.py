@@ -219,6 +219,47 @@ def handler(event: dict, context) -> dict:
             conn.commit()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
 
+        if action == 'apply_referral_code':
+            # Клиент вводит промокод друга уже в «Гараже» (если не указал его в форме заявки).
+            # Промокод можно применить только один раз — если уже привязан к кому-то, отклоняем.
+            if is_blocked:
+                return {'statusCode': 403, 'headers': headers, 'body': json.dumps({'error': 'Доступ в «Гараж» временно заблокирован. Обратитесь к менеджеру'})}
+            referral_code = re.sub(r'[^A-Z0-9]', '', (body.get('referral_code') or '').strip().upper())[:10]
+            if not referral_code:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите промокод'})}
+            cur.execute(
+                f"SELECT referred_by_phone_last10 FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+                (phone_last10,),
+            )
+            existing_row = cur.fetchone()
+            if existing_row and existing_row[0]:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Промокод уже был применён ранее'})}
+            cur.execute(
+                f"SELECT phone_last10 FROM {schema}.garage_accounts WHERE referral_code = %s",
+                (referral_code,),
+            )
+            ref_row = cur.fetchone()
+            if not ref_row:
+                return {'statusCode': 404, 'headers': headers, 'body': json.dumps({'error': 'Такого промокода не существует'})}
+            if ref_row[0] == phone_last10:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Нельзя применить свой же промокод'})}
+            cur.execute(
+                f"INSERT INTO {schema}.garage_accounts (phone_last10, referred_by_phone_last10, updated_at) "
+                f"VALUES (%s, %s, now()) "
+                f"ON CONFLICT (phone_last10) DO UPDATE SET referred_by_phone_last10 = "
+                f"COALESCE(garage_accounts.referred_by_phone_last10, EXCLUDED.referred_by_phone_last10), updated_at = now()",
+                (phone_last10, ref_row[0]),
+            )
+            cur.execute(
+                f"SELECT name FROM {schema}.leads "
+                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s "
+                f"ORDER BY created_at ASC LIMIT 1",
+                (ref_row[0],),
+            )
+            referrer_row = cur.fetchone()
+            conn.commit()
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True, 'referred_by_name': referrer_row[0] if referrer_row else None})}
+
         if action == 'set_password':
             new_password = (body.get('password') or '').strip()
             old_password = body.get('old_password') or ''

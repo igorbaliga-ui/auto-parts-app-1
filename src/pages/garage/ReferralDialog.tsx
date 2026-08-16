@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,6 +7,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import Icon from "@/components/ui/icon";
 import { toast } from "@/hooks/use-toast";
 import { ReferralFriend, formatBonus } from "./garageTypes";
@@ -16,6 +18,11 @@ type ReferralDialogProps = {
   referralCode: string | null;
   referralBonusTotal: number;
   referrals: ReferralFriend[];
+  referredByName: string | null;
+  applyReferralCode: (code: string) => Promise<boolean>;
+  applyingReferralCode: boolean;
+  applyReferralCodeError: string;
+  setApplyReferralCodeError: (error: string) => void;
 };
 
 const ReferralDialog = ({
@@ -24,7 +31,14 @@ const ReferralDialog = ({
   referralCode,
   referralBonusTotal,
   referrals,
+  referredByName,
+  applyReferralCode,
+  applyingReferralCode,
+  applyReferralCodeError,
+  setApplyReferralCodeError,
 }: ReferralDialogProps) => {
+  const [promoInput, setPromoInput] = useState("");
+
   const shareText = referralCode
     ? `Промокод ${referralCode} даёт мне бонус при заказе на ЗАП ОПТОМ. Оставь заявку на запоптом.рф и укажи этот промокод при оформлении`
     : "";
@@ -50,6 +64,15 @@ const ReferralDialog = ({
       toast({ title: "Промокод скопирован" });
     } catch {
       // буфер обмена недоступен — тихо игнорируем
+    }
+  };
+
+  const submitPromo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!promoInput.trim()) return;
+    const ok = await applyReferralCode(promoInput.trim());
+    if (ok) {
+      setPromoInput("");
     }
   };
 
@@ -92,6 +115,51 @@ const ReferralDialog = ({
           </div>
         ) : (
           <p className="text-muted-foreground text-sm">Загружаем ваш промокод…</p>
+        )}
+
+        {/* Промокод друга: если клиент не указал его в форме заявки, можно ввести здесь —
+            но только один раз, дальше поле показывает, чей промокод уже применён */}
+        {referredByName ? (
+          <div className="flex items-center gap-2 border-t border-steel pt-3 mt-1">
+            <Icon name="CheckCircle2" size={16} className="text-primary shrink-0" />
+            <span className="text-sm text-muted-foreground">
+              Вы воспользовались промокодом друга: <span className="text-foreground">{referredByName}</span>
+            </span>
+          </div>
+        ) : (
+          <form onSubmit={submitPromo} className="flex flex-col gap-2 border-t border-steel pt-3 mt-1">
+            <span className="text-muted-foreground text-xs uppercase tracking-[0.1em]">
+              Есть промокод друга?
+            </span>
+            <div className="flex gap-2">
+              <Input
+                value={promoInput}
+                onChange={(e) => {
+                  setPromoInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10));
+                  if (applyReferralCodeError) setApplyReferralCodeError("");
+                }}
+                maxLength={10}
+                inputMode="text"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="Например, X7K9QZ"
+                className="bg-background tracking-[0.14em] uppercase"
+              />
+              <Button
+                type="submit"
+                size="sm"
+                disabled={applyingReferralCode || !promoInput.trim()}
+                className="font-head uppercase tracking-wide text-xs shrink-0"
+              >
+                {applyingReferralCode ? "Применяем…" : "Применить"}
+              </Button>
+            </div>
+            {applyReferralCodeError && (
+              <p className="text-primary text-xs">{applyReferralCodeError}</p>
+            )}
+          </form>
         )}
 
         <div className="flex items-center justify-between border-t border-steel pt-3 mt-1">

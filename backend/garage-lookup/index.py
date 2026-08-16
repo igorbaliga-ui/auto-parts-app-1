@@ -215,6 +215,24 @@ def handler(event: dict, context) -> dict:
                 })
 
         referral_code = get_or_create_referral_code(conn, schema, phone_last10)
+
+        # Если этот клиент сам когда-то ввёл чужой промокод — покажем в «Гараже», от кого он
+        cur.execute(
+            f"SELECT referred_by_phone_last10 FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+            (phone_last10,),
+        )
+        acc_row = cur.fetchone()
+        referred_by_phone = acc_row['referred_by_phone_last10'] if acc_row else None
+        referred_by_name = None
+        if referred_by_phone:
+            cur.execute(
+                f"SELECT name FROM {schema}.leads "
+                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s "
+                f"ORDER BY created_at ASC LIMIT 1",
+                (referred_by_phone,),
+            )
+            referrer_row = cur.fetchone()
+            referred_by_name = referrer_row['name'] if referrer_row else None
         cur.close()
     finally:
         conn.close()
@@ -286,5 +304,6 @@ def handler(event: dict, context) -> dict:
             'referral_code': referral_code,
             'referral_bonus_total': referral_bonus_total,
             'referrals': referrals,
+            'referred_by_name': referred_by_name,
         }),
     }

@@ -40,6 +40,10 @@ export const useGarageState = () => {
   const [referralBonusTotal, setReferralBonusTotal] = useState(0);
   const [referrals, setReferrals] = useState<ReferralFriend[]>([]);
   const [referralDialogOpen, setReferralDialogOpen] = useState(false);
+  // Имя друга, чей промокод клиент уже применил (сам ввёл при заявке или позже в «Гараже»)
+  const [referredByName, setReferredByName] = useState<string | null>(null);
+  const [applyingReferralCode, setApplyingReferralCode] = useState(false);
+  const [applyReferralCodeError, setApplyReferralCodeError] = useState('');
   const [carNameDrafts, setCarNameDrafts] = useState<Record<number, string>>({});
   const [savedCarNames, setSavedCarNames] = useState<Record<number, string>>({});
   const [savingCarId, setSavingCarId] = useState<number | null>(null);
@@ -193,6 +197,7 @@ export const useGarageState = () => {
       setReferralCode(typeof data.referral_code === 'string' ? data.referral_code : null);
       setReferralBonusTotal(typeof data.referral_bonus_total === 'number' ? data.referral_bonus_total : 0);
       setReferrals(Array.isArray(data.referrals) ? data.referrals : []);
+      setReferredByName(typeof data.referred_by_name === 'string' ? data.referred_by_name : null);
       // По умолчанию открываем «Новые», но если там пусто — сразу показываем «В работе»
       const activeList = list.filter((o) => !o.archived);
       if (!activeList.some((o) => o.status === 'new') && activeList.some((o) => o.status === 'in_progress')) {
@@ -582,6 +587,7 @@ export const useGarageState = () => {
       setReferralCode(typeof data.referral_code === 'string' ? data.referral_code : null);
       setReferralBonusTotal(typeof data.referral_bonus_total === 'number' ? data.referral_bonus_total : 0);
       setReferrals(Array.isArray(data.referrals) ? data.referrals : []);
+      setReferredByName(typeof data.referred_by_name === 'string' ? data.referred_by_name : null);
       const names = Object.fromEntries(list.map((o) => [o.id, o.car_name || '']));
       setCarNameDrafts(names);
       setSavedCarNames(names);
@@ -592,6 +598,33 @@ export const useGarageState = () => {
       setSavedMileages(mileages);
     } catch {
       // тихо игнорируем — свайп для обновления не должен показывать ошибки
+    }
+  };
+
+  // Клиент вводит промокод друга прямо в «Гараже» (если не указал его при отправке заявки).
+  // Применить можно только один раз — бэкенд отклонит повторную попытку.
+  const applyReferralCode = async (code: string) => {
+    setApplyReferralCodeError('');
+    setApplyingReferralCode(true);
+    try {
+      const res = await fetch(GARAGE_AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'apply_referral_code', phone, referral_code: code }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setApplyReferralCodeError(data.error || 'Не удалось применить промокод');
+        return false;
+      }
+      setReferredByName(typeof data.referred_by_name === 'string' ? data.referred_by_name : null);
+      toast({ title: 'Промокод применён' });
+      return true;
+    } catch {
+      setApplyReferralCodeError('Не удалось применить промокод. Попробуйте ещё раз.');
+      return false;
+    } finally {
+      setApplyingReferralCode(false);
     }
   };
 
@@ -708,6 +741,11 @@ export const useGarageState = () => {
     referrals,
     referralDialogOpen,
     setReferralDialogOpen,
+    referredByName,
+    applyReferralCode,
+    applyingReferralCode,
+    applyReferralCodeError,
+    setApplyReferralCodeError,
     newOrders,
     inProgressOrders,
     doneOrders,

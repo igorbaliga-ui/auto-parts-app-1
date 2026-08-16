@@ -53,6 +53,20 @@
       "path": "/",
       "body": {"action": "admin_reset_phone_change_limit", "phone": "9001234567"},
       "expectedStatus": 401
+    },
+    {
+      "name": "apply_referral_code without code rejected",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "apply_referral_code", "phone": "9001234567", "referral_code": ""},
+      "expectedStatus": 400
+    },
+    {
+      "name": "apply_referral_code with unknown code returns 404",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "apply_referral_code", "phone": "9001234567", "referral_code": "ZZZZZZ"},
+      "expectedStatus": 404
     }
   ]
 }

@@ -189,6 +189,11 @@ const GarageContent = () => {
         referralCode={g.referralCode}
         referralBonusTotal={g.referralBonusTotal}
         referrals={g.referrals}
+        referredByName={g.referredByName}
+        applyReferralCode={g.applyReferralCode}
+        applyingReferralCode={g.applyingReferralCode}
+        applyReferralCodeError={g.applyReferralCodeError}
+        setApplyReferralCodeError={g.setApplyReferralCodeError}
       />
       <GarageArchiveDialog
         orders={g.archivedOrders}
