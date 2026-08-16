@@ -168,15 +168,15 @@ const RequestFormFields = ({
             ))}
           </datalist>
         )}
-        {errors.vin ? (
-          <p className="text-primary text-xs mt-1">{errors.vin}</p>
-        ) : (
-          getVinLengthHint(form.vin) && (
-            <p className="text-muted-foreground text-xs mt-1">
-              {getVinLengthHint(form.vin)}
-            </p>
-          )
-        )}
+        <p className="text-xs mt-1 min-h-[1em] leading-none">
+          {errors.vin ? (
+            <span className="text-primary">{errors.vin}</span>
+          ) : (
+            getVinLengthHint(form.vin) && (
+              <span className="text-muted-foreground">{getVinLengthHint(form.vin)}</span>
+            )
+          )}
+        </p>
       </div>
 
       {!knownContact && (
