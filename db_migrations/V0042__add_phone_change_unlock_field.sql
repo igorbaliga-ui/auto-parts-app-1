@@ -1,0 +1,1 @@
+ALTER TABLE garage_accounts ADD COLUMN IF NOT EXISTS phone_change_unlocked_at TIMESTAMPTZ NULL;

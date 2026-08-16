@@ -143,7 +143,6 @@ const GarageContent = () => {
           removePasswordSettings={g.removePasswordSettings}
           logoutConfirmOpen={g.logoutConfirmOpen}
           logout={g.logout}
-          openPhoneChange={g.phoneChange.openDialog}
         />
 
         <GarageOrdersList
@@ -176,6 +175,7 @@ const GarageContent = () => {
           savingMileageId={g.savingMileageId}
           mileageErrors={g.mileageErrors}
           saveMileage={g.saveMileage}
+          openPhoneChange={g.phoneChange.openDialog}
         />
       </div>
       <CashbackHistoryDialog

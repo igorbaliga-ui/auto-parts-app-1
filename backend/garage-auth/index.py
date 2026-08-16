@@ -283,6 +283,22 @@ def handler(event: dict, context) -> dict:
             conn.commit()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
 
+        if action == 'admin_reset_phone_change_limit':
+            # Ручное снятие 30-дневного ограничения на смену номера — для случаев,
+            # когда клиенту срочно нужно сменить номер ещё раз, а менеджер убедился,
+            # что это законный запрос. Действие доступно только из /admin.
+            admin_password = req_headers.get('X-Admin-Password') or req_headers.get('x-admin-password')
+            if not admin_password_env or admin_password != admin_password_env:
+                return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный пароль администратора'})}
+            cur.execute(
+                f"INSERT INTO {schema}.garage_accounts (phone_last10, phone_change_unlocked_at, updated_at) "
+                f"VALUES (%s, now(), now()) "
+                f"ON CONFLICT (phone_last10) DO UPDATE SET phone_change_unlocked_at = now(), updated_at = now()",
+                (phone_last10,),
+            )
+            conn.commit()
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+
         if action == 'admin_toggle_block':
             # Временная блокировка/разблокировка доступа клиента в «Гараж» менеджером из /admin —
             # заблокированный клиент не может войти по телефону, даже без пароля
@@ -417,7 +433,16 @@ def handler(event: dict, context) -> dict:
 
             # Защита от злоупотреблений: не чаще одного раза в 30 дней. Каждая смена
             # переносит запись 'phone_changed' вместе со всей историей на новый номер,
-            # поэтому последняя такая запись под ТЕКУЩИМ номером и есть дата последней смены
+            # поэтому последняя такая запись под ТЕКУЩИМ номером и есть дата последней смены.
+            # Менеджер может вручную снять это ограничение из /admin (phone_change_unlocked_at) —
+            # тогда лимит не действует, пока не пройдёт очередная смена номера
+            cur.execute(
+                f"SELECT phone_change_unlocked_at FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+                (phone_last10,),
+            )
+            unlock_row = cur.fetchone()
+            phone_change_unlocked_at = unlock_row[0] if unlock_row else None
+
             cur.execute(
                 f"SELECT created_at FROM {schema}.garage_login_history "
                 f"WHERE phone_last10 = %s AND login_type = 'phone_changed' "
@@ -425,7 +450,10 @@ def handler(event: dict, context) -> dict:
                 (phone_last10,),
             )
             last_change_row = cur.fetchone()
-            if last_change_row:
+            unlocked_after_last_change = bool(
+                phone_change_unlocked_at and (not last_change_row or phone_change_unlocked_at > last_change_row[0])
+            )
+            if last_change_row and not unlocked_after_last_change:
                 cur.execute("SELECT now() - %s < INTERVAL '30 days', %s + INTERVAL '30 days'", (last_change_row[0], last_change_row[0]))
                 too_soon, next_allowed = cur.fetchone()
                 if too_soon:

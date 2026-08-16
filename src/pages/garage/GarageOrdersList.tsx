@@ -49,6 +49,7 @@ type GarageOrdersListProps = {
   savingMileageId: number | null;
   mileageErrors: Record<number, string>;
   saveMileage: (order: Order) => void;
+  openPhoneChange: () => void;
 };
 
 const GarageOrdersList = ({
@@ -81,6 +82,7 @@ const GarageOrdersList = ({
   savingMileageId,
   mileageErrors,
   saveMileage,
+  openPhoneChange,
 }: GarageOrdersListProps) => {
   const [searchOpen, setSearchOpen] = useState(() => !!searchQuery);
   const [mileageInfoOpen, setMileageInfoOpen] = useState(false);
@@ -379,7 +381,14 @@ const GarageOrdersList = ({
                     </div>
                     <div className="flex justify-between sm:block">
                       <span className="text-muted-foreground">Телефон: </span>
-                      <span>{o.phone}</span>
+                      <button
+                        type="button"
+                        onClick={openPhoneChange}
+                        title="Сменить номер телефона"
+                        className="hover:text-primary hover:underline underline-offset-2 transition-colors"
+                      >
+                        {o.phone}
+                      </button>
                     </div>
                     <div className="flex justify-between sm:block">
                       <span className="text-muted-foreground">Город: </span>

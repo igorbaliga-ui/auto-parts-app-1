@@ -36,6 +36,7 @@ const LoginHistoryDialog = ({ phone, clientLabel, adminPassword, open, onOpenCha
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [reverting, setReverting] = useState(false);
+  const [resettingLimit, setResettingLimit] = useState(false);
 
   const loadHistory = () => {
     setLoading(true);
@@ -78,6 +79,27 @@ const LoginHistoryDialog = ({ phone, clientLabel, adminPassword, open, onOpenCha
       toast({ title: 'Не удалось отменить смену номера', variant: 'destructive' });
     } finally {
       setReverting(false);
+    }
+  };
+
+  const resetPhoneChangeLimit = async () => {
+    setResettingLimit(true);
+    try {
+      const res = await fetch(GARAGE_AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword },
+        body: JSON.stringify({ action: 'admin_reset_phone_change_limit', phone }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({ title: 'Не удалось снять ограничение', description: data.error, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Ограничение снято', description: 'Клиент сможет сменить номер ещё раз прямо сейчас.' });
+    } catch {
+      toast({ title: 'Не удалось снять ограничение', variant: 'destructive' });
+    } finally {
+      setResettingLimit(false);
     }
   };
 
@@ -166,6 +188,23 @@ const LoginHistoryDialog = ({ phone, clientLabel, adminPassword, open, onOpenCha
             ))}
           </div>
         )}
+        <div className="pt-2 border-t border-steel">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={resettingLimit}
+            onClick={resetPhoneChangeLimit}
+            className="text-xs h-8"
+          >
+            <Icon name="Unlock" size={13} className="mr-1.5" />
+            {resettingLimit ? 'Снимаем…' : 'Разрешить смену номера раньше срока'}
+          </Button>
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Клиент может менять номер не чаще раза в 30 дней. Эта кнопка снимает
+            ограничение для срочного случая.
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );

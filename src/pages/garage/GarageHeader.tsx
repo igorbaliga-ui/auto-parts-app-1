@@ -44,7 +44,6 @@ type GarageHeaderProps = {
   removePasswordSettings: () => void;
   logoutConfirmOpen: boolean;
   logout: () => void;
-  openPhoneChange: () => void;
 };
 
 const GarageHeader = ({
@@ -69,7 +68,6 @@ const GarageHeader = ({
   removePasswordSettings,
   logoutConfirmOpen,
   logout,
-  openPhoneChange,
 }: GarageHeaderProps) => {
   return (
     <>
@@ -140,15 +138,6 @@ const GarageHeader = ({
               <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-primary" />
             </span>
           )}
-        </Button>
-        <Button
-          variant="secondary"
-          size="icon"
-          onClick={openPhoneChange}
-          className="h-10 w-10 shrink-0"
-          title="Сменить номер телефона"
-        >
-          <Icon name="Smartphone" size={16} />
         </Button>
         <Button
           variant="secondary"

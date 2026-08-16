@@ -46,6 +46,13 @@
       "path": "/",
       "body": {"action": "admin_revert_phone_change", "phone": "9001234567"},
       "expectedStatus": 401
+    },
+    {
+      "name": "admin_reset_phone_change_limit requires admin password",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "admin_reset_phone_change_limit", "phone": "9001234567"},
+      "expectedStatus": 401
     }
   ]
 }
