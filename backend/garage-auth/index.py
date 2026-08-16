@@ -311,6 +311,28 @@ def handler(event: dict, context) -> dict:
             if new_phone_last10 == phone_last10:
                 return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Новый номер совпадает с текущим'})}
 
+            # Защита от злоупотреблений: не чаще одного раза в 30 дней. Каждая смена
+            # переносит запись 'phone_changed' вместе со всей историей на новый номер,
+            # поэтому последняя такая запись под ТЕКУЩИМ номером и есть дата последней смены
+            cur.execute(
+                f"SELECT created_at FROM {schema}.garage_login_history "
+                f"WHERE phone_last10 = %s AND login_type = 'phone_changed' "
+                f"ORDER BY created_at DESC LIMIT 1",
+                (phone_last10,),
+            )
+            last_change_row = cur.fetchone()
+            if last_change_row:
+                cur.execute("SELECT now() - %s < INTERVAL '30 days', %s + INTERVAL '30 days'", (last_change_row[0], last_change_row[0]))
+                too_soon, next_allowed = cur.fetchone()
+                if too_soon:
+                    return {
+                        'statusCode': 429,
+                        'headers': headers,
+                        'body': json.dumps({
+                            'error': f'Номер телефона можно менять не чаще раза в 30 дней. Следующая смена будет доступна {next_allowed.strftime("%d.%m.%Y")}',
+                        }),
+                    }
+
             # Новый номер не должен быть уже занят другим клиентом — иначе перенос
             # данных перезаписал бы чужую историю заказов
             cur.execute(
