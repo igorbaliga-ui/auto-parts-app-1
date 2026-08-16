@@ -15,8 +15,8 @@ type UseRequestSubmitParams = {
   messenger: string | null;
   knownContact: boolean;
   knownPhoneNoAuth: string | null;
-  promoStatus: PromoStatus;
   promoAlreadyUsed: boolean;
+  checkPromoCode: () => Promise<PromoStatus>;
   garageAuthed: boolean;
   vinPhoto: { photos: File[]; preparePhotosForUpload: () => Promise<string[]> };
   partsPhoto: { photos: File[]; preparePhotosForUpload: () => Promise<string[]> };
@@ -30,8 +30,8 @@ export const useRequestSubmit = ({
   messenger,
   knownContact,
   knownPhoneNoAuth,
-  promoStatus,
   promoAlreadyUsed,
+  checkPromoCode,
   garageAuthed,
   vinPhoto,
   partsPhoto,
@@ -76,9 +76,6 @@ export const useRequestSubmit = ({
     }
     if (form.parts.trim().length < 2) {
       e.parts = 'Укажите интересующие запчасти';
-    }
-    if (!knownContact && !promoAlreadyUsed && promoStatus === 'invalid') {
-      e.promoCode = 'Такого промокода не существует';
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -131,6 +128,15 @@ export const useRequestSubmit = ({
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
+    // Промокод сверяется с базой только здесь, в момент отправки — чтобы нельзя было
+    // подобрать чужой код перебором через живую проверку по мере набора символов
+    if (!knownContact && !promoAlreadyUsed && form.promoCode.trim()) {
+      const promoResult = await checkPromoCode();
+      if (promoResult === 'invalid') {
+        setErrors((prev) => ({ ...prev, promoCode: 'Такого промокода не существует' }));
+        return;
+      }
+    }
     const phoneDigits = form.phone.replace(/\D/g, '');
     if (!garageAuthed) {
       setCheckingVerification(true);

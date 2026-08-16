@@ -35,10 +35,10 @@ export const useRequestFormState = ({ garageAuthed, garagePhone }: UseRequestFor
   const [vinSource, setVinSource] = useState<'garage' | 'manual' | null>(null);
   const nameLookupTimer = useRef<ReturnType<typeof setTimeout>>();
   const lastLookupPhone = useRef<string>('');
-  // Проверка промокода друга прямо в форме, без ожидания ответа на всю заявку —
-  // как только клиент дописал код, спрашиваем бэкенд, существует ли он
+  // Промокод друга проверяется бэкендом только в момент отправки заявки (а не по мере
+  // набора символов) — иначе живая проверка на каждый символ позволила бы перебором
+  // подобрать чужой действующий код
   const [promoStatus, setPromoStatus] = useState<PromoStatus>('idle');
-  const promoCheckTimer = useRef<ReturnType<typeof setTimeout>>();
   const lastCheckedPromo = useRef<string>('');
   // Когда по введённому телефону нашлось имя клиента — прячем поле «Имя» плавным
   // исчезновением, храним пару телефон/имя, чтобы понять, что подстановка ещё актуальна
@@ -216,36 +216,36 @@ export const useRequestFormState = ({ garageAuthed, garagePhone }: UseRequestFor
     return () => clearTimeout(promoUsedCheckTimer.current);
   }, [form.phone]);
 
-  // Промокод друга проверяется прямо в форме, без ожидания отправки всей заявки —
-  // как только клиент вводит код полностью, спрашиваем бэкенд, существует ли он
+  // Сбрасываем результат предыдущей проверки, как только клиент меняет код —
+  // старое «Такого промокода не существует» не должно висеть под новым введённым кодом
   useEffect(() => {
+    if (lastCheckedPromo.current !== form.promoCode.trim()) {
+      setPromoStatus('idle');
+    }
+  }, [form.promoCode]);
+
+  // Промокод проверяется бэкендом только по явному запросу — при нажатии «Отправить»,
+  // чтобы исключить перебор кодов через живую проверку на каждый введённый символ
+  const checkPromoCode = async (): Promise<PromoStatus> => {
     const code = form.promoCode.trim();
     if (!code) {
       setPromoStatus('idle');
-      lastCheckedPromo.current = '';
-      return;
+      return 'idle';
     }
-    if (lastCheckedPromo.current === code) return;
-
     setPromoStatus('checking');
-    clearTimeout(promoCheckTimer.current);
-    promoCheckTimer.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`${GARAGE_LOOKUP_URL}?check_promo=${encodeURIComponent(code)}`);
-        if (!res.ok) throw new Error('request failed');
-        const data = await res.json();
-        lastCheckedPromo.current = code;
-        setPromoStatus((prev) => {
-          if (form.promoCode.trim() !== code) return prev;
-          return data.valid ? 'valid' : 'invalid';
-        });
-      } catch {
-        setPromoStatus('idle');
-      }
-    }, 500);
-
-    return () => clearTimeout(promoCheckTimer.current);
-  }, [form.promoCode]);
+    try {
+      const res = await fetch(`${GARAGE_LOOKUP_URL}?check_promo=${encodeURIComponent(code)}`);
+      if (!res.ok) throw new Error('request failed');
+      const data = await res.json();
+      lastCheckedPromo.current = code;
+      const status: PromoStatus = data.valid ? 'valid' : 'invalid';
+      setPromoStatus(status);
+      return status;
+    } catch {
+      setPromoStatus('idle');
+      return 'idle';
+    }
+  };
 
   const open = (vin?: string, incomingPhotos?: File[], phone?: string, name?: string, history?: string[], city?: string) => {
     setForm((f) => ({
@@ -304,6 +304,7 @@ export const useRequestFormState = ({ garageAuthed, garagePhone }: UseRequestFor
     vinSource,
     setVinSource,
     promoStatus,
+    checkPromoCode,
     autoFilledName,
     knownPhoneNoAuth,
     promoAlreadyUsed,
