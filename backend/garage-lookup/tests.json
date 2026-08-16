@@ -11,6 +11,14 @@
       "method": "GET",
       "path": "/?phone=123",
       "expectedStatus": 400
+    },
+    {
+      "name": "Unknown promo code returns valid false",
+      "method": "GET",
+      "path": "/?check_promo=NOPE12",
+      "expectedStatus": 200,
+      "expectedBody": {"valid": false},
+      "bodyMatcher": "exact"
     }
   ]
 }

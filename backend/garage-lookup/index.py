@@ -78,6 +78,26 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Слишком много запросов. Попробуйте позже'})}
 
     params = event.get('queryStringParameters') or {}
+
+    # Проверка промокода друга прямо в форме заявки, без ожидания ответа на всю заявку —
+    # не привязана к телефону, поэтому обрабатывается раньше валидации телефона
+    if params.get('check_promo') is not None:
+        promo_code = re.sub(r'[^A-Z0-9]', '', (params.get('check_promo') or '').strip().upper())[:10]
+        if not promo_code:
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'valid': False})}
+        conn = psycopg2.connect(dsn)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                f"SELECT 1 FROM {schema}.garage_accounts WHERE referral_code = %s",
+                (promo_code,),
+            )
+            valid = cur.fetchone() is not None
+            cur.close()
+        finally:
+            conn.close()
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'valid': valid})}
+
     phone = (params.get('phone') or '').strip()
     phone_digits = re.sub(r'\D', '', phone)
 

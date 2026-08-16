@@ -57,6 +57,11 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
   const [vinSource, setVinSource] = useState<'garage' | 'manual' | null>(null);
   const nameLookupTimer = useRef<ReturnType<typeof setTimeout>>();
   const lastLookupPhone = useRef<string>('');
+  // Проверка промокода друга прямо в форме, без ожидания ответа на всю заявку —
+  // как только клиент дописал код, спрашиваем бэкенд, существует ли он
+  const [promoStatus, setPromoStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const promoCheckTimer = useRef<ReturnType<typeof setTimeout>>();
+  const lastCheckedPromo = useRef<string>('');
   // Когда по введённому телефону нашлось имя клиента — прячем поле «Имя» плавным
   // исчезновением, храним пару телефон/имя, чтобы понять, что подстановка ещё актуальна
   const [autoFilledName, setAutoFilledName] = useState<{ phone: string; name: string } | null>(null);
@@ -202,6 +207,37 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [form.phone, knownPhoneNoAuth]);
 
+  // Промокод друга проверяется прямо в форме, без ожидания отправки всей заявки —
+  // как только клиент вводит код полностью, спрашиваем бэкенд, существует ли он
+  useEffect(() => {
+    const code = form.promoCode.trim();
+    if (!code) {
+      setPromoStatus('idle');
+      lastCheckedPromo.current = '';
+      return;
+    }
+    if (lastCheckedPromo.current === code) return;
+
+    setPromoStatus('checking');
+    clearTimeout(promoCheckTimer.current);
+    promoCheckTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`${GARAGE_LOOKUP_URL}?check_promo=${encodeURIComponent(code)}`);
+        if (!res.ok) throw new Error('request failed');
+        const data = await res.json();
+        lastCheckedPromo.current = code;
+        setPromoStatus((prev) => {
+          if (form.promoCode.trim() !== code) return prev;
+          return data.valid ? 'valid' : 'invalid';
+        });
+      } catch {
+        setPromoStatus('idle');
+      }
+    }, 500);
+
+    return () => clearTimeout(promoCheckTimer.current);
+  }, [form.promoCode]);
+
   const open = (vin?: string, incomingPhotos?: File[], phone?: string, name?: string, history?: string[], city?: string) => {
     setErrors({});
     setForm((f) => ({
@@ -218,6 +254,8 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     lastExistsCheckPhone.current = '';
     setVinHistory(history ?? []);
     setVinSource(vin ? 'manual' : null);
+    setPromoStatus('idle');
+    lastCheckedPromo.current = '';
     if (incomingPhotos && incomingPhotos.length > 0) {
       vinPhoto.addPhotos(incomingPhotos);
     }
@@ -253,6 +291,9 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     if (form.parts.trim().length < 2) {
       e.parts = 'Укажите интересующие запчасти';
     }
+    if (!knownContact && promoStatus === 'invalid') {
+      e.promoCode = 'Такого промокода не существует';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -280,6 +321,8 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     setAutoFilledName(null);
     setKnownPhoneNoAuth(null);
     setVinSource(null);
+    setPromoStatus('idle');
+    lastCheckedPromo.current = '';
     vinPhoto.resetPhotos();
     partsPhoto.resetPhotos();
     safeRemoveItem(STORAGE_KEY);
@@ -358,6 +401,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       messenger={messenger}
       setMessenger={setMessenger}
       knownContact={knownContact}
+      promoStatus={promoStatus}
       nameAutoFilled={!!autoFilledName || !!knownPhoneNoAuth}
       vinHistory={vinHistory}
       garageCars={garageCars}

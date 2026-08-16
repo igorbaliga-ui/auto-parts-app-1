@@ -20,10 +20,13 @@ import { messengers, GarageCar } from './RequestContext';
 
 type FormState = { vin: string; name: string; phone: string; parts: string; city: string; promoCode: string };
 
+type PromoStatus = 'idle' | 'checking' | 'valid' | 'invalid';
+
 type RequestFormFieldsProps = {
   form: FormState;
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
   errors: Record<string, string>;
+  promoStatus?: PromoStatus;
   nameAutoFilled?: boolean;
   messenger: string | null;
   setMessenger: React.Dispatch<React.SetStateAction<string | null>>;
@@ -48,6 +51,7 @@ const RequestFormFields = ({
   form,
   setForm,
   errors,
+  promoStatus = 'idle',
   nameAutoFilled,
   messenger,
   setMessenger,
@@ -341,23 +345,51 @@ const RequestFormFields = ({
           <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
             Промокод друга (необязательно)
           </label>
-          <Input
-            value={form.promoCode}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10),
-              }))
-            }
-            maxLength={10}
-            inputMode="text"
-            autoCapitalize="characters"
-            autoCorrect="off"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="Например, X7K9QZ"
-            className="mt-1.5 bg-background tracking-[0.14em] uppercase"
-          />
+          <div className="relative mt-1.5">
+            <Input
+              value={form.promoCode}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10),
+                }))
+              }
+              maxLength={10}
+              inputMode="text"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="Например, X7K9QZ"
+              className={`bg-background tracking-[0.14em] uppercase pr-9 ${
+                promoStatus === 'invalid'
+                  ? 'border-primary text-primary'
+                  : promoStatus === 'valid'
+                    ? 'border-green-600'
+                    : ''
+              }`}
+            />
+            {form.promoCode && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+                {promoStatus === 'checking' && (
+                  <Icon name="Loader2" size={15} className="animate-spin text-muted-foreground" />
+                )}
+                {promoStatus === 'valid' && (
+                  <Icon name="CheckCircle2" size={15} className="text-green-600" />
+                )}
+                {promoStatus === 'invalid' && (
+                  <Icon name="XCircle" size={15} className="text-primary" />
+                )}
+              </span>
+            )}
+          </div>
+          {promoStatus === 'invalid' && !errors.promoCode ? (
+            <p className="text-primary text-xs mt-1">Такого промокода не существует</p>
+          ) : promoStatus === 'valid' ? (
+            <p className="text-green-600 text-xs mt-1">Промокод действителен</p>
+          ) : (
+            errors.promoCode && <p className="text-primary text-xs mt-1">{errors.promoCode}</p>
+          )}
         </div>
       )}
 
