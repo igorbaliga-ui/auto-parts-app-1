@@ -89,11 +89,11 @@ const GarageProfileMenu = ({
         <PopoverTrigger asChild>
           <Button
             variant="secondary"
-            className="relative h-10 px-4 shrink-0 font-head uppercase tracking-wide text-sm"
+            size="icon"
+            className="relative h-10 w-10 shrink-0"
             title="Профиль"
           >
-            <Icon name="User" size={16} className="mr-2" />
-            Профиль
+            <Icon name="User" size={16} />
             {!hasPassword && (
               <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
