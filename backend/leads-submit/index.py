@@ -40,8 +40,9 @@ def upload_photo(photo_base64: str) -> str:
 
 def handler(event: dict, context) -> dict:
     """Принимает заявку с сайта (VIN, имя, телефон, запчасти, мессенджер, до 3 фото) и сохраняет в БД.
-    При самой первой заявке клиента начисляет разовый бонус за регистрацию (сумма для всех
-    одна, задаётся менеджером в /admin), если он больше нуля."""
+    При самой первой заявке клиента, если он указал валидный промокод друга, начисляет разовый
+    бонус за регистрацию (сумма для всех одна, задаётся менеджером в /admin), если он больше нуля.
+    Без промокода бонус за первую заявку не начисляется."""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -198,9 +199,10 @@ def handler(event: dict, context) -> dict:
         new_id = cur.fetchone()[0]
 
         # Разовый бонус за регистрацию: начисляется один раз при самой первой заявке клиента,
-        # сумма общая для всех, задаётся менеджером в /admin («Бонусы клиентов»)
+        # и только если клиент указал промокод друга (и он оказался валидным) — без промокода
+        # бонус не начисляется. Сумма общая для всех, задаётся менеджером в /admin («Бонусы клиентов»)
         signup_bonus_amount = 0.0
-        if is_first_lead:
+        if is_first_lead and referrer_phone_to_notify:
             cur.execute(f"SELECT signup_bonus_amount FROM {schema}.app_settings WHERE id = 1")
             settings_row = cur.fetchone()
             signup_bonus_amount = float(settings_row[0]) if settings_row and settings_row[0] is not None else 0.0
