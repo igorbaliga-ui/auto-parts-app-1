@@ -7,6 +7,13 @@ import { exportReferralsToExcel } from './exportReferrals';
 
 const CLIENT_CASHBACK_URL = 'https://functions.poehali.dev/9852e677-02a7-403b-9658-35e7a0ac1b66';
 
+type ReferralAccrual = {
+  lead_id: number;
+  amount: number;
+  order_amount: number;
+  date: string | null;
+};
+
 type ReferralDetail = {
   phone_last10: string;
   name: string | null;
@@ -14,6 +21,7 @@ type ReferralDetail = {
   note: string | null;
   bonus_earned: number;
   referred_at: string | null;
+  accruals: ReferralAccrual[];
 };
 
 type Client = {
@@ -45,6 +53,7 @@ const AdminReferralsTab = ({ adminPassword }: AdminReferralsTabProps) => {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [expandedFriends, setExpandedFriends] = useState<Set<string>>(new Set());
 
   const toggleExpanded = (phoneLast10: string) => {
     setExpanded((prev) => {
@@ -53,6 +62,18 @@ const AdminReferralsTab = ({ adminPassword }: AdminReferralsTabProps) => {
         next.delete(phoneLast10);
       } else {
         next.add(phoneLast10);
+      }
+      return next;
+    });
+  };
+
+  const toggleFriendExpanded = (key: string) => {
+    setExpandedFriends((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
       }
       return next;
     });
@@ -165,28 +186,66 @@ const AdminReferralsTab = ({ adminPassword }: AdminReferralsTabProps) => {
                     {c.referral_details.length === 0 ? (
                       <p className="text-xs text-muted-foreground py-1">Нет данных о приглашённых.</p>
                     ) : (
-                      c.referral_details.map((d) => (
-                        <div
-                          key={d.phone_last10}
-                          className="flex items-start justify-between gap-3 border-l-2 border-primary/40 pl-3 py-1"
-                        >
-                          <div className="min-w-0">
-                            <p className="text-sm truncate">{d.name || '—'}</p>
-                            <p className="text-xs text-muted-foreground">{d.phone || d.phone_last10}</p>
-                            {d.note && (
-                              <p className="text-xs text-amber-500/90 mt-0.5">{d.note}</p>
-                            )}
-                            {d.referred_at && (
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Приглашён: {formatDate(d.referred_at)}
-                              </p>
+                      c.referral_details.map((d) => {
+                        const friendKey = `${c.phone_last10}:${d.phone_last10}`;
+                        const friendOpen = expandedFriends.has(friendKey);
+                        const hasAccruals = d.accruals.length > 0;
+                        return (
+                          <div key={d.phone_last10} className="border-l-2 border-primary/40 pl-3 py-1">
+                            <button
+                              type="button"
+                              onClick={() => hasAccruals && toggleFriendExpanded(friendKey)}
+                              disabled={!hasAccruals}
+                              className="w-full flex items-start justify-between gap-3 text-left disabled:cursor-default"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-sm truncate">{d.name || '—'}</p>
+                                <p className="text-xs text-muted-foreground">{d.phone || d.phone_last10}</p>
+                                {d.note && (
+                                  <p className="text-xs text-amber-500/90 mt-0.5">{d.note}</p>
+                                )}
+                                {d.referred_at && (
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    Приглашён: {formatDate(d.referred_at)}
+                                  </p>
+                                )}
+                              </div>
+                              <span className="flex items-center gap-1.5 shrink-0">
+                                <span className="text-sm text-primary font-head whitespace-nowrap">
+                                  +{formatMoney(d.bonus_earned)}
+                                </span>
+                                {hasAccruals && (
+                                  <Icon
+                                    name={friendOpen ? 'ChevronUp' : 'ChevronDown'}
+                                    size={14}
+                                    className="text-muted-foreground"
+                                  />
+                                )}
+                              </span>
+                            </button>
+                            {friendOpen && hasAccruals && (
+                              <div className="mt-2 flex flex-col gap-1.5">
+                                {d.accruals.map((a) => (
+                                  <div
+                                    key={a.lead_id}
+                                    className="flex items-center justify-between gap-3 text-xs bg-muted/40 rounded-sm px-2 py-1.5"
+                                  >
+                                    <span className="text-muted-foreground">
+                                      {a.date ? formatDate(a.date) : '—'}
+                                      <span className="ml-1.5 opacity-70">
+                                        (заказ на {formatMoney(a.order_amount)})
+                                      </span>
+                                    </span>
+                                    <span className="text-primary font-head whitespace-nowrap shrink-0">
+                                      +{formatMoney(a.amount)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             )}
                           </div>
-                          <span className="text-sm text-primary font-head whitespace-nowrap shrink-0">
-                            +{formatMoney(d.bonus_earned)}
-                          </span>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 )}

@@ -133,39 +133,60 @@ def handler(event: dict, context) -> dict:
 
             # Реферальный бонус по каждому приглашённому другу отдельно (кто именно пригласил,
             # сколько друг заработал пригласившему) — считается по ИНДИВИДУАЛЬНОМУ проценту
-            # самого пригласившего. Из этих же строк дальше собираем и сумму, и число друзей.
+            # самого пригласившего. Берём каждый выполненный заказ друга отдельной строкой
+            # (не суммируем в SQL), чтобы отдать в /admin детализацию: дата и сумма каждого
+            # отдельного начисления, а не только общий итог.
             cur.execute(
                 f"SELECT ga.referred_by_phone_last10 AS inviter, ga.phone_last10 AS friend_phone, "
-                f"ga.referred_by_at, "
-                f"COALESCE(SUM(CASE WHEN l.status = 'done' THEN l.order_amount ELSE 0 END), 0) AS friend_done_amount "
+                f"ga.referred_by_at, l.id AS lead_id, l.order_amount, l.completed_at "
                 f"FROM {schema}.garage_accounts ga "
                 f"LEFT JOIN {schema}.leads l ON RIGHT(regexp_replace(l.phone, '\\D', '', 'g'), 10) = ga.phone_last10 "
-                f"WHERE ga.referred_by_phone_last10 IS NOT NULL "
-                f"GROUP BY 1, 2, 3"
+                f"AND l.status = 'done' "
+                f"WHERE ga.referred_by_phone_last10 IS NOT NULL"
             )
             friend_rows = cur.fetchall()
             cur.close()
 
             referral_map: dict = {}
             friends_count_map: dict = {}
-            referral_details_map: dict = {}
+            friend_details: dict = {}
             for r in friend_rows:
                 inviter = r['inviter']
                 friend_phone = r['friend_phone']
                 _, referral_percent = percent_map.get(inviter, (3.0, 2.0))
-                friend_bonus = round(float(r['friend_done_amount'] or 0) * referral_percent / 100, 2)
-                referral_map[inviter] = referral_map.get(inviter, 0) + friend_bonus
-                friends_count_map[inviter] = friends_count_map.get(inviter, 0) + 1
-                referral_details_map.setdefault(inviter, []).append({
-                    'phone_last10': friend_phone,
-                    'name': name_map.get(friend_phone),
-                    'phone': phone_map.get(friend_phone),
-                    'note': notes_map.get(friend_phone),
-                    'bonus_earned': friend_bonus,
-                    'referred_at': r['referred_by_at'].isoformat() if r['referred_by_at'] else None,
-                })
-            for details in referral_details_map.values():
-                details.sort(key=lambda d: d['referred_at'] or '', reverse=True)
+                friend_map = friend_details.setdefault(inviter, {})
+                detail = friend_map.get(friend_phone)
+                if detail is None:
+                    detail = {
+                        'phone_last10': friend_phone,
+                        'name': name_map.get(friend_phone),
+                        'phone': phone_map.get(friend_phone),
+                        'note': notes_map.get(friend_phone),
+                        'bonus_earned': 0.0,
+                        'referred_at': r['referred_by_at'].isoformat() if r['referred_by_at'] else None,
+                        'accruals': [],
+                    }
+                    friend_map[friend_phone] = detail
+                    friends_count_map[inviter] = friends_count_map.get(inviter, 0) + 1
+                if r['lead_id'] is not None:
+                    order_amount = float(r['order_amount'] or 0)
+                    bonus = round(order_amount * referral_percent / 100, 2)
+                    detail['bonus_earned'] = round(detail['bonus_earned'] + bonus, 2)
+                    detail['accruals'].append({
+                        'lead_id': r['lead_id'],
+                        'amount': bonus,
+                        'order_amount': order_amount,
+                        'date': r['completed_at'].isoformat() if r['completed_at'] else None,
+                    })
+                    referral_map[inviter] = referral_map.get(inviter, 0) + bonus
+
+            referral_details_map: dict = {}
+            for inviter, friend_map in friend_details.items():
+                for detail in friend_map.values():
+                    detail['accruals'].sort(key=lambda a: a['date'] or '', reverse=True)
+                referral_details_map[inviter] = sorted(
+                    friend_map.values(), key=lambda d: d['referred_at'] or '', reverse=True
+                )
         finally:
             conn.close()
 
