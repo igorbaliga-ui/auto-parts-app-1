@@ -183,8 +183,17 @@ def handler(event: dict, context) -> dict:
             for d in deduction_rows
         )
 
-        # Друзья, приглашённые этим клиентом по его реферальному коду — начисляем 2% от
-        # суммы каждого их выполненного заказа, дополнительно к обычному кэшбеку 3%.
+        # Индивидуальный процент кэшбэка и реферального бонуса этого клиента, заданные
+        # менеджером в /admin (по умолчанию 3% и 2% соответственно)
+        cur.execute(
+            f"SELECT cashback_percent, referral_percent FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+            (phone_last10,),
+        )
+        percent_row = cur.fetchone()
+        referral_percent = float(percent_row['referral_percent']) if percent_row and percent_row['referral_percent'] is not None else 2.0
+
+        # Друзья, приглашённые этим клиентом по его реферальному коду — начисляем его
+        # индивидуальный % от суммы каждого их выполненного заказа, дополнительно к обычному кэшбеку.
         # Учитываются только заказы, СДЕЛАННЫЕ ПОСЛЕ применения промокода (referred_by_at) —
         # старые заказы друга, оформленные до привязки промокода, в бонус не идут.
         cur.execute(
@@ -221,7 +230,7 @@ def handler(event: dict, context) -> dict:
                 entry = by_friend.get(fp)
                 if not entry:
                     continue
-                friend_bonus = round(entry['done_amount'] * 0.02, 2)
+                friend_bonus = round(entry['done_amount'] * referral_percent / 100, 2)
                 referral_bonus_total += friend_bonus
                 referrals.append({
                     'name': entry['name'],
@@ -320,5 +329,7 @@ def handler(event: dict, context) -> dict:
             'referral_bonus_total': referral_bonus_total,
             'referrals': referrals,
             'referred_by_name': referred_by_name,
+            'cashback_percent': float(percent_row['cashback_percent']) if percent_row and percent_row['cashback_percent'] is not None else 3.0,
+            'referral_percent': referral_percent,
         }),
     }

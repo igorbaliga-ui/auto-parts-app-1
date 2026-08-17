@@ -83,21 +83,23 @@ def handler(event: dict, context) -> dict:
         )
         client_info_map = {r['phone_last10']: {'name': r['name'], 'phone': r['phone']} for r in cur.fetchall()}
 
-        # Сколько друзей привёл каждый клиент и сколько заработал на них (2% от суммы
-        # выполненных заказов приглашённых) — для отметки в /admin рядом с именем
+        # Сколько друзей привёл каждый клиент и сколько заработал на них (по его
+        # индивидуальному проценту, garage_accounts.referral_percent) — для отметки в /admin
         cur.execute(
             f"SELECT ga.referred_by_phone_last10 AS inviter, "
+            f"COALESCE(inviter_acc.referral_percent, 2.0) AS referral_percent, "
             f"COUNT(DISTINCT ga.phone_last10) AS friends_count, "
             f"COALESCE(SUM(CASE WHEN l.status = 'done' THEN l.order_amount ELSE 0 END), 0) AS friends_done_amount "
             f"FROM {schema}.garage_accounts ga "
             f"LEFT JOIN {schema}.leads l ON RIGHT(regexp_replace(l.phone, '\\D', '', 'g'), 10) = ga.phone_last10 "
+            f"LEFT JOIN {schema}.garage_accounts inviter_acc ON inviter_acc.phone_last10 = ga.referred_by_phone_last10 "
             f"WHERE ga.referred_by_phone_last10 IS NOT NULL "
-            f"GROUP BY 1"
+            f"GROUP BY 1, 2"
         )
         referral_stats_map = {
             r['inviter']: {
                 'friends_count': r['friends_count'],
-                'bonus_earned': round(float(r['friends_done_amount'] or 0) * 0.02, 2),
+                'bonus_earned': round(float(r['friends_done_amount'] or 0) * float(r['referral_percent']) / 100, 2),
             }
             for r in cur.fetchall()
         }

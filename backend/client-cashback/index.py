@@ -14,10 +14,12 @@ def normalize_phone(phone: str) -> str:
 
 
 def handler(event: dict, context) -> dict:
-    """Считает суммарный кэшбэк клиента (3% от выполненных заказов, плюс ручные начисления,
-    минус списания) и позволяет менеджеру вручную списать или начислить кэшбэк по номеру
-    телефона (для /admin). Автоматические начисления (выполненные заказы) продолжают
-    суммироваться в общий кэшбэк. Клиент в «Гараже» видит итоговую сумму."""
+    """Считает суммарный кэшбэк клиента (индивидуальный % от выполненных заказов, плюс
+    ручные начисления, минус списания) и позволяет менеджеру вручную списать или начислить
+    кэшбэк по номеру телефона, а также задать индивидуальный процент бонуса за покупки и
+    процент реферального бонуса за приглашённых друзей (action=set_percent) (для /admin).
+    Автоматические начисления (выполненные заказы) продолжают суммироваться в общий кэшбэк.
+    Клиент в «Гараже» видит итоговую сумму."""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -95,9 +97,19 @@ def handler(event: dict, context) -> dict:
                 for r in cur.fetchall()
             }
 
-            # Реферальный бонус 2%: сколько каждый клиент заработал на выполненных заказах
-            # приглашённых им друзей (по garage_accounts.referred_by_phone_last10), и
-            # сколько всего друзей он привёл (для рейтинга в /admin)
+            # Индивидуальные проценты кэшбэка и реферального бонуса, заданные менеджером
+            # для каждого клиента (по умолчанию 3% и 2% соответственно)
+            cur.execute(
+                f"SELECT phone_last10, cashback_percent, referral_percent FROM {schema}.garage_accounts"
+            )
+            percent_map = {
+                r['phone_last10']: (float(r['cashback_percent']), float(r['referral_percent']))
+                for r in cur.fetchall()
+            }
+
+            # Реферальный бонус: сколько каждый клиент заработал на выполненных заказах
+            # приглашённых им друзей (по garage_accounts.referred_by_phone_last10), считается
+            # по ИНДИВИДУАЛЬНОМУ проценту самого пригласившего, и сколько всего друзей он привёл
             cur.execute(
                 f"SELECT ga.referred_by_phone_last10 AS inviter, "
                 f"SUM(CASE WHEN l.status = 'done' THEN l.order_amount ELSE 0 END) AS friends_done_amount "
@@ -106,10 +118,11 @@ def handler(event: dict, context) -> dict:
                 f"WHERE ga.referred_by_phone_last10 IS NOT NULL "
                 f"GROUP BY 1"
             )
-            referral_map = {
-                r['inviter']: round(float(r['friends_done_amount'] or 0) * 0.02, 2)
-                for r in cur.fetchall()
-            }
+            referral_map = {}
+            for r in cur.fetchall():
+                inviter = r['inviter']
+                _, referral_percent = percent_map.get(inviter, (3.0, 2.0))
+                referral_map[inviter] = round(float(r['friends_done_amount'] or 0) * referral_percent / 100, 2)
 
             cur.execute(
                 f"SELECT referred_by_phone_last10 AS inviter, COUNT(*) AS friends_count "
@@ -130,6 +143,7 @@ def handler(event: dict, context) -> dict:
             accrued = float(r['accrued']) if r['accrued'] is not None else 0
             deducted, manual_accrued = adjust_map.get(phone_last10, (0, 0))
             referral_bonus = referral_map.get(phone_last10, 0)
+            cashback_percent, referral_percent = percent_map.get(phone_last10, (3.0, 2.0))
             clients.append({
                 'phone_last10': phone_last10,
                 'name': r['name'],
@@ -139,6 +153,8 @@ def handler(event: dict, context) -> dict:
                 'referral_bonus': referral_bonus,
                 'friends_invited_count': friends_count_map.get(phone_last10, 0),
                 'total_cashback': accrued + manual_accrued + referral_bonus - deducted,
+                'cashback_percent': cashback_percent,
+                'referral_percent': referral_percent,
             })
 
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'clients': clients})}
@@ -147,6 +163,58 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 405, 'headers': headers, 'body': json.dumps({'error': 'Method not allowed'})}
 
     body = json.loads(event.get('body') or '{}')
+    action = body.get('action')
+
+    if action == 'set_percent':
+        # Индивидуальная настройка процента кэшбэка и/или реферального бонуса клиента
+        phone_last10 = normalize_phone(body.get('phone') or '')
+        if len(phone_last10) < 10:
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный телефон'})}
+
+        set_clauses = []
+        params = []
+        if 'cashback_percent' in body:
+            try:
+                cashback_percent = float(body['cashback_percent'])
+            except (TypeError, ValueError):
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный процент бонуса за покупки'})}
+            if cashback_percent < 0 or cashback_percent > 100:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Процент должен быть от 0 до 100'})}
+            set_clauses.append('cashback_percent = %s')
+            params.append(cashback_percent)
+        if 'referral_percent' in body:
+            try:
+                referral_percent = float(body['referral_percent'])
+            except (TypeError, ValueError):
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный процент бонуса за друга'})}
+            if referral_percent < 0 or referral_percent > 100:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Процент должен быть от 0 до 100'})}
+            set_clauses.append('referral_percent = %s')
+            params.append(referral_percent)
+
+        if not set_clauses:
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Нечего сохранять'})}
+
+        params.append(phone_last10)
+        conn = psycopg2.connect(dsn)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                f"INSERT INTO {schema}.garage_accounts (phone_last10, updated_at) VALUES (%s, now()) "
+                f"ON CONFLICT (phone_last10) DO NOTHING",
+                (phone_last10,),
+            )
+            cur.execute(
+                f"UPDATE {schema}.garage_accounts SET {', '.join(set_clauses)}, updated_at = now() WHERE phone_last10 = %s",
+                params,
+            )
+            conn.commit()
+            cur.close()
+        finally:
+            conn.close()
+
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+
     phone_last10 = normalize_phone(body.get('phone') or '')
     if len(phone_last10) < 10:
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный телефон'})}

@@ -53,7 +53,9 @@ def handler(event: dict, context) -> dict:
     """Частично обновляет заявку по id (для менеджера в /admin): сумму заказа, предоплату, статус
     (new/in_progress/done), пометку «Поступил», признак архива, внутреннюю заметку, а также VIN,
     имя, телефон, город, мессенджер, запчасти и название авто. Обновляются только те поля, что
-    реально переданы в запросе. Остаток и кэшбэк — вычисляемые колонки в БД, пересчитываются автоматически.
+    реально переданы в запросе. Остаток — вычисляемая колонка в БД, пересчитывается автоматически.
+    Кэшбэк пересчитывается вручную в Python по индивидуальному проценту клиента
+    (garage_accounts.cashback_percent, по умолчанию 3%) при каждом изменении суммы заказа.
     Каждое изменение записывается в журнал lead_changes (кто и когда менял).
     При первом переводе заявки в статус «В работе» фиксируется имя менеджера в поле handled_by
     (кто взял заявку в работу) — дальше не перезаписывается при повторных изменениях статуса.
@@ -153,9 +155,22 @@ def handler(event: dict, context) -> dict:
         text_values = {}
         note_value = None
 
+        cashback_percent = None
         if 'order_amount' in body:
             set_clauses.append("order_amount = %s")
             params.append(body['order_amount'])
+            # Кэшбэк больше не считается автоматически в БД — пересчитываем по
+            # индивидуальному проценту клиента (garage_accounts.cashback_percent, по умолчанию 3%)
+            cur.execute(
+                f"SELECT cashback_percent FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+                (re.sub(r'\D', '', prev_phone or '')[-10:],),
+            )
+            percent_row = cur.fetchone()
+            cashback_percent = float(percent_row[0]) if percent_row and percent_row[0] is not None else 3.0
+            new_amount = body['order_amount']
+            new_cashback = round(float(new_amount) * cashback_percent / 100, 2) if new_amount is not None else None
+            set_clauses.append("cashback = %s")
+            params.append(new_cashback)
         if 'prepayment' in body:
             set_clauses.append("prepayment = %s")
             params.append(body['prepayment'])
@@ -291,11 +306,18 @@ def handler(event: dict, context) -> dict:
                         (phone_last10,),
                     )
                     inviter_row = cur2.fetchone()
-                    cur2.close()
                     referred_at = inviter_row[1] if inviter_row else None
                     order_eligible = referred_at is None or (lead_created_at and lead_created_at > referred_at)
                     if inviter_row and inviter_row[0] and order_eligible:
-                        referral_bonus = round(order_amount * 0.02, 2)
+                        # Реферальный бонус считается по индивидуальному проценту ПРИГЛАСИВШЕГО
+                        # (garage_accounts.referral_percent, по умолчанию 2%)
+                        cur2.execute(
+                            f"SELECT referral_percent FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+                            (inviter_row[0],),
+                        )
+                        rp_row = cur2.fetchone()
+                        referral_percent = float(rp_row[0]) if rp_row and rp_row[0] is not None else 2.0
+                        referral_bonus = round(order_amount * referral_percent / 100, 2)
                         if referral_bonus > 0:
                             referral_bonus_str = f'{referral_bonus:,.0f}'.replace(',', ' ')
                             friend_label = friend_name or 'Ваш друг'
@@ -304,6 +326,7 @@ def handler(event: dict, context) -> dict:
                                 title='Бонус за друга',
                                 body=f'{friend_label} выполнил заказ. Начислено {referral_bonus_str} бонусов за приглашение.',
                             )
+                    cur2.close()
             elif status == 'in_progress' and prev_status == 'new':
                 send_push_to_phone(
                     dsn, schema, phone,

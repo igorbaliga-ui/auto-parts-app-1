@@ -188,6 +188,7 @@ const GarageContent = () => {
         onOpenChange={g.setReferralDialogOpen}
         referralCode={g.referralCode}
         referralBonusTotal={g.referralBonusTotal}
+        referralPercent={g.referralPercent}
         referrals={g.referrals}
         referredByName={g.referredByName}
         applyReferralCode={g.applyReferralCode}

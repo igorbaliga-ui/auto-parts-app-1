@@ -38,6 +38,7 @@ export const useGarageState = () => {
   const [cashbackHistoryOpen, setCashbackHistoryOpen] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referralBonusTotal, setReferralBonusTotal] = useState(0);
+  const [referralPercent, setReferralPercent] = useState(2);
   const [referrals, setReferrals] = useState<ReferralFriend[]>([]);
   const [referralDialogOpen, setReferralDialogOpen] = useState(false);
   // Имя друга, чей промокод клиент уже применил (сам ввёл при заявке или позже в «Гараже»)
@@ -196,6 +197,7 @@ export const useGarageState = () => {
       setCashbackHistory(Array.isArray(data.cashback_history) ? data.cashback_history : []);
       setReferralCode(typeof data.referral_code === 'string' ? data.referral_code : null);
       setReferralBonusTotal(typeof data.referral_bonus_total === 'number' ? data.referral_bonus_total : 0);
+      setReferralPercent(typeof data.referral_percent === 'number' ? data.referral_percent : 2);
       setReferrals(Array.isArray(data.referrals) ? data.referrals : []);
       setReferredByName(typeof data.referred_by_name === 'string' ? data.referred_by_name : null);
       // По умолчанию открываем «Новые», но если там пусто — сразу показываем «В работе»
@@ -586,6 +588,7 @@ export const useGarageState = () => {
       setCashbackHistory(Array.isArray(data.cashback_history) ? data.cashback_history : []);
       setReferralCode(typeof data.referral_code === 'string' ? data.referral_code : null);
       setReferralBonusTotal(typeof data.referral_bonus_total === 'number' ? data.referral_bonus_total : 0);
+      setReferralPercent(typeof data.referral_percent === 'number' ? data.referral_percent : 2);
       setReferrals(Array.isArray(data.referrals) ? data.referrals : []);
       setReferredByName(typeof data.referred_by_name === 'string' ? data.referred_by_name : null);
       const names = Object.fromEntries(list.map((o) => [o.id, o.car_name || '']));
@@ -738,6 +741,7 @@ export const useGarageState = () => {
     setCashbackHistoryOpen,
     referralCode,
     referralBonusTotal,
+    referralPercent,
     referrals,
     referralDialogOpen,
     setReferralDialogOpen,

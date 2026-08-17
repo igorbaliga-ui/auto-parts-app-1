@@ -17,6 +17,7 @@ type ReferralDialogProps = {
   onOpenChange: (open: boolean) => void;
   referralCode: string | null;
   referralBonusTotal: number;
+  referralPercent: number;
   referrals: ReferralFriend[];
   referredByName: string | null;
   applyReferralCode: (code: string) => Promise<boolean>;
@@ -30,6 +31,7 @@ const ReferralDialog = ({
   onOpenChange,
   referralCode,
   referralBonusTotal,
+  referralPercent,
   referrals,
   referredByName,
   applyReferralCode,
@@ -85,8 +87,8 @@ const ReferralDialog = ({
           </DialogTitle>
           <DialogDescription>
             Дайте другу свой промокод — пусть укажет его при оформлении первой
-            заявки. Друг получает те же условия, а вы — 2% от суммы каждого его
-            выполненного заказа сверх обычных бонусов.
+            заявки. Друг получает те же условия, а вы — {referralPercent}% от суммы
+            каждого его выполненного заказа сверх обычных бонусов.
           </DialogDescription>
         </DialogHeader>
 

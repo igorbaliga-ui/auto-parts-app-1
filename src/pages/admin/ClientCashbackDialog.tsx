@@ -9,6 +9,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
+import { toast } from '@/hooks/use-toast';
 import CashbackHistoryDialog from './CashbackHistoryDialog';
 
 const CLIENT_CASHBACK_URL = 'https://functions.poehali.dev/9852e677-02a7-403b-9658-35e7a0ac1b66';
@@ -21,6 +22,8 @@ type Client = {
   manual_accrued: number;
   referral_bonus: number;
   total_cashback: number;
+  cashback_percent: number;
+  referral_percent: number;
 };
 
 type OpType = 'deduct' | 'accrue';
@@ -53,6 +56,10 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
   const [savingPhone, setSavingPhone] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [historyPhone, setHistoryPhone] = useState<string | null>(null);
+  const [percentDrafts, setPercentDrafts] = useState<
+    Record<string, { cashback: string; referral: string }>
+  >({});
+  const [savingPercentPhone, setSavingPercentPhone] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -62,7 +69,18 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
         if (!res.ok) throw new Error('request failed');
         return res.json();
       })
-      .then((data) => setClients(data.clients || []))
+      .then((data) => {
+        const list: Client[] = data.clients || [];
+        setClients(list);
+        setPercentDrafts(
+          Object.fromEntries(
+            list.map((c) => [
+              c.phone_last10,
+              { cashback: String(c.cashback_percent), referral: String(c.referral_percent) },
+            ]),
+          ),
+        );
+      })
       .catch(() => setError('Не удалось загрузить список клиентов'))
       .finally(() => setLoading(false));
   };
@@ -108,6 +126,48 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
     }
   };
 
+  const savePercents = async (phoneLast10: string) => {
+    const draft = percentDrafts[phoneLast10];
+    if (!draft) return;
+    const cashbackPercent = Number(draft.cashback);
+    const referralPercent = Number(draft.referral);
+    if (!Number.isFinite(cashbackPercent) || cashbackPercent < 0 || cashbackPercent > 100) {
+      setError('Процент бонуса за покупки должен быть от 0 до 100');
+      return;
+    }
+    if (!Number.isFinite(referralPercent) || referralPercent < 0 || referralPercent > 100) {
+      setError('Процент бонуса за друга должен быть от 0 до 100');
+      return;
+    }
+    setError('');
+    setSavingPercentPhone(phoneLast10);
+    try {
+      const res = await fetch(CLIENT_CASHBACK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword },
+        body: JSON.stringify({
+          action: 'set_percent',
+          phone: phoneLast10,
+          cashback_percent: cashbackPercent,
+          referral_percent: referralPercent,
+        }),
+      });
+      if (!res.ok) throw new Error('request failed');
+      setClients((cs) =>
+        cs.map((c) =>
+          c.phone_last10 === phoneLast10
+            ? { ...c, cashback_percent: cashbackPercent, referral_percent: referralPercent }
+            : c,
+        ),
+      );
+      toast({ title: 'Проценты сохранены' });
+    } catch {
+      setError('Не удалось сохранить проценты. Попробуйте ещё раз.');
+    } finally {
+      setSavingPercentPhone(null);
+    }
+  };
+
   const filtered = clients.filter(
     (c) =>
       !search.trim() ||
@@ -124,8 +184,10 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
           <DialogHeader>
             <DialogTitle>Бонусы клиентов</DialogTitle>
             <DialogDescription>
-              Общие бонусы — 3% от суммы выполненных заказов, начисляются автоматически. Списания
-              и ручные начисления меняют общую сумму, которую видит клиент в «Гараже».
+              Бонусы начисляются автоматически по индивидуальному проценту каждого клиента —
+              от суммы выполненных заказов и от заказов приглашённых друзей. Проценты можно
+              менять для каждого клиента отдельно. Списания и ручные начисления меняют общую
+              сумму, которую видит клиент в «Гараже».
             </DialogDescription>
           </DialogHeader>
 
@@ -147,79 +209,129 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
               {filtered.map((c) => (
                 <div
                   key={c.phone_last10}
-                  className="flex flex-wrap items-center justify-between gap-3 border border-steel rounded-sm p-3"
+                  className="flex flex-col gap-3 border border-steel rounded-sm p-3"
                 >
-                  <div className="min-w-[140px]">
-                    <p className="font-head text-sm">{c.name || '—'}</p>
-                    <p className="text-xs text-muted-foreground">{c.phone_last10}</p>
-                    <p className="text-sm text-primary mt-1">Бонусы: {formatMoney(c.total_cashback)}</p>
-                    {c.referral_bonus > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Реферальный заработок: {formatMoney(c.referral_bonus)}
-                      </p>
-                    )}
-                    {(c.deducted > 0 || c.manual_accrued > 0) && (
-                      <p className="text-xs text-muted-foreground">
-                        {c.manual_accrued > 0 && <>Начислено вручную: {formatMoney(c.manual_accrued)}. </>}
-                        {c.deducted > 0 && <>Списано всего: {formatMoney(c.deducted)}</>}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex rounded-sm border border-steel overflow-hidden h-9">
-                      <button
-                        type="button"
-                        onClick={() => setOpTypeDrafts((d) => ({ ...d, [c.phone_last10]: 'deduct' }))}
-                        className={`px-3 text-xs font-head uppercase tracking-wide transition-colors ${
-                          getOpType(c.phone_last10) === 'deduct'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        Списать
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOpTypeDrafts((d) => ({ ...d, [c.phone_last10]: 'accrue' }))}
-                        className={`px-3 text-xs font-head uppercase tracking-wide transition-colors ${
-                          getOpType(c.phone_last10) === 'accrue'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        Начислить
-                      </button>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-[140px]">
+                      <p className="font-head text-sm">{c.name || '—'}</p>
+                      <p className="text-xs text-muted-foreground">{c.phone_last10}</p>
+                      <p className="text-sm text-primary mt-1">Бонусы: {formatMoney(c.total_cashback)}</p>
+                      {c.referral_bonus > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Реферальный заработок: {formatMoney(c.referral_bonus)}
+                        </p>
+                      )}
+                      {(c.deducted > 0 || c.manual_accrued > 0) && (
+                        <p className="text-xs text-muted-foreground">
+                          {c.manual_accrued > 0 && <>Начислено вручную: {formatMoney(c.manual_accrued)}. </>}
+                          {c.deducted > 0 && <>Списано всего: {formatMoney(c.deducted)}</>}
+                        </p>
+                      )}
                     </div>
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      placeholder="Сумма"
-                      value={deductDrafts[c.phone_last10] ?? ''}
-                      onChange={(e) =>
-                        setDeductDrafts((d) => ({ ...d, [c.phone_last10]: e.target.value }))
-                      }
-                      className="w-24 h-9"
-                    />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex rounded-sm border border-steel overflow-hidden h-9">
+                        <button
+                          type="button"
+                          onClick={() => setOpTypeDrafts((d) => ({ ...d, [c.phone_last10]: 'deduct' }))}
+                          className={`px-3 text-xs font-head uppercase tracking-wide transition-colors ${
+                            getOpType(c.phone_last10) === 'deduct'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Списать
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOpTypeDrafts((d) => ({ ...d, [c.phone_last10]: 'accrue' }))}
+                          className={`px-3 text-xs font-head uppercase tracking-wide transition-colors ${
+                            getOpType(c.phone_last10) === 'accrue'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Начислить
+                        </button>
+                      </div>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        placeholder="Сумма"
+                        value={deductDrafts[c.phone_last10] ?? ''}
+                        onChange={(e) =>
+                          setDeductDrafts((d) => ({ ...d, [c.phone_last10]: e.target.value }))
+                        }
+                        className="w-24 h-9"
+                      />
+                      <Button
+                        size="sm"
+                        disabled={savingPhone === c.phone_last10}
+                        onClick={() => applyOperation(c.phone_last10)}
+                        className="font-head uppercase tracking-wide text-xs h-9"
+                      >
+                        {savingPhone === c.phone_last10
+                          ? '…'
+                          : getOpType(c.phone_last10) === 'deduct'
+                            ? 'Списать'
+                            : 'Начислить'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setHistoryPhone(c.phone_last10)}
+                        className="h-9"
+                        title="История операций"
+                      >
+                        <Icon name="History" size={16} />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 flex-wrap border-t border-steel pt-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">За покупки</span>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={100}
+                        value={percentDrafts[c.phone_last10]?.cashback ?? ''}
+                        onChange={(e) =>
+                          setPercentDrafts((d) => ({
+                            ...d,
+                            [c.phone_last10]: { ...d[c.phone_last10], cashback: e.target.value },
+                          }))
+                        }
+                        className="w-16 h-8 text-xs"
+                      />
+                      <span className="text-xs text-muted-foreground">%</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">За друга</span>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={100}
+                        value={percentDrafts[c.phone_last10]?.referral ?? ''}
+                        onChange={(e) =>
+                          setPercentDrafts((d) => ({
+                            ...d,
+                            [c.phone_last10]: { ...d[c.phone_last10], referral: e.target.value },
+                          }))
+                        }
+                        className="w-16 h-8 text-xs"
+                      />
+                      <span className="text-xs text-muted-foreground">%</span>
+                    </div>
                     <Button
                       size="sm"
-                      disabled={savingPhone === c.phone_last10}
-                      onClick={() => applyOperation(c.phone_last10)}
-                      className="font-head uppercase tracking-wide text-xs h-9"
+                      variant="secondary"
+                      disabled={savingPercentPhone === c.phone_last10}
+                      onClick={() => savePercents(c.phone_last10)}
+                      className="font-head uppercase tracking-wide text-xs h-8"
                     >
-                      {savingPhone === c.phone_last10
-                        ? '…'
-                        : getOpType(c.phone_last10) === 'deduct'
-                          ? 'Списать'
-                          : 'Начислить'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setHistoryPhone(c.phone_last10)}
-                      className="h-9"
-                      title="История операций"
-                    >
-                      <Icon name="History" size={16} />
+                      {savingPercentPhone === c.phone_last10 ? '…' : 'Сохранить проценты'}
                     </Button>
                   </div>
                 </div>
