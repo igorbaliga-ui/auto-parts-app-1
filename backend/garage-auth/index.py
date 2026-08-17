@@ -7,6 +7,7 @@ import psycopg2.extras
 from rate_limit import get_client_ip, check_rate_limit
 from device_info import parse_device
 from zvonok import start_flashcall, ZvonokError
+from send_push import send_push_to_phone
 
 
 def normalize_phone(phone: str) -> str:
@@ -257,7 +258,37 @@ def handler(event: dict, context) -> dict:
                 (ref_row[0],),
             )
             referrer_row = cur.fetchone()
+            # Имя и уже накопленный бонус нового друга (если у него уже были выполненные
+            # заказы до применения промокода — реферальный бонус 2% начисляется сразу за них)
+            cur.execute(
+                f"SELECT name FROM {schema}.leads "
+                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s "
+                f"ORDER BY created_at ASC LIMIT 1",
+                (phone_last10,),
+            )
+            friend_row = cur.fetchone()
+            friend_name = friend_row[0] if friend_row else 'Ваш друг'
+            cur.execute(
+                f"SELECT COALESCE(SUM(order_amount), 0) FROM {schema}.leads "
+                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s AND status = 'done'",
+                (phone_last10,),
+            )
+            done_sum_row = cur.fetchone()
+            friend_bonus = round(float(done_sum_row[0] or 0) * 0.02, 2)
             conn.commit()
+
+            if referrer_row:
+                if friend_bonus > 0:
+                    bonus_str = f'{friend_bonus:,.0f}'.replace(',', ' ')
+                    push_body = f'{friend_name} применил ваш промокод. Начислено {bonus_str} бонусов за уже выполненные заказы.'
+                else:
+                    push_body = f'{friend_name} применил ваш промокод и стал вашим приглашённым другом.'
+                send_push_to_phone(
+                    dsn, schema, ref_row[0],
+                    title='Новый приглашённый друг',
+                    body=push_body,
+                )
+
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True, 'referred_by_name': referrer_row[0] if referrer_row else None})}
 
         if action == 'set_password':

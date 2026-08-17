@@ -6,6 +6,7 @@ import uuid
 import psycopg2
 import boto3
 from send_admin_push import send_push_to_admins
+from send_push import send_push_to_phone
 from rate_limit import get_client_ip, check_rate_limit
 
 
@@ -157,6 +158,7 @@ def handler(event: dict, context) -> dict:
         # коду и код, который никому не принадлежит, тихо игнорируем. Имя пригласившего
         # запоминаем отдельно — подставим в push-уведомление менеджеру.
         referrer_name = None
+        referrer_phone_to_notify = None
         if is_first_lead and referral_code:
             cur.execute(
                 f"SELECT phone_last10 FROM {schema}.garage_accounts WHERE referral_code = %s",
@@ -179,6 +181,7 @@ def handler(event: dict, context) -> dict:
                 )
                 referrer_row = cur.fetchone()
                 referrer_name = referrer_row[0] if referrer_row else None
+                referrer_phone_to_notify = ref_row[0]
         # Если название авто не передали явно — подтягиваем его из другой заявки с тем же VIN
         if not car_name and vin_to_save:
             cur.execute(
@@ -210,6 +213,14 @@ def handler(event: dict, context) -> dict:
             title='Новая заявка',
             body=push_body,
         )
+        # Уведомляем пригласившего друга: у него появился новый приглашённый —
+        # бонус 2% начислится позже, когда заказ друга будет выполнен
+        if referrer_phone_to_notify:
+            send_push_to_phone(
+                dsn, schema, referrer_phone_to_notify,
+                title='Новый приглашённый друг',
+                body=f'{name} применил ваш промокод и оставил первую заявку. Бонус начислим, когда его заказ будет выполнен.',
+            )
     finally:
         conn.close()
 
