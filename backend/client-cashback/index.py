@@ -18,6 +18,8 @@ def handler(event: dict, context) -> dict:
     ручные начисления, минус списания) и позволяет менеджеру вручную списать или начислить
     кэшбэк по номеру телефона, а также задать индивидуальный процент бонуса за покупки и
     процент реферального бонуса за приглашённых друзей (action=set_percent) (для /admin).
+    Для каждого клиента также отдаёт referral_details — список приглашённых им друзей
+    (телефон, имя, заметка менеджера, начисленный с него бонус) для вкладки «Рефералы».
     Также управляет разовым бонусом за регистрацию — общей суммой для всех новых клиентов
     (GET ?settings=1 — прочитать, action=set_signup_bonus — изменить).
     Автоматические начисления (выполненные заказы) продолжают суммироваться в общий кэшбэк.
@@ -96,10 +98,17 @@ def handler(event: dict, context) -> dict:
             # Список всех клиентов со сводкой по кэшбэку
             cur.execute(
                 f"SELECT RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) AS phone_last10, "
-                f"MAX(name) AS name, SUM(CASE WHEN status = 'done' THEN cashback ELSE 0 END) AS accrued "
+                f"MAX(name) AS name, MAX(phone) AS phone, "
+                f"SUM(CASE WHEN status = 'done' THEN cashback ELSE 0 END) AS accrued "
                 f"FROM {schema}.leads GROUP BY 1"
             )
             rows = cur.fetchall()
+            name_map = {r['phone_last10']: r['name'] for r in rows}
+            phone_map = {r['phone_last10']: r['phone'] for r in rows}
+
+            # Заметки менеджера по клиенту (для отображения рядом с приглашённым другом в рефералах)
+            cur.execute(f"SELECT phone_last10, note FROM {schema}.client_notes")
+            notes_map = {r['phone_last10']: r['note'] for r in cur.fetchall()}
 
             cur.execute(
                 f"SELECT phone_last10, "
@@ -122,31 +131,41 @@ def handler(event: dict, context) -> dict:
                 for r in cur.fetchall()
             }
 
-            # Реферальный бонус: сколько каждый клиент заработал на выполненных заказах
-            # приглашённых им друзей (по garage_accounts.referred_by_phone_last10), считается
-            # по ИНДИВИДУАЛЬНОМУ проценту самого пригласившего, и сколько всего друзей он привёл
+            # Реферальный бонус по каждому приглашённому другу отдельно (кто именно пригласил,
+            # сколько друг заработал пригласившему) — считается по ИНДИВИДУАЛЬНОМУ проценту
+            # самого пригласившего. Из этих же строк дальше собираем и сумму, и число друзей.
             cur.execute(
-                f"SELECT ga.referred_by_phone_last10 AS inviter, "
-                f"SUM(CASE WHEN l.status = 'done' THEN l.order_amount ELSE 0 END) AS friends_done_amount "
+                f"SELECT ga.referred_by_phone_last10 AS inviter, ga.phone_last10 AS friend_phone, "
+                f"ga.referred_by_at, "
+                f"COALESCE(SUM(CASE WHEN l.status = 'done' THEN l.order_amount ELSE 0 END), 0) AS friend_done_amount "
                 f"FROM {schema}.garage_accounts ga "
-                f"JOIN {schema}.leads l ON RIGHT(regexp_replace(l.phone, '\\D', '', 'g'), 10) = ga.phone_last10 "
+                f"LEFT JOIN {schema}.leads l ON RIGHT(regexp_replace(l.phone, '\\D', '', 'g'), 10) = ga.phone_last10 "
                 f"WHERE ga.referred_by_phone_last10 IS NOT NULL "
-                f"GROUP BY 1"
+                f"GROUP BY 1, 2, 3"
             )
-            referral_map = {}
-            for r in cur.fetchall():
-                inviter = r['inviter']
-                _, referral_percent = percent_map.get(inviter, (3.0, 2.0))
-                referral_map[inviter] = round(float(r['friends_done_amount'] or 0) * referral_percent / 100, 2)
-
-            cur.execute(
-                f"SELECT referred_by_phone_last10 AS inviter, COUNT(*) AS friends_count "
-                f"FROM {schema}.garage_accounts "
-                f"WHERE referred_by_phone_last10 IS NOT NULL "
-                f"GROUP BY 1"
-            )
-            friends_count_map = {r['inviter']: r['friends_count'] for r in cur.fetchall()}
+            friend_rows = cur.fetchall()
             cur.close()
+
+            referral_map: dict = {}
+            friends_count_map: dict = {}
+            referral_details_map: dict = {}
+            for r in friend_rows:
+                inviter = r['inviter']
+                friend_phone = r['friend_phone']
+                _, referral_percent = percent_map.get(inviter, (3.0, 2.0))
+                friend_bonus = round(float(r['friend_done_amount'] or 0) * referral_percent / 100, 2)
+                referral_map[inviter] = referral_map.get(inviter, 0) + friend_bonus
+                friends_count_map[inviter] = friends_count_map.get(inviter, 0) + 1
+                referral_details_map.setdefault(inviter, []).append({
+                    'phone_last10': friend_phone,
+                    'name': name_map.get(friend_phone),
+                    'phone': phone_map.get(friend_phone),
+                    'note': notes_map.get(friend_phone),
+                    'bonus_earned': friend_bonus,
+                    'referred_at': r['referred_by_at'].isoformat() if r['referred_by_at'] else None,
+                })
+            for details in referral_details_map.values():
+                details.sort(key=lambda d: d['referred_at'] or '', reverse=True)
         finally:
             conn.close()
 
@@ -170,6 +189,7 @@ def handler(event: dict, context) -> dict:
                 'total_cashback': accrued + manual_accrued + referral_bonus - deducted,
                 'cashback_percent': cashback_percent,
                 'referral_percent': referral_percent,
+                'referral_details': referral_details_map.get(phone_last10, []),
             })
 
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'clients': clients})}

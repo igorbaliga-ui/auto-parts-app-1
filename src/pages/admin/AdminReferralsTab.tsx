@@ -2,10 +2,19 @@ import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
-import { formatBonus as formatMoney } from '@/lib/format';
+import { formatBonus as formatMoney, formatDate } from '@/lib/format';
 import { exportReferralsToExcel } from './exportReferrals';
 
 const CLIENT_CASHBACK_URL = 'https://functions.poehali.dev/9852e677-02a7-403b-9658-35e7a0ac1b66';
+
+type ReferralDetail = {
+  phone_last10: string;
+  name: string | null;
+  phone: string | null;
+  note: string | null;
+  bonus_earned: number;
+  referred_at: string | null;
+};
 
 type Client = {
   phone_last10: string;
@@ -16,6 +25,7 @@ type Client = {
   referral_bonus: number;
   friends_invited_count: number;
   total_cashback: number;
+  referral_details: ReferralDetail[];
 };
 
 type AdminReferralsTabProps = {
@@ -34,6 +44,19 @@ const AdminReferralsTab = ({ adminPassword }: AdminReferralsTabProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (phoneLast10: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(phoneLast10)) {
+        next.delete(phoneLast10);
+      } else {
+        next.add(phoneLast10);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -104,31 +127,72 @@ const AdminReferralsTab = ({ adminPassword }: AdminReferralsTabProps) => {
         </p>
       ) : (
         <div className="flex flex-col gap-2">
-          {referrers.map((c, i) => (
-            <div
-              key={c.phone_last10}
-              className="flex items-center justify-between gap-3 border border-steel rounded-sm p-3"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="shrink-0 w-7 h-7 rounded-full bg-muted flex items-center justify-center font-head text-xs text-muted-foreground">
-                  {i + 1}
-                </span>
-                <div className="min-w-0">
-                  <p className="font-head text-sm truncate">{c.name || '—'}</p>
-                  <p className="text-xs text-muted-foreground">{c.phone_last10}</p>
-                </div>
+          {referrers.map((c, i) => {
+            const isOpen = expanded.has(c.phone_last10);
+            return (
+              <div key={c.phone_last10} className="border border-steel rounded-sm">
+                <button
+                  type="button"
+                  onClick={() => toggleExpanded(c.phone_last10)}
+                  className="w-full flex items-center justify-between gap-3 p-3 text-left"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="shrink-0 w-7 h-7 rounded-full bg-muted flex items-center justify-center font-head text-xs text-muted-foreground">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-head text-sm truncate">{c.name || '—'}</p>
+                      <p className="text-xs text-muted-foreground">{c.phone_last10}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 shrink-0">
+                    <span className="flex items-center gap-1.5 text-sm text-muted-foreground" title="Приглашено друзей">
+                      <Icon name="Users" size={14} className="text-primary" />
+                      {c.friends_invited_count}
+                    </span>
+                    <span className="text-sm text-primary font-head whitespace-nowrap" title="Заработано на рефералах">
+                      {formatMoney(c.referral_bonus)}
+                    </span>
+                    <Icon
+                      name={isOpen ? 'ChevronUp' : 'ChevronDown'}
+                      size={16}
+                      className="text-muted-foreground"
+                    />
+                  </div>
+                </button>
+                {isOpen && (
+                  <div className="border-t border-steel px-3 py-2 flex flex-col gap-2">
+                    {c.referral_details.length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-1">Нет данных о приглашённых.</p>
+                    ) : (
+                      c.referral_details.map((d) => (
+                        <div
+                          key={d.phone_last10}
+                          className="flex items-start justify-between gap-3 border-l-2 border-primary/40 pl-3 py-1"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm truncate">{d.name || '—'}</p>
+                            <p className="text-xs text-muted-foreground">{d.phone || d.phone_last10}</p>
+                            {d.note && (
+                              <p className="text-xs text-amber-500/90 mt-0.5">{d.note}</p>
+                            )}
+                            {d.referred_at && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Приглашён: {formatDate(d.referred_at)}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-sm text-primary font-head whitespace-nowrap shrink-0">
+                            +{formatMoney(d.bonus_earned)}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-4 shrink-0">
-                <span className="flex items-center gap-1.5 text-sm text-muted-foreground" title="Приглашено друзей">
-                  <Icon name="Users" size={14} className="text-primary" />
-                  {c.friends_invited_count}
-                </span>
-                <span className="text-sm text-primary font-head whitespace-nowrap" title="Заработано на рефералах">
-                  {formatMoney(c.referral_bonus)}
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
