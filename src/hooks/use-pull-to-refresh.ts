@@ -27,6 +27,15 @@ export const usePullToRefresh = (
     if (typeof window === "undefined" || !("ontouchstart" in window)) return;
 
     const onTouchStart = (e: TouchEvent) => {
+      // Если жест начался внутри открытого диалога/шторки (например, формы «Заявка
+      // на подбор», которая на /garage открывается поверх страницы) — не перехватываем
+      // его глобальным pull-to-refresh. Иначе он иногда «съедает» свайп внутри формы
+      // через preventDefault(), из-за чего скролл там срабатывает через раз.
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-vaul-drawer], [role="dialog"]')) {
+        active.current = false;
+        return;
+      }
       if (refreshingRef.current || window.scrollY > 0) {
         active.current = false;
         return;
