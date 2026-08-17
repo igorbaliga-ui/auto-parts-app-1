@@ -34,3 +34,13 @@ export const getMobileOs = (): 'ios' | 'android' | null => {
   if (/android/i.test(ua)) return 'android';
   return null;
 };
+
+/**
+ * На iOS установить PWA можно только через Safari — сторонние браузеры
+ * (Chrome, Yandex и т.д.) технически не умеют добавлять сайт на экран «Домой».
+ * Используется, чтобы вместо пошаговой инструкции показать таким пользователям
+ * просьбу переоткрыть сайт в Safari.
+ */
+export const isIosNonSafari = (): boolean => {
+  return getMobileOs() === 'ios' && !isIosSafari();
+};

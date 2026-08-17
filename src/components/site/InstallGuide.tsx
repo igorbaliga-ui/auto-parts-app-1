@@ -8,8 +8,9 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Icon from "@/components/ui/icon";
-import { isIosSafari, isAndroidChrome, getMobileOs } from "@/lib/browser-detect";
+import { isIosSafari, isAndroidChrome, isIosNonSafari, getMobileOs } from "@/lib/browser-detect";
 import { SITE_HOST } from "@/lib/site";
+import { toast } from "@/hooks/use-toast";
 
 type Props = {
   open: boolean;
@@ -60,6 +61,38 @@ const StepList = ({ steps }: { steps: string[] }) => (
   </ol>
 );
 
+const CopySiteHost = () => {
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(SITE_HOST);
+      toast({ title: "Адрес скопирован" });
+    } catch {
+      // буфер обмена недоступен — тихо игнорируем
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-4 mt-4 py-2 text-center">
+      <Icon name="Compass" size={36} className="text-primary" />
+      <p className="text-sm text-foreground/90">
+        Для скачивания приложения перейдите в Safari
+      </p>
+      <button
+        type="button"
+        onClick={copy}
+        title="Скопировать адрес сайта"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-sm border border-primary/60 bg-primary/10 text-primary font-head font-bold uppercase tracking-wide text-base hover:bg-primary/20 transition-colors"
+      >
+        <Icon name="Copy" size={16} />
+        {SITE_HOST}
+      </button>
+      <p className="text-xs text-muted-foreground">
+        Скопируйте адрес и откройте его в Safari
+      </p>
+    </div>
+  );
+};
+
 const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
   const [tab, setTab] = useState<"ios" | "android">(defaultTab);
   // Шаг «откройте сайт в нужном браузере» не нужен, если пользователь и так
@@ -70,6 +103,9 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
   // другой платформы человеку не нужна и не показывается вовсе, вместе с
   // переключателем вкладок
   const detectedOs = getMobileOs();
+  // На iOS вне Safari (Chrome, Yandex и т.д.) установка PWA технически невозможна —
+  // вместо пошаговой инструкции просим переоткрыть сайт в Safari
+  const iosNonSafari = isIosNonSafari();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -84,7 +120,9 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
           </DialogDescription>
         </DialogHeader>
 
-        {detectedOs ? (
+        {iosNonSafari ? (
+          <CopySiteHost />
+        ) : detectedOs ? (
           <StepList steps={detectedOs === "ios" ? visibleIosSteps : visibleAndroidSteps} />
         ) : (
           <Tabs value={tab} onValueChange={(v) => setTab(v as "ios" | "android")}>
