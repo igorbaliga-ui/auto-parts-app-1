@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Icon from "@/components/ui/icon";
-import { isIosSafari, isAndroidChrome, isIosNonSafari, getMobileOs } from "@/lib/browser-detect";
+import { isIosSafari, isAndroidChrome, isIosNonSafari, isAndroidNonChrome, getMobileOs } from "@/lib/browser-detect";
 import { SITE_HOST } from "@/lib/site";
 import { toast } from "@/hooks/use-toast";
 
@@ -61,7 +61,7 @@ const StepList = ({ steps }: { steps: string[] }) => (
   </ol>
 );
 
-const CopySiteHost = () => {
+const CopySiteHost = ({ browser, icon }: { browser: string; icon: string }) => {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(SITE_HOST);
@@ -73,9 +73,9 @@ const CopySiteHost = () => {
 
   return (
     <div className="flex flex-col items-center gap-4 mt-4 py-2 text-center">
-      <Icon name="Compass" size={36} className="text-primary" />
+      <Icon name={icon} size={36} className="text-primary" />
       <p className="text-sm text-foreground/90">
-        Для скачивания приложения перейдите в Safari
+        Для скачивания приложения перейдите в {browser}
       </p>
       <button
         type="button"
@@ -87,7 +87,7 @@ const CopySiteHost = () => {
         {SITE_HOST}
       </button>
       <p className="text-xs text-muted-foreground">
-        Скопируйте адрес и откройте его в Safari
+        Скопируйте адрес и откройте его в {browser}
       </p>
     </div>
   );
@@ -106,6 +106,9 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
   // На iOS вне Safari (Chrome, Yandex и т.д.) установка PWA технически невозможна —
   // вместо пошаговой инструкции просим переоткрыть сайт в Safari
   const iosNonSafari = isIosNonSafari();
+  // На Android вне Chrome (Yandex, Samsung Internet и т.д.) установка PWA тоже
+  // не гарантирована — просим переоткрыть сайт в Chrome
+  const androidNonChrome = isAndroidNonChrome();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -121,7 +124,9 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
         </DialogHeader>
 
         {iosNonSafari ? (
-          <CopySiteHost />
+          <CopySiteHost browser="Safari" icon="Compass" />
+        ) : androidNonChrome ? (
+          <CopySiteHost browser="Chrome" icon="Chrome" />
         ) : detectedOs ? (
           <StepList steps={detectedOs === "ios" ? visibleIosSteps : visibleAndroidSteps} />
         ) : (

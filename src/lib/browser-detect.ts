@@ -44,3 +44,14 @@ export const getMobileOs = (): 'ios' | 'android' | null => {
 export const isIosNonSafari = (): boolean => {
   return getMobileOs() === 'ios' && !isIosSafari();
 };
+
+/**
+ * На Android установка PWA через меню «Установить приложение» надёжно работает
+ * только в Chrome — сторонние браузеры (Yandex, Samsung Internet, Opera и т.д.)
+ * либо не показывают такой пункт меню, либо ведут себя непредсказуемо.
+ * Используется, чтобы вместо пошаговой инструкции показать таким пользователям
+ * просьбу переоткрыть сайт в Chrome.
+ */
+export const isAndroidNonChrome = (): boolean => {
+  return getMobileOs() === 'android' && !isAndroidChrome();
+};
