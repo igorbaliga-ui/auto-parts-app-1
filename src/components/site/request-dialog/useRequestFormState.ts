@@ -54,6 +54,24 @@ export const useRequestFormState = ({ garageAuthed, garagePhone }: UseRequestFor
   const [promoAlreadyUsed, setPromoAlreadyUsed] = useState(false);
   const promoUsedCheckTimer = useRef<ReturnType<typeof setTimeout>>();
   const lastPromoUsedCheckPhone = useRef<string>('');
+  // Разовый бонус за регистрацию (задаётся менеджером в /admin) — подсказка в форме,
+  // что за первую заявку начислится бонус. Грузим один раз при монтировании провайдера.
+  const [signupBonusAmount, setSignupBonusAmount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${GARAGE_LOOKUP_URL}?signup_bonus=1`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data && typeof data.signup_bonus_amount === 'number') {
+          setSignupBonusAmount(data.signup_bonus_amount);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Клиент вошёл в «Гараж» — подгружаем список его автомобилей с названиями (привязаны к VIN)
   useEffect(() => {
@@ -308,6 +326,7 @@ export const useRequestFormState = ({ garageAuthed, garagePhone }: UseRequestFor
     autoFilledName,
     knownPhoneNoAuth,
     promoAlreadyUsed,
+    signupBonusAmount,
     open,
     resetForm,
   };

@@ -47,7 +47,10 @@ def get_or_create_referral_code(conn, schema: str, phone_last10: str) -> str:
 def handler(event: dict, context) -> dict:
     """Отдаёт заказы клиента по номеру телефона для личного кабинета «Гараж».
     Перед выдачей автоматически переносит в архив заявки со статусом «Новая» (new),
-    которые провисели без действий менеджера дольше 14 дней."""
+    которые провисели без действий менеджера дольше 14 дней.
+    Также отдаёт публичные лёгкие проверки для формы заявки на сайте: наличие
+    бонуса за регистрацию (?signup_bonus=1), валидность промокода (?check_promo=...),
+    существование номера (?exists_only=1), занятость промокода (?promo_used=1)."""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -78,6 +81,23 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Слишком много запросов. Попробуйте позже'})}
 
     params = event.get('queryStringParameters') or {}
+
+    # Разовый бонус за регистрацию — для подсказки в форме заявки на сайте (не привязана
+    # к телефону, публичный доступ без пароля, как и остальные лёгкие проверки формы)
+    if params.get('signup_bonus') == '1':
+        conn = psycopg2.connect(dsn)
+        try:
+            cur = conn.cursor()
+            cur.execute(f"SELECT signup_bonus_amount FROM {schema}.app_settings WHERE id = 1")
+            row = cur.fetchone()
+            cur.close()
+        finally:
+            conn.close()
+        return {
+            'statusCode': 200,
+            'headers': headers,
+            'body': json.dumps({'signup_bonus_amount': float(row[0]) if row and row[0] is not None else 0}),
+        }
 
     # Проверка промокода друга прямо в форме заявки, без ожидания ответа на всю заявку —
     # не привязана к телефону, поэтому обрабатывается раньше валидации телефона

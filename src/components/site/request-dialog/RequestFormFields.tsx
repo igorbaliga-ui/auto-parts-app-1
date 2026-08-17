@@ -46,6 +46,8 @@ type RequestFormFieldsProps = {
   removePartsPhoto: (index: number) => void;
   submitting: boolean;
   onSubmit: (ev: React.FormEvent) => void;
+  showSignupBonusHint?: boolean;
+  signupBonusAmount?: number;
 };
 
 const RequestFormFields = ({
@@ -72,6 +74,8 @@ const RequestFormFields = ({
   removePartsPhoto,
   submitting,
   onSubmit,
+  showSignupBonusHint,
+  signupBonusAmount,
 }: RequestFormFieldsProps) => {
   const setPhone = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((f) => ({ ...f, phone: normalizePhoneInput(f.phone, e.target.value) }));
@@ -79,6 +83,12 @@ const RequestFormFields = ({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4 mt-2">
+      {showSignupBonusHint && signupBonusAmount ? (
+        <div className="flex items-center gap-2 rounded-sm border border-primary/40 bg-primary/10 px-3 py-2 text-xs text-primary">
+          <Icon name="Gift" size={15} className="shrink-0" />
+          За первую заявку начислим {signupBonusAmount % 1 === 0 ? signupBonusAmount : signupBonusAmount.toFixed(2)} бонусов
+        </div>
+      ) : null}
       {garageCars.length > 0 && (
         <div>
           <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
