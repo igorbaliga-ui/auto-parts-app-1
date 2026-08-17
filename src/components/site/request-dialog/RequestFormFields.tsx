@@ -93,9 +93,9 @@ const RequestFormFields = ({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4 mt-2">
       {showSignupBonusHint && signupBonusAmount ? (
-        <div className="flex items-center gap-2 rounded-sm border border-primary/40 bg-primary/10 px-3 py-2 text-xs text-primary">
+        <div className="flex items-center gap-2 rounded-sm border border-green-600/40 bg-green-600/10 px-3 py-2 text-xs text-green-600 dark:text-green-500">
           <Icon name="Gift" size={15} className="shrink-0" />
-          За первую заявку начислим {signupBonusAmount % 1 === 0 ? signupBonusAmount : signupBonusAmount.toFixed(2)} бонусов
+          За первую заявку начислим дополнительно {signupBonusAmount % 1 === 0 ? signupBonusAmount : signupBonusAmount.toFixed(2)} бонусов
         </div>
       ) : null}
       {garageCars.length > 0 && (
