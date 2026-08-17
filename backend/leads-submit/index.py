@@ -40,9 +40,11 @@ def upload_photo(photo_base64: str) -> str:
 
 def handler(event: dict, context) -> dict:
     """Принимает заявку с сайта (VIN, имя, телефон, запчасти, мессенджер, до 3 фото) и сохраняет в БД.
-    При самой первой заявке клиента, если он указал валидный промокод друга, начисляет разовый
-    бонус за регистрацию (сумма для всех одна, задаётся менеджером в /admin), если он больше нуля.
-    Без промокода бонус за первую заявку не начисляется."""
+    Если клиент указал валидный промокод друга, начисляет разовый бонус за регистрацию (сумма
+    для всех одна, задаётся менеджером в /admin), если он больше нуля. Без промокода бонус не
+    начисляется. Бонус выдаётся строго один раз на номер телефона (флаг в
+    garage_accounts.signup_bonus_granted_at) — даже если клиент удалит все свои заявки и
+    отправит новую с промокодом повторно, второй раз бонус не начислится."""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -198,28 +200,40 @@ def handler(event: dict, context) -> dict:
         )
         new_id = cur.fetchone()[0]
 
-        # Разовый бонус за регистрацию: начисляется один раз при самой первой заявке клиента,
-        # и только если клиент указал промокод друга (и он оказался валидным) — без промокода
-        # бонус не начисляется. Сумма общая для всех, задаётся менеджером в /admin («Бонусы клиентов»)
+        # Разовый бонус за регистрацию: начисляется один раз на номер телефона, и только если
+        # клиент указал промокод друга (и он оказался валидным) — без промокода бонус не
+        # начисляется. Сумма общая для всех, задаётся менеджером в /admin («Бонусы клиентов»).
+        # Признак «бонус уже выдан» храним в garage_accounts.signup_bonus_granted_at, а НЕ
+        # определяем через is_first_lead/наличие заявок в leads — если клиент удалит все свои
+        # заявки и создаст новую с тем же (или чужим) промокодом, is_first_lead снова станет
+        # True, но запись в garage_accounts никуда не денется и защитит от повторной выдачи.
         signup_bonus_amount = 0.0
-        if is_first_lead and referrer_phone_to_notify:
+        if referrer_phone_to_notify:
             cur.execute(f"SELECT signup_bonus_amount FROM {schema}.app_settings WHERE id = 1")
             settings_row = cur.fetchone()
-            signup_bonus_amount = float(settings_row[0]) if settings_row and settings_row[0] is not None else 0.0
-            if signup_bonus_amount > 0:
-                cur.execute(
-                    f"INSERT INTO {schema}.client_cashback_deductions (phone_last10, amount, type, admin_name) "
-                    f"VALUES (%s, %s, 'accrue', 'Бонус за регистрацию')",
-                    (phone_last10, signup_bonus_amount),
-                )
+            configured_amount = float(settings_row[0]) if settings_row and settings_row[0] is not None else 0.0
+            if configured_amount > 0:
+                # Атомарно занимаем «слот» бонуса: UPSERT выставляет signup_bonus_granted_at
+                # только если он ещё NULL (COALESCE сохраняет уже существующую дату), и сразу
+                # возвращаем, было ли поле изменено именно этим запросом — так исключается
+                # гонка при двух параллельных запросах на один и тот же номер.
                 cur.execute(
                     f"INSERT INTO {schema}.garage_accounts (phone_last10, signup_bonus_granted_at, updated_at) "
                     f"VALUES (%s, now(), now()) "
                     f"ON CONFLICT (phone_last10) DO UPDATE SET "
                     f"signup_bonus_granted_at = COALESCE(garage_accounts.signup_bonus_granted_at, EXCLUDED.signup_bonus_granted_at), "
-                    f"updated_at = now()",
+                    f"updated_at = now() "
+                    f"RETURNING (signup_bonus_granted_at = EXCLUDED.signup_bonus_granted_at)",
                     (phone_last10,),
                 )
+                won_slot = bool(cur.fetchone()[0])
+                if won_slot:
+                    signup_bonus_amount = configured_amount
+                    cur.execute(
+                        f"INSERT INTO {schema}.client_cashback_deductions (phone_last10, amount, type, admin_name) "
+                        f"VALUES (%s, %s, 'accrue', 'Бонус за регистрацию')",
+                        (phone_last10, signup_bonus_amount),
+                    )
 
         conn.commit()
         cur.close()
