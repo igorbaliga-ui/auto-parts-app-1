@@ -18,6 +18,8 @@ def handler(event: dict, context) -> dict:
     ручные начисления, минус списания) и позволяет менеджеру вручную списать или начислить
     кэшбэк по номеру телефона, а также задать индивидуальный процент бонуса за покупки и
     процент реферального бонуса за приглашённых друзей (action=set_percent) (для /admin).
+    Также управляет разовым бонусом за регистрацию — общей суммой для всех новых клиентов
+    (GET ?settings=1 — прочитать, action=set_signup_bonus — изменить).
     Автоматические начисления (выполненные заказы) продолжают суммироваться в общий кэшбэк.
     Клиент в «Гараже» видит итоговую сумму."""
     method = event.get('httpMethod', 'GET')
@@ -58,6 +60,19 @@ def handler(event: dict, context) -> dict:
         conn = psycopg2.connect(dsn)
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+            if params.get('settings') == '1':
+                # Разовый бонус за регистрацию — общая сумма для всех новых клиентов
+                cur.execute(f"SELECT signup_bonus_amount FROM {schema}.app_settings WHERE id = 1")
+                settings_row = cur.fetchone()
+                cur.close()
+                return {
+                    'statusCode': 200,
+                    'headers': headers,
+                    'body': json.dumps({
+                        'signup_bonus_amount': float(settings_row['signup_bonus_amount']) if settings_row else 0,
+                    }),
+                }
 
             if phone_param:
                 # История списаний/начислений по конкретному клиенту
@@ -164,6 +179,30 @@ def handler(event: dict, context) -> dict:
 
     body = json.loads(event.get('body') or '{}')
     action = body.get('action')
+
+    if action == 'set_signup_bonus':
+        # Меняет разовый бонус за регистрацию, который начисляется всем новым клиентам
+        # при первой заявке (см. backend/leads-submit)
+        try:
+            signup_bonus_amount = float(body.get('signup_bonus_amount'))
+        except (TypeError, ValueError):
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректная сумма бонуса'})}
+        if signup_bonus_amount < 0:
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Сумма не может быть отрицательной'})}
+
+        conn = psycopg2.connect(dsn)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                f"UPDATE {schema}.app_settings SET signup_bonus_amount = %s, updated_at = now() WHERE id = 1",
+                (signup_bonus_amount,),
+            )
+            conn.commit()
+            cur.close()
+        finally:
+            conn.close()
+
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
 
     if action == 'set_percent':
         # Индивидуальная настройка процента кэшбэка и/или реферального бонуса клиента

@@ -1,0 +1,1 @@
+ALTER TABLE garage_accounts ADD COLUMN IF NOT EXISTS signup_bonus_granted_at timestamptz NULL;

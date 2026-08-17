@@ -39,7 +39,9 @@ def upload_photo(photo_base64: str) -> str:
 
 
 def handler(event: dict, context) -> dict:
-    """Принимает заявку с сайта (VIN, имя, телефон, запчасти, мессенджер, до 3 фото) и сохраняет в БД"""
+    """Принимает заявку с сайта (VIN, имя, телефон, запчасти, мессенджер, до 3 фото) и сохраняет в БД.
+    При самой первой заявке клиента начисляет разовый бонус за регистрацию (сумма для всех
+    одна, задаётся менеджером в /admin), если он больше нуля."""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -205,6 +207,29 @@ def handler(event: dict, context) -> dict:
             (vin_to_save, name, phone, parts, messenger, first_photo_url, photo_urls or None, car_name, city),
         )
         new_id = cur.fetchone()[0]
+
+        # Разовый бонус за регистрацию: начисляется один раз при самой первой заявке клиента,
+        # сумма общая для всех, задаётся менеджером в /admin («Бонусы клиентов»)
+        signup_bonus_amount = 0.0
+        if is_first_lead:
+            cur.execute(f"SELECT signup_bonus_amount FROM {schema}.app_settings WHERE id = 1")
+            settings_row = cur.fetchone()
+            signup_bonus_amount = float(settings_row[0]) if settings_row and settings_row[0] is not None else 0.0
+            if signup_bonus_amount > 0:
+                cur.execute(
+                    f"INSERT INTO {schema}.client_cashback_deductions (phone_last10, amount, type, admin_name) "
+                    f"VALUES (%s, %s, 'accrue', 'Бонус за регистрацию')",
+                    (phone_last10, signup_bonus_amount),
+                )
+                cur.execute(
+                    f"INSERT INTO {schema}.garage_accounts (phone_last10, signup_bonus_granted_at, updated_at) "
+                    f"VALUES (%s, now(), now()) "
+                    f"ON CONFLICT (phone_last10) DO UPDATE SET "
+                    f"signup_bonus_granted_at = COALESCE(garage_accounts.signup_bonus_granted_at, EXCLUDED.signup_bonus_granted_at), "
+                    f"updated_at = now()",
+                    (phone_last10,),
+                )
+
         conn.commit()
         cur.close()
 
@@ -224,6 +249,13 @@ def handler(event: dict, context) -> dict:
                 dsn, schema, referrer_phone_to_notify,
                 title='Новый приглашённый друг',
                 body=f'{name} применил ваш промокод и оставил первую заявку. Бонус начислим, когда его заказ будет выполнен.',
+            )
+        if signup_bonus_amount > 0:
+            bonus_str = f'{signup_bonus_amount:,.0f}'.replace(',', ' ')
+            send_push_to_phone(
+                dsn, schema, phone,
+                title='Бонус за регистрацию',
+                body=f'Вам начислено {bonus_str} бонусов за первую заявку. Проверьте баланс в «Гараже».',
             )
     finally:
         conn.close()

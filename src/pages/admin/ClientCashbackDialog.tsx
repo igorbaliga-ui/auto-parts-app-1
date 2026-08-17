@@ -60,6 +60,8 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
     Record<string, { cashback: string; referral: string }>
   >({});
   const [savingPercentPhone, setSavingPercentPhone] = useState<string | null>(null);
+  const [signupBonusDraft, setSignupBonusDraft] = useState('');
+  const [savingSignupBonus, setSavingSignupBonus] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -83,12 +85,44 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
       })
       .catch(() => setError('Не удалось загрузить список клиентов'))
       .finally(() => setLoading(false));
+
+    fetch(`${CLIENT_CASHBACK_URL}?settings=1`, { headers: { 'X-Admin-Password': adminPassword } })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && typeof data.signup_bonus_amount === 'number') {
+          setSignupBonusDraft(String(data.signup_bonus_amount));
+        }
+      })
+      .catch(() => {});
   };
 
   useEffect(() => {
     if (open) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  const saveSignupBonus = async () => {
+    const amount = Number(signupBonusDraft);
+    if (!Number.isFinite(amount) || amount < 0) {
+      setError('Сумма бонуса за регистрацию должна быть 0 или больше');
+      return;
+    }
+    setError('');
+    setSavingSignupBonus(true);
+    try {
+      const res = await fetch(CLIENT_CASHBACK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword },
+        body: JSON.stringify({ action: 'set_signup_bonus', signup_bonus_amount: amount }),
+      });
+      if (!res.ok) throw new Error('request failed');
+      toast({ title: 'Бонус за регистрацию сохранён' });
+    } catch {
+      setError('Не удалось сохранить бонус за регистрацию. Попробуйте ещё раз.');
+    } finally {
+      setSavingSignupBonus(false);
+    }
+  };
 
   const getOpType = (phoneLast10: string): OpType => opTypeDrafts[phoneLast10] ?? 'deduct';
 
@@ -191,11 +225,40 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
             </DialogDescription>
           </DialogHeader>
 
+          <div className="flex flex-wrap items-end gap-3 border border-steel rounded-sm p-3">
+            <div>
+              <label className="text-muted-foreground text-xs uppercase tracking-wide block mb-1">
+                Бонус за регистрацию
+              </label>
+              <p className="text-xs text-muted-foreground mb-1.5 max-w-xs">
+                Начисляется один раз всем новым клиентам при первой заявке
+              </p>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                placeholder="0"
+                value={signupBonusDraft}
+                onChange={(e) => setSignupBonusDraft(e.target.value)}
+                className="w-32 h-9"
+              />
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={savingSignupBonus}
+              onClick={saveSignupBonus}
+              className="font-head uppercase tracking-wide text-xs h-9"
+            >
+              {savingSignupBonus ? '…' : 'Сохранить'}
+            </Button>
+          </div>
+
           <Input
             placeholder="Поиск по имени или телефону"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="mb-2"
+            className="mb-2 mt-1"
           />
 
           {error && <p className="text-primary text-sm">{error}</p>}
