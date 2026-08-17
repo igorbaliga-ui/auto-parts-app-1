@@ -3,6 +3,7 @@ import PageBackground from '@/components/site/PageBackground';
 import Icon from '@/components/ui/icon';
 import { useGarageState } from './garage/useGarageState';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
+import { usePushNotificationSound } from '@/hooks/use-push-notification-sound';
 import {
   CheckingSavedView,
   ResetPasswordView,
@@ -19,6 +20,7 @@ import PhoneChangeDialog from './garage/PhoneChangeDialog';
 
 const GarageContent = () => {
   const g = useGarageState();
+  usePushNotificationSound();
   const { pullDistance, refreshing, threshold } = usePullToRefresh(
     g.refresh,
     !g.authed,

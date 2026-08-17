@@ -6,10 +6,12 @@ import AdminContactsTab from './admin/AdminContactsTab';
 import AdminReferralsTab from './admin/AdminReferralsTab';
 import Icon from '@/components/ui/icon';
 import { useAdminLeads } from './admin/useAdminLeads';
+import { usePushNotificationSound } from '@/hooks/use-push-notification-sound';
 
 const Admin = () => {
   const a = useAdminLeads();
   const [page, setPage] = useState<'leads' | 'contacts' | 'referrals'>('leads');
+  usePushNotificationSound();
 
   if (!a.authed) {
     return (

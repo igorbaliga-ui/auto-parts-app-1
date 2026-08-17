@@ -66,12 +66,24 @@ self.addEventListener("push", (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(data.title || "ЗАП ОПТОМ", {
-      body: data.body || "",
-      icon: "/pwa-192.png",
-      badge: "/pwa-192.png",
-      data: { url: data.url || "/garage" },
-    }),
+    Promise.all([
+      self.registration.showNotification(data.title || "ЗАП ОПТОМ", {
+        body: data.body || "",
+        icon: "/pwa-192.png",
+        badge: "/pwa-192.png",
+        data: { url: data.url || "/garage" },
+      }),
+      // Уведомляем открытые вкладки сайта (админку и «Гараж»), чтобы они проиграли
+      // короткий звуковой сигнал — сама push-нотификация браузера звук не издаёт,
+      // если вкладка в этот момент открыта и активна.
+      self.clients
+        .matchAll({ type: "window", includeUncontrolled: true })
+        .then((clientsList) => {
+          clientsList.forEach((client) =>
+            client.postMessage({ type: "push-received" }),
+          );
+        }),
+    ]),
   );
 });
 
