@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
+import { formatBonus as formatMoney } from '@/lib/format';
 import { exportReferralsToExcel } from './exportReferrals';
 
 const CLIENT_CASHBACK_URL = 'https://functions.poehali.dev/9852e677-02a7-403b-9658-35e7a0ac1b66';
@@ -16,18 +17,6 @@ type Client = {
   friends_invited_count: number;
   total_cashback: number;
 };
-
-const bonusWord = (n: number) => {
-  const abs = Math.abs(Math.round(n));
-  const mod10 = abs % 10;
-  const mod100 = abs % 100;
-  if (mod10 === 1 && mod100 !== 11) return 'бонус';
-  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return 'бонуса';
-  return 'бонусов';
-};
-
-const formatMoney = (n: number) =>
-  `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n)} ${bonusWord(n)}`;
 
 type AdminReferralsTabProps = {
   adminPassword: string;

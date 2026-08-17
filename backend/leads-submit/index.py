@@ -108,23 +108,9 @@ def handler(event: dict, context) -> dict:
     # Имя: только буквы (рус/лат), пробел, дефис и апостроф — как на клиенте.
     # Отсекает попытки протащить в базу HTML/скрипты или прочий мусор через прямой запрос к API.
     # Если номер уже есть в базе — имя не обязательно (подставится из первой заявки клиента,
-    # форма для таких клиентов вообще скрывает поле «Имя»)
+    # форма для таких клиентов вообще скрывает поле «Имя»). Сам факт наличия/имя проверяем
+    # позже одним запросом вместе с is_first_lead — отдельное соединение здесь не нужно.
     name_valid = 2 <= len(name) <= 30 and bool(re.fullmatch(r"[a-zA-Zа-яА-ЯёЁ\s'-]+", name))
-    if not name_valid:
-        conn_check = psycopg2.connect(dsn)
-        try:
-            cur_check = conn_check.cursor()
-            cur_check.execute(
-                f"SELECT 1 FROM {schema}.leads "
-                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s LIMIT 1",
-                (phone_last10,),
-            )
-            phone_known = cur_check.fetchone() is not None
-            cur_check.close()
-        finally:
-            conn_check.close()
-        if not phone_known:
-            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите имя'})}
     if messenger not in ('telegram', 'max', 'whatsapp'):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Выберите мессенджер'})}
     # Запчасти: свободный текст, но без символов, из которых можно собрать HTML/скрипт-инъекцию
@@ -155,6 +141,9 @@ def handler(event: dict, context) -> dict:
         is_first_lead = row is None
         if row:
             name = row[0]
+        elif not name_valid:
+            cur.close()
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите имя'})}
         # Если это самая первая заявка клиента и он указал промокод друга — запоминаем,
         # кто его пригласил (один раз, дальше не меняется). Самоприглашение по своему же
         # коду и код, который никому не принадлежит, тихо игнорируем. Имя пригласившего

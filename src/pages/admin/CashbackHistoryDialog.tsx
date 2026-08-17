@@ -6,21 +6,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { formatDate } from './adminTypes';
+import { formatDate, formatBonus } from '@/lib/format';
 
 const CLIENT_CASHBACK_URL = 'https://functions.poehali.dev/9852e677-02a7-403b-9658-35e7a0ac1b66';
-
-const bonusWord = (n: number) => {
-  const abs = Math.abs(Math.round(n));
-  const mod10 = abs % 10;
-  const mod100 = abs % 100;
-  if (mod10 === 1 && mod100 !== 11) return 'бонус';
-  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return 'бонуса';
-  return 'бонусов';
-};
-
-const formatMoney = (n: number) =>
-  `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n)} ${bonusWord(n)}`;
 
 type Deduction = {
   id: number;
@@ -89,7 +77,7 @@ const CashbackHistoryDialog = ({
               >
                 <div>
                   <p className="text-sm">
-                    {h.type === 'accrue' ? 'Начислено' : 'Списано'} {formatMoney(h.amount)}
+                    {h.type === 'accrue' ? 'Начислено' : 'Списано'} {formatBonus(h.amount)}
                   </p>
                   <p className="text-xs text-muted-foreground">{h.admin_name || 'Менеджер'}</p>
                 </div>
