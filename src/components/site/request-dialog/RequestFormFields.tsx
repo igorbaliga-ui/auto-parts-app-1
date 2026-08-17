@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import CityInput from '@/components/shared/CityInput';
 import PhotoAttach from '@/components/site/PhotoAttach';
 import { setStoredCity } from '@/lib/garage-city';
@@ -80,6 +88,7 @@ const RequestFormFields = ({
   const setPhone = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((f) => ({ ...f, phone: normalizePhoneInput(f.phone, e.target.value) }));
   };
+  const [partsExpanded, setPartsExpanded] = useState(false);
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4 mt-2">
@@ -299,28 +308,34 @@ const RequestFormFields = ({
           <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
             Интересующие запчасти
           </label>
-          <PhotoAttach
-            photos={partsPhotos}
-            photoPreviews={partsPhotoPreviews}
-            onAdd={addPartsPhotos}
-            onRemove={removePartsPhoto}
-            compact
-          />
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setPartsExpanded(true)}
+              title="Открыть на весь экран"
+              className="flex items-center justify-center w-7 h-7 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+            >
+              <Icon name="Maximize2" size={14} />
+            </button>
+            <PhotoAttach
+              photos={partsPhotos}
+              photoPreviews={partsPhotoPreviews}
+              onAdd={addPartsPhotos}
+              onRemove={removePartsPhoto}
+              compact
+            />
+          </div>
         </div>
         <Textarea
           value={form.parts}
-          onChange={(e) =>
-            setForm((f) => ({ ...f, parts: sanitizePartsInput(e.target.value) }))
-          }
+          readOnly
+          onClick={() => setPartsExpanded(true)}
           onFocus={(e) => {
-            const target = e.currentTarget;
-            setTimeout(() => {
-              target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 300);
+            e.currentTarget.blur();
+            setPartsExpanded(true);
           }}
-          maxLength={1000}
           placeholder="Например: передние тормозные колодки, масляный фильтр"
-          className="mt-1.5 bg-background min-h-[84px]"
+          className="mt-1.5 bg-background min-h-[84px] cursor-pointer resize-none"
         />
         <p className="text-muted-foreground text-xs mt-1 text-right">
           {form.parts.length}/1000
@@ -329,6 +344,41 @@ const RequestFormFields = ({
           <p className="text-primary text-xs mt-1">{errors.parts}</p>
         )}
       </div>
+
+      <Dialog open={partsExpanded} onOpenChange={setPartsExpanded}>
+        <DialogContent className="bg-card border-border sm:max-w-[560px] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="font-head uppercase tracking-wide text-xl">
+              Интересующие запчасти
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Опишите подробно — марку, модель, год, что именно нужно.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            autoFocus
+            value={form.parts}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, parts: sanitizePartsInput(e.target.value) }))
+            }
+            maxLength={1000}
+            placeholder="Например: передние тормозные колодки, масляный фильтр"
+            className="bg-background min-h-[45vh] resize-none"
+          />
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-muted-foreground text-xs">
+              {form.parts.length}/1000
+            </p>
+            <Button
+              type="button"
+              onClick={() => setPartsExpanded(false)}
+              className="font-head uppercase tracking-wide"
+            >
+              Готово
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div>
         <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
