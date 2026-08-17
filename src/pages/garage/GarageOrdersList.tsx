@@ -112,7 +112,7 @@ const GarageOrdersList = ({
         </div>
       )}
 
-      {isPushSupported() && pushPermission !== "granted" && !pushSubscribed && (
+      {isPushSupported() && pushPermission !== "denied" && !pushSubscribed && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-primary/15 via-card to-card border border-primary/60 rounded-sm p-4 animate-glow-pulse">
           <div className="flex items-center gap-3">
             <span className="w-9 h-9 shrink-0 rounded-full bg-primary/20 flex items-center justify-center">
