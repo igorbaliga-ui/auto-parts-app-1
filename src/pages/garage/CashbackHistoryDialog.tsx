@@ -10,12 +10,16 @@ import { CashbackHistoryItem, formatDate, formatBonus } from "./garageTypes";
 
 type CashbackHistoryDialogProps = {
   history: CashbackHistoryItem[];
+  cashbackPercent: number;
+  referralPercent: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
 const CashbackHistoryDialog = ({
   history,
+  cashbackPercent,
+  referralPercent,
   open,
   onOpenChange,
 }: CashbackHistoryDialogProps) => {
@@ -31,6 +35,16 @@ const CashbackHistoryDialog = ({
           <DialogDescription>
             Начисления за выполненные заказы и списания
           </DialogDescription>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span className="inline-flex items-center gap-1.5 rounded-sm bg-primary/10 border border-primary/30 px-2.5 py-1 text-xs text-primary">
+              <Icon name="Percent" size={12} />
+              {cashbackPercent}% с покупок
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-sm bg-primary/10 border border-primary/30 px-2.5 py-1 text-xs text-primary">
+              <Icon name="Users" size={12} />
+              {referralPercent}% с друзей
+            </span>
+          </div>
         </DialogHeader>
         {history.length === 0 ? (
           <p className="text-muted-foreground text-sm py-4">

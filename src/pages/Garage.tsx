@@ -180,6 +180,8 @@ const GarageContent = () => {
       </div>
       <CashbackHistoryDialog
         history={g.cashbackHistory}
+        cashbackPercent={g.cashbackPercent}
+        referralPercent={g.referralPercent}
         open={g.cashbackHistoryOpen}
         onOpenChange={g.setCashbackHistoryOpen}
       />

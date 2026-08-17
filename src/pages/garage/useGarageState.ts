@@ -39,6 +39,7 @@ export const useGarageState = () => {
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referralBonusTotal, setReferralBonusTotal] = useState(0);
   const [referralPercent, setReferralPercent] = useState(2);
+  const [cashbackPercent, setCashbackPercent] = useState(3);
   const [referrals, setReferrals] = useState<ReferralFriend[]>([]);
   const [referralDialogOpen, setReferralDialogOpen] = useState(false);
   // Имя друга, чей промокод клиент уже применил (сам ввёл при заявке или позже в «Гараже»)
@@ -198,6 +199,7 @@ export const useGarageState = () => {
       setReferralCode(typeof data.referral_code === 'string' ? data.referral_code : null);
       setReferralBonusTotal(typeof data.referral_bonus_total === 'number' ? data.referral_bonus_total : 0);
       setReferralPercent(typeof data.referral_percent === 'number' ? data.referral_percent : 2);
+      setCashbackPercent(typeof data.cashback_percent === 'number' ? data.cashback_percent : 3);
       setReferrals(Array.isArray(data.referrals) ? data.referrals : []);
       setReferredByName(typeof data.referred_by_name === 'string' ? data.referred_by_name : null);
       // По умолчанию открываем «Новые», но если там пусто — сразу показываем «В работе»
@@ -589,6 +591,7 @@ export const useGarageState = () => {
       setReferralCode(typeof data.referral_code === 'string' ? data.referral_code : null);
       setReferralBonusTotal(typeof data.referral_bonus_total === 'number' ? data.referral_bonus_total : 0);
       setReferralPercent(typeof data.referral_percent === 'number' ? data.referral_percent : 2);
+      setCashbackPercent(typeof data.cashback_percent === 'number' ? data.cashback_percent : 3);
       setReferrals(Array.isArray(data.referrals) ? data.referrals : []);
       setReferredByName(typeof data.referred_by_name === 'string' ? data.referred_by_name : null);
       const names = Object.fromEntries(list.map((o) => [o.id, o.car_name || '']));
@@ -742,6 +745,7 @@ export const useGarageState = () => {
     referralCode,
     referralBonusTotal,
     referralPercent,
+    cashbackPercent,
     referrals,
     referralDialogOpen,
     setReferralDialogOpen,
