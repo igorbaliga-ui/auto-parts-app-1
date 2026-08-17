@@ -36,6 +36,7 @@ const RequestDialogShell = ({ isMobile, isOpen, setIsOpen, verificationStep, chi
         onOpenChange={setIsOpen}
         repositionInputs={false}
         shouldScaleBackground={false}
+        handleOnly
       >
         <DrawerContent className="bg-card border-border max-h-[85vh]">
           <div className="overflow-y-auto px-4 pb-6">
