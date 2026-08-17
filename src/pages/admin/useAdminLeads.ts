@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAdminPushSubscription } from '@/hooks/use-admin-push-subscription';
 import { safeGetSession, safeSetSession, safeRemoveSession, safeGetJSON, safeSetItem, safeGetItem } from '@/lib/storage';
+import { setAppBadge } from '@/lib/app-badge';
 import { Lead, ColumnKey, columns } from './adminTypes';
 
 const LEADS_ADMIN_URL = 'https://functions.poehali.dev/68ca5544-c377-4c79-ba1f-57ba286b33a9';
@@ -419,6 +420,12 @@ export const useAdminLeads = () => {
   const inProgressCount = useMemo(() => leads.filter((l) => l.status === 'in_progress' && !l.archived).length, [leads]);
   const doneCount = useMemo(() => leads.filter((l) => l.status === 'done' && !l.archived).length, [leads]);
   const archivedCount = useMemo(() => leads.filter((l) => l.archived).length, [leads]);
+
+  // Точка с числом новых заявок на иконке админки на рабочем столе (Badging API) —
+  // обновляется при каждой загрузке/изменении списка, сбрасывается при выходе из админки
+  useEffect(() => {
+    setAppBadge(authed ? newCount : 0);
+  }, [authed, newCount]);
 
   const filteredLeads = useMemo(() => {
     const activeFilters = Object.entries(columnFilters).filter(([, v]) => v && v.trim());

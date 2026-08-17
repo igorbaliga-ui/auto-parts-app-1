@@ -4,6 +4,7 @@ import { notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
 import { getStoredCity } from '@/lib/garage-city';
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/lib/storage';
 import { usePushSubscription } from '@/hooks/use-push-subscription';
+import { setAppBadge } from '@/lib/app-badge';
 import { toast } from '@/hooks/use-toast';
 import { sanitizeMileageInput, MILEAGE_MAX_VALUE } from '@/lib/text';
 import { usePhoneChange } from './usePhoneChange';
@@ -476,6 +477,12 @@ export const useGarageState = () => {
   const doneOrders = searchedOrders.filter((o) => o.status === 'done');
   const visibleOrders =
     statusTab === 'new' ? newOrders : statusTab === 'in_progress' ? inProgressOrders : doneOrders;
+
+  // Точка с числом новых заказов на иконке «Гаража» на рабочем столе (Badging API) —
+  // обновляется при каждой загрузке/изменении списка, сбрасывается при выходе
+  useEffect(() => {
+    setAppBadge(authed ? newOrders.length : 0);
+  }, [authed, newOrders.length]);
 
   const saveCarName = async (order: Order) => {
     if (!order.vin) return;
