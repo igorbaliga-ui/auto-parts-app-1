@@ -29,7 +29,7 @@ const CashbackHistoryDialog = ({
         <DialogHeader>
           <DialogDescription className="pr-8">
             *Бонусами можно оплатить до 50% от суммы заказа. Минимальное
-            списание 500 бонусов.
+            списание 1000 бонусов.
           </DialogDescription>
           <DialogTitle>История бонусов</DialogTitle>
           <DialogDescription>
