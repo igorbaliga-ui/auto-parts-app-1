@@ -57,6 +57,11 @@ const DrawerContent = React.forwardRef<
         className
       )}
       {...props}
+      // Vaul всегда навешивает CSS touch-action:none на весь [data-vaul-drawer], даже
+      // при handleOnly — это глушит нативный, плавный скролл пальцем внутри контента
+      // (он «тормозит» и не всегда реагирует). Возвращаем нативную вертикальную прокрутку
+      // инлайн-стилем: он гарантированно перебивает любой внешний CSS-селектор.
+      style={{ touchAction: "pan-y", ...props.style }}
     >
       <DrawerHandle />
       {children}
