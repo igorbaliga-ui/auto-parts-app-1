@@ -213,7 +213,7 @@ def handler(event: dict, context) -> dict:
         params.append(lead_id)
         cur.execute(
             f"UPDATE {schema}.leads SET {', '.join(set_clauses)} WHERE id = %s "
-            f"RETURNING cashback, remaining, completed_at, phone, car_name, vin, handled_by, order_amount, name",
+            f"RETURNING cashback, remaining, completed_at, phone, car_name, vin, handled_by, order_amount, name, created_at",
             params,
         )
         row = cur.fetchone()
@@ -223,6 +223,7 @@ def handler(event: dict, context) -> dict:
         handled_by = row[6] if row else None
         order_amount = float(row[7]) if row and row[7] is not None else None
         friend_name = row[8] if row else None
+        lead_created_at = row[9] if row else None
 
         # Записываем изменения в журнал
         if 'order_amount' in body:
@@ -279,17 +280,21 @@ def handler(event: dict, context) -> dict:
                         body=f'{car_label}: начислено {cashback_str} бонусов. Проверьте баланс в «Гараже».',
                     )
                 # Если этого клиента когда-то пригласил друг по реферальной программе —
-                # уведомляем пригласившего о бонусе 2% за выполненный заказ приглашённого
+                # уведомляем пригласившего о бонусе 2% за выполненный заказ приглашённого.
+                # Бонус начисляется только за заказы, СОЗДАННЫЕ ПОСЛЕ применения промокода —
+                # заказы, оформленные до этого момента, в реферальный бонус не идут.
                 if order_amount:
                     phone_last10 = re.sub(r'\D', '', phone or '')[-10:]
                     cur2 = conn.cursor()
                     cur2.execute(
-                        f"SELECT referred_by_phone_last10 FROM {schema}.garage_accounts WHERE phone_last10 = %s",
+                        f"SELECT referred_by_phone_last10, referred_by_at FROM {schema}.garage_accounts WHERE phone_last10 = %s",
                         (phone_last10,),
                     )
                     inviter_row = cur2.fetchone()
                     cur2.close()
-                    if inviter_row and inviter_row[0]:
+                    referred_at = inviter_row[1] if inviter_row else None
+                    order_eligible = referred_at is None or (lead_created_at and lead_created_at > referred_at)
+                    if inviter_row and inviter_row[0] and order_eligible:
                         referral_bonus = round(order_amount * 0.02, 2)
                         if referral_bonus > 0:
                             referral_bonus_str = f'{referral_bonus:,.0f}'.replace(',', ' ')

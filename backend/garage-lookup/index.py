@@ -184,33 +184,48 @@ def handler(event: dict, context) -> dict:
         )
 
         # Друзья, приглашённые этим клиентом по его реферальному коду — начисляем 2% от
-        # суммы каждого их выполненного заказа, дополнительно к обычному кэшбеку 3%
+        # суммы каждого их выполненного заказа, дополнительно к обычному кэшбеку 3%.
+        # Учитываются только заказы, СДЕЛАННЫЕ ПОСЛЕ применения промокода (referred_by_at) —
+        # старые заказы друга, оформленные до привязки промокода, в бонус не идут.
         cur.execute(
-            f"SELECT phone_last10 FROM {schema}.garage_accounts WHERE referred_by_phone_last10 = %s",
+            f"SELECT phone_last10, referred_by_at FROM {schema}.garage_accounts WHERE referred_by_phone_last10 = %s",
             (phone_last10,),
         )
-        friend_phones = [r['phone_last10'] for r in cur.fetchall()]
+        friend_rows = cur.fetchall()
+        friend_since = {r['phone_last10']: r['referred_by_at'] for r in friend_rows}
+        friend_phones = list(friend_since.keys())
 
         referral_bonus_total = 0.0
         referrals = []
         if friend_phones:
             cur.execute(
-                f"SELECT RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) AS phone_last10, "
-                f"MAX(name) AS name, "
-                f"SUM(CASE WHEN status = 'done' THEN order_amount ELSE 0 END) AS done_amount, "
-                f"COUNT(*) FILTER (WHERE status = 'done') AS done_count "
+                f"SELECT id, RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) AS phone_last10, "
+                f"name, order_amount, status, created_at "
                 f"FROM {schema}.leads "
-                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = ANY(%s) "
-                f"GROUP BY 1",
+                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = ANY(%s)",
                 (friend_phones,),
             )
-            for r in cur.fetchall():
-                done_amount = float(r['done_amount']) if r['done_amount'] is not None else 0.0
-                friend_bonus = round(done_amount * 0.02, 2)
+            friend_leads = cur.fetchall()
+            by_friend: dict = {}
+            for lead in friend_leads:
+                fp = lead['phone_last10']
+                since = friend_since.get(fp)
+                # Заказ учитывается только если он создан после того, как друг применил промокод
+                eligible = since is None or (lead['created_at'] and lead['created_at'] > since)
+                entry = by_friend.setdefault(fp, {'name': None, 'done_amount': 0.0, 'done_count': 0})
+                entry['name'] = lead['name'] or entry['name']
+                if lead['status'] == 'done' and eligible and lead['order_amount'] is not None:
+                    entry['done_amount'] += float(lead['order_amount'])
+                    entry['done_count'] += 1
+            for fp in friend_phones:
+                entry = by_friend.get(fp)
+                if not entry:
+                    continue
+                friend_bonus = round(entry['done_amount'] * 0.02, 2)
                 referral_bonus_total += friend_bonus
                 referrals.append({
-                    'name': r['name'],
-                    'done_orders': int(r['done_count'] or 0),
+                    'name': entry['name'],
+                    'done_orders': entry['done_count'],
                     'bonus_earned': friend_bonus,
                 })
 

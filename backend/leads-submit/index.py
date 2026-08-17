@@ -166,11 +166,15 @@ def handler(event: dict, context) -> dict:
             )
             ref_row = cur.fetchone()
             if ref_row and ref_row[0] != phone_last10:
+                # referred_by_at фиксирует момент привязки промокода — в реферальный бонус
+                # пригласившему пойдут только заказы друга, выполненные ПОСЛЕ этой даты
                 cur.execute(
-                    f"INSERT INTO {schema}.garage_accounts (phone_last10, referred_by_phone_last10, updated_at) "
-                    f"VALUES (%s, %s, now()) "
-                    f"ON CONFLICT (phone_last10) DO UPDATE SET referred_by_phone_last10 = "
-                    f"COALESCE(garage_accounts.referred_by_phone_last10, EXCLUDED.referred_by_phone_last10), updated_at = now()",
+                    f"INSERT INTO {schema}.garage_accounts (phone_last10, referred_by_phone_last10, referred_by_at, updated_at) "
+                    f"VALUES (%s, %s, now(), now()) "
+                    f"ON CONFLICT (phone_last10) DO UPDATE SET "
+                    f"referred_by_phone_last10 = COALESCE(garage_accounts.referred_by_phone_last10, EXCLUDED.referred_by_phone_last10), "
+                    f"referred_by_at = COALESCE(garage_accounts.referred_by_at, EXCLUDED.referred_by_at), "
+                    f"updated_at = now()",
                     (phone_last10, ref_row[0]),
                 )
                 cur.execute(

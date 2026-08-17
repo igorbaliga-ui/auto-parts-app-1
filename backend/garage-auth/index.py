@@ -244,11 +244,16 @@ def handler(event: dict, context) -> dict:
                 return {'statusCode': 404, 'headers': headers, 'body': json.dumps({'error': 'Такого промокода не существует'})}
             if ref_row[0] == phone_last10:
                 return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Нельзя применить свой же промокод'})}
+            # referred_by_at фиксирует момент привязки промокода — в реферальный бонус
+            # пригласившему пойдут только заказы друга, выполненные ПОСЛЕ этой даты,
+            # старые (уже выполненные до применения промокода) заказы не учитываются
             cur.execute(
-                f"INSERT INTO {schema}.garage_accounts (phone_last10, referred_by_phone_last10, updated_at) "
-                f"VALUES (%s, %s, now()) "
-                f"ON CONFLICT (phone_last10) DO UPDATE SET referred_by_phone_last10 = "
-                f"COALESCE(garage_accounts.referred_by_phone_last10, EXCLUDED.referred_by_phone_last10), updated_at = now()",
+                f"INSERT INTO {schema}.garage_accounts (phone_last10, referred_by_phone_last10, referred_by_at, updated_at) "
+                f"VALUES (%s, %s, now(), now()) "
+                f"ON CONFLICT (phone_last10) DO UPDATE SET "
+                f"referred_by_phone_last10 = COALESCE(garage_accounts.referred_by_phone_last10, EXCLUDED.referred_by_phone_last10), "
+                f"referred_by_at = COALESCE(garage_accounts.referred_by_at, EXCLUDED.referred_by_at), "
+                f"updated_at = now()",
                 (phone_last10, ref_row[0]),
             )
             cur.execute(
@@ -258,8 +263,6 @@ def handler(event: dict, context) -> dict:
                 (ref_row[0],),
             )
             referrer_row = cur.fetchone()
-            # Имя и уже накопленный бонус нового друга (если у него уже были выполненные
-            # заказы до применения промокода — реферальный бонус 2% начисляется сразу за них)
             cur.execute(
                 f"SELECT name FROM {schema}.leads "
                 f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s "
@@ -268,25 +271,13 @@ def handler(event: dict, context) -> dict:
             )
             friend_row = cur.fetchone()
             friend_name = friend_row[0] if friend_row else 'Ваш друг'
-            cur.execute(
-                f"SELECT COALESCE(SUM(order_amount), 0) FROM {schema}.leads "
-                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s AND status = 'done'",
-                (phone_last10,),
-            )
-            done_sum_row = cur.fetchone()
-            friend_bonus = round(float(done_sum_row[0] or 0) * 0.02, 2)
             conn.commit()
 
             if referrer_row:
-                if friend_bonus > 0:
-                    bonus_str = f'{friend_bonus:,.0f}'.replace(',', ' ')
-                    push_body = f'{friend_name} применил ваш промокод. Начислено {bonus_str} бонусов за уже выполненные заказы.'
-                else:
-                    push_body = f'{friend_name} применил ваш промокод и стал вашим приглашённым другом.'
                 send_push_to_phone(
                     dsn, schema, ref_row[0],
                     title='Новый приглашённый друг',
-                    body=push_body,
+                    body=f'{friend_name} применил ваш промокод и стал вашим приглашённым другом. Бонус начислим за его будущие заказы.',
                 )
 
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True, 'referred_by_name': referrer_row[0] if referrer_row else None})}
