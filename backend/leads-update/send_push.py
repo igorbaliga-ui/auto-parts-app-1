@@ -41,6 +41,9 @@ def send_push_to_phone(dsn: str, schema: str, phone: str, title: str, body: str)
                 # Urgency: high — просим Google/Apple доставить уведомление немедленно,
                 # а не откладывать до следующего «пробуждения» телефона (Android Doze
                 # иначе копит уведомления и выдаёт их пачкой при заходе в приложение).
+                # timeout — обязателен: без него зависший push-сервис может держать запрос
+                # до истечения таймаута всей cloud-функции (5 сек), из-за чего клиент leads-update
+                # не получает ответ, а статус заявки в /admin не обновляется без перезагрузки страницы.
                 webpush(
                     subscription_info=subscription_info,
                     data=json.dumps({'title': title, 'body': body}),
@@ -48,6 +51,7 @@ def send_push_to_phone(dsn: str, schema: str, phone: str, title: str, body: str)
                     vapid_claims={'sub': 'mailto:zapoptom@bk.ru'},
                     ttl=86400,
                     headers={'Urgency': 'high'},
+                    timeout=3,
                 )
             except WebPushException as e:
                 status_code = getattr(e.response, 'status_code', None)
