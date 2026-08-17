@@ -122,6 +122,9 @@ const GarageContent = () => {
         }}
       >
         <GarageHeader
+          knownName={g.knownName}
+          phone={g.phone}
+          openPhoneChange={g.phoneChange.openDialog}
           city={g.city}
           setCity={g.setCity}
           onNewRequest={g.onNewRequest}
@@ -175,7 +178,6 @@ const GarageContent = () => {
           savingMileageId={g.savingMileageId}
           mileageErrors={g.mileageErrors}
           saveMileage={g.saveMileage}
-          openPhoneChange={g.phoneChange.openDialog}
         />
       </div>
       <CashbackHistoryDialog

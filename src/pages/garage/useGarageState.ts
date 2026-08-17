@@ -688,6 +688,7 @@ export const useGarageState = () => {
     setStatusTab,
     searchQuery,
     setSearchQuery,
+    knownName,
     logoutConfirmOpen,
     setLogoutConfirmOpen,
     passwordRequired,

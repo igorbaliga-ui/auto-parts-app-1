@@ -1,28 +1,12 @@
 import { Link } from "react-router-dom";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import CityInput from "@/components/shared/CityInput";
-import { setStoredCity } from "@/lib/garage-city";
+import GarageProfileMenu from "./GarageProfileMenu";
 
 type GarageHeaderProps = {
+  knownName?: string;
+  phone: string;
+  openPhoneChange: () => void;
   city: string;
   setCity: (v: string) => void;
   onNewRequest: () => void;
@@ -47,6 +31,9 @@ type GarageHeaderProps = {
 };
 
 const GarageHeader = ({
+  knownName,
+  phone,
+  openPhoneChange,
   city,
   setCity,
   onNewRequest,
@@ -94,17 +81,6 @@ const GarageHeader = ({
         </div>
       </div>
 
-      <div className="mb-4 sm:mb-6 w-full max-w-[220px] ml-auto sm:ml-0 sm:mr-auto">
-        <CityInput
-          value={city}
-          onChange={(v) => {
-            setCity(v);
-            setStoredCity(v);
-          }}
-          className="h-9 text-xs sm:text-sm bg-transparent border-0 rounded-none px-0 shadow-none text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 text-right sm:text-left"
-        />
-      </div>
-
       <div className="flex items-center justify-end mb-6 sm:mb-2 gap-2">
         <Link
           to="/"
@@ -120,154 +96,32 @@ const GarageHeader = ({
           <Icon name="Plus" size={16} className="mr-2" />
           Новая заявка
         </Button>
-        <Button
-          variant="secondary"
-          size="icon"
-          onClick={openPasswordSettings}
-          className="relative h-10 w-10 shrink-0"
-          title={
-            hasPassword
-              ? "Пароль для входа"
-              : "Пароль не задан — защитите доступ к заказам"
-          }
-        >
-          <Icon name="Lock" size={16} />
-          {!hasPassword && (
-            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-primary" />
-            </span>
-          )}
-        </Button>
-        <Button
-          variant="secondary"
-          size="icon"
-          onClick={() => setLogoutConfirmOpen(true)}
-          className="h-10 w-10 shrink-0"
-          title="Выйти"
-        >
-          <Icon name="LogOut" size={16} />
-        </Button>
+        <GarageProfileMenu
+          knownName={knownName}
+          phone={phone}
+          openPhoneChange={openPhoneChange}
+          city={city}
+          setCity={setCity}
+          openPasswordSettings={openPasswordSettings}
+          setLogoutConfirmOpen={setLogoutConfirmOpen}
+          passwordSettingsOpen={passwordSettingsOpen}
+          setPasswordSettingsOpen={setPasswordSettingsOpen}
+          hasPassword={hasPassword}
+          savePasswordSettings={savePasswordSettings}
+          oldPasswordInput={oldPasswordInput}
+          setOldPasswordInput={setOldPasswordInput}
+          newPasswordInput={newPasswordInput}
+          setNewPasswordInput={setNewPasswordInput}
+          newPasswordConfirmInput={newPasswordConfirmInput}
+          setNewPasswordConfirmInput={setNewPasswordConfirmInput}
+          passwordSettingsError={passwordSettingsError}
+          passwordSettingsSuccess={passwordSettingsSuccess}
+          passwordSettingsLoading={passwordSettingsLoading}
+          removePasswordSettings={removePasswordSettings}
+          logoutConfirmOpen={logoutConfirmOpen}
+          logout={logout}
+        />
       </div>
-
-      <Dialog
-        open={passwordSettingsOpen}
-        onOpenChange={setPasswordSettingsOpen}
-      >
-        <DialogContent className="bg-card border-border sm:max-w-[420px]">
-          <DialogHeader>
-            <DialogTitle className="font-head uppercase tracking-wide text-xl">
-              {hasPassword ? "Пароль для входа" : "Задать пароль"}
-            </DialogTitle>
-            <DialogDescription>
-              {hasPassword
-                ? "Пароль защищает доступ к вашим заказам по этому номеру телефона."
-                : "РЕКОМЕНДУЕМ: задайте пароль, чтобы дополнительно защитить доступ к заказам."}
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={savePasswordSettings}
-            className="flex flex-col gap-3 mt-1"
-          >
-            {hasPassword && (
-              <div>
-                <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-                  Текущий пароль
-                </label>
-                <Input
-                  type="password"
-                  value={oldPasswordInput}
-                  onChange={(e) => setOldPasswordInput(e.target.value)}
-                  maxLength={4}
-                  placeholder="Текущий пароль"
-                  className="mt-1.5 bg-background"
-                />
-              </div>
-            )}
-            <div>
-              <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-                {hasPassword ? "Новый пароль" : "Пароль"}
-              </label>
-              <Input
-                type="password"
-                value={newPasswordInput}
-                onChange={(e) => setNewPasswordInput(e.target.value)}
-                maxLength={4}
-                placeholder="4 символа"
-                className="mt-1.5 bg-background"
-              />
-            </div>
-            <div>
-              <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-                Повторите пароль
-              </label>
-              <Input
-                type="password"
-                value={newPasswordConfirmInput}
-                onChange={(e) => setNewPasswordConfirmInput(e.target.value)}
-                maxLength={4}
-                placeholder="4 символа"
-                className="mt-1.5 bg-background"
-              />
-            </div>
-            {passwordSettingsError && (
-              <p className="text-primary text-sm">{passwordSettingsError}</p>
-            )}
-            {passwordSettingsSuccess && (
-              <p className="text-primary text-sm">{passwordSettingsSuccess}</p>
-            )}
-            <div className="flex items-center gap-2 mt-1">
-              <Button
-                type="submit"
-                disabled={passwordSettingsLoading}
-                className="font-head uppercase tracking-wide flex-1"
-              >
-                {passwordSettingsLoading
-                  ? "Сохраняем…"
-                  : hasPassword
-                    ? "Сменить пароль"
-                    : "Сохранить"}
-              </Button>
-              {hasPassword && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={passwordSettingsLoading}
-                  onClick={removePasswordSettings}
-                  className="font-head uppercase tracking-wide"
-                >
-                  Убрать пароль
-                </Button>
-              )}
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
-        <AlertDialogContent className="bg-card border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-head uppercase tracking-wide">
-              Выйти из гаража?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Вам нужно будет заново ввести номер телефона, чтобы снова увидеть
-              свои заказы.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="font-head uppercase tracking-wide">
-              Отмена
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={logout}
-              className="font-head uppercase tracking-wide"
-            >
-              Выйти
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 };
