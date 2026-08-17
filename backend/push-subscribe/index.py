@@ -75,8 +75,21 @@ def handler(event: dict, context) -> dict:
             f"INSERT INTO {schema}.push_subscriptions (phone_last10, endpoint, p256dh, auth) "
             f"VALUES (%s, %s, %s, %s) "
             f"ON CONFLICT (endpoint) DO UPDATE SET phone_last10 = EXCLUDED.phone_last10, "
-            f"p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth",
+            f"p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth, created_at = now()",
             (phone_last10, endpoint, p256dh, auth),
+        )
+        # Safari на iOS при повторных входах в PWA нередко создаёт новую подписку
+        # (новый endpoint) вместо переиспользования старой — за недели их может
+        # накопиться десятки на один номер. Функция рассылки уведомлений о статусе
+        # заказа перебирает все подписки клиента подряд, и с большим их числом не
+        # укладывается в лимит времени и обрывается, не дойдя до рабочей — то есть
+        # уведомления вообще перестают приходить. Поэтому держим не более 5
+        # последних подписок на номер, более старые удаляем.
+        cur.execute(
+            f"DELETE FROM {schema}.push_subscriptions WHERE phone_last10 = %s AND id NOT IN ("
+            f"SELECT id FROM {schema}.push_subscriptions WHERE phone_last10 = %s "
+            f"ORDER BY created_at DESC LIMIT 5)",
+            (phone_last10, phone_last10),
         )
         conn.commit()
         cur.close()
