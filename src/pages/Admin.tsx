@@ -4,13 +4,14 @@ import AdminLoginForm from './admin/AdminLoginForm';
 import AdminLeadsTable from './admin/AdminLeadsTable';
 import AdminContactsTab from './admin/AdminContactsTab';
 import AdminReferralsTab from './admin/AdminReferralsTab';
+import AdminErrorsTab from './admin/AdminErrorsTab';
 import Icon from '@/components/ui/icon';
 import { useAdminLeads } from './admin/useAdminLeads';
 import { usePushNotificationSound } from '@/hooks/use-push-notification-sound';
 
 const Admin = () => {
   const a = useAdminLeads();
-  const [page, setPage] = useState<'leads' | 'contacts' | 'referrals'>('leads');
+  const [page, setPage] = useState<'leads' | 'contacts' | 'referrals' | 'errors'>('leads');
   usePushNotificationSound();
 
   if (!a.authed) {
@@ -64,6 +65,17 @@ const Admin = () => {
           Рефералы
         </button>
         <button
+          onClick={() => setPage('errors')}
+          className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors flex items-center gap-2 ${
+            page === 'errors'
+              ? 'border-primary bg-primary/10 text-foreground'
+              : 'border-steel text-muted-foreground hover:border-primary/60'
+          }`}
+        >
+          <Icon name="AlertTriangle" size={15} />
+          Ошибки
+        </button>
+        <button
           onClick={a.logout}
           title="Выйти из админки"
           className="h-10 px-4 ml-auto rounded-sm border border-steel text-sm font-head uppercase tracking-wide text-muted-foreground hover:border-destructive/60 hover:text-destructive transition-colors flex items-center gap-2"
@@ -79,6 +91,10 @@ const Admin = () => {
       ) : page === 'referrals' ? (
         <div className="px-5 sm:px-8 lg:px-12 py-10">
           <AdminReferralsTab adminPassword={a.password} />
+        </div>
+      ) : page === 'errors' ? (
+        <div className="px-5 sm:px-8 lg:px-12 py-10">
+          <AdminErrorsTab adminPassword={a.password} />
         </div>
       ) : (
         <AdminLeadsTable

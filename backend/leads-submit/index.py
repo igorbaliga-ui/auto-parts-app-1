@@ -39,6 +39,28 @@ def upload_photo(photo_base64: str) -> str:
     return f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/bucket/{key}"
 
 
+def log_submit_error(dsn: str, schema: str, phone: str, exc: Exception) -> None:
+    """Пишет в журнал lead_submit_errors факт сбоя при сохранении заявки — чтобы менеджер
+    мог посмотреть все такие случаи за последнее время на отдельной вкладке /admin, а не
+    только полагаться на push-уведомление (пуш можно пропустить или отключить). Ошибку
+    самой записи в БД (если БД вообще недоступна) намеренно проглатываем — сама заявка уже
+    не сохранилась, а падать вторично из-за журнала ошибок нельзя."""
+    try:
+        conn = psycopg2.connect(dsn)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                f"INSERT INTO {schema}.lead_submit_errors (phone, error_message) VALUES (%s, %s)",
+                (phone or None, str(exc)[:2000]),
+            )
+            conn.commit()
+            cur.close()
+        finally:
+            conn.close()
+    except Exception:
+        pass
+
+
 def notify_admins_about_failure(dsn: str, schema: str, phone: str, exc: Exception) -> None:
     """Шлёт push менеджерам, если сохранение заявки в БД упало с исключением — чтобы такие
     случаи не оставались незамеченными и клиенту не приходилось звонить самому. Ошибку самой
@@ -271,6 +293,7 @@ def handler(event: dict, context) -> dict:
     except Exception as exc:
         print(f"leads-submit: failed to save lead for phone={phone}: {exc}")
         print(traceback.format_exc())
+        log_submit_error(dsn, schema, phone, exc)
         notify_admins_about_failure(dsn, schema, phone, exc)
         return {
             'statusCode': 500,
