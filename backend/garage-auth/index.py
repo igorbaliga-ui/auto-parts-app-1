@@ -26,7 +26,9 @@ def log_login(cur, schema: str, phone_last10: str, login_type: str, user_agent: 
 
 def handler(event: dict, context) -> dict:
     """Управляет опциональным паролем для входа в личный кабинет «Гараж»:
-    проверка наличия пароля, вход по телефону+паролю, установка/смена/удаление пароля"""
+    проверка наличия пароля, вход по телефону+паролю, установка/смена/удаление пароля.
+    Восстановление забытого пароля (start_password_reset_call + reset_password) —
+    через flash-call подтверждение номера, а не через VIN."""
     method = event.get('httpMethod', 'GET')
 
     if method == 'OPTIONS':
@@ -300,32 +302,82 @@ def handler(event: dict, context) -> dict:
             conn.commit()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
 
+        if action == 'start_password_reset_call':
+            # Восстановление забытого пароля звонком: заказываем flash-call точно так же,
+            # как при первичном подтверждении номера, но НЕ пропускаем этот шаг для уже
+            # подтверждённых номеров — при сбросе пароля звонок нужен каждый раз заново,
+            # чтобы подтвердить, что паролем распоряжается именно владелец телефона.
+            if is_blocked:
+                return {'statusCode': 403, 'headers': headers, 'body': json.dumps({'error': 'Доступ в «Гараж» временно заблокирован. Обратитесь к менеджеру'})}
+            cur.execute(
+                f"SELECT created_at FROM {schema}.call_verifications "
+                f"WHERE phone_last10 = %s ORDER BY created_at DESC LIMIT 1",
+                (phone_last10,),
+            )
+            last_row = cur.fetchone()
+            if last_row:
+                cur.execute("SELECT now() - %s < INTERVAL '60 seconds'", (last_row[0],))
+                too_soon = cur.fetchone()[0]
+                if too_soon:
+                    return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Повторный звонок можно заказать через минуту'})}
+            phone_e164 = '+7' + phone_last10
+            try:
+                call = start_flashcall(phone_e164)
+            except ZvonokError as exc:
+                return {'statusCode': 502, 'headers': headers, 'body': json.dumps({'error': str(exc)})}
+            cur.execute(
+                f"INSERT INTO {schema}.call_verifications (phone_last10, call_id, expected_suffix) "
+                f"VALUES (%s, %s, %s)",
+                (phone_last10, call['call_id'], call['pincode']),
+            )
+            conn.commit()
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+
         if action == 'reset_password':
             if is_blocked:
                 return {'statusCode': 403, 'headers': headers, 'body': json.dumps({'error': 'Доступ в «Гараж» временно заблокирован. Обратитесь к менеджеру'})}
-            # Восстановление забытого пароля: для подтверждения, что это владелец номера,
-            # просим ввести VIN любого автомобиля из истории заявок с этим телефоном
-            entered_vin = (body.get('vin') or '').strip().upper()
-            if not entered_vin:
-                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите VIN автомобиля из заявки'})}
+            # Восстановление забытого пароля: подтверждение владения номером — по коду из
+            # звонка (заказанного действием start_password_reset_call), а не по VIN — так
+            # надёжнее, потому что VIN может быть известен не только владельцу телефона.
+            entered_code = re.sub(r'\D', '', body.get('code') or '')
+            if len(entered_code) != 4:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Введите 4 цифры из звонка'})}
             cur.execute(
-                f"SELECT 1 FROM {schema}.leads "
-                f"WHERE RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s AND vin = %s "
-                f"LIMIT 1",
-                (phone_last10, entered_vin),
+                f"SELECT id, expected_suffix, attempts FROM {schema}.call_verifications "
+                f"WHERE phone_last10 = %s AND status = 'pending' "
+                f"ORDER BY created_at DESC LIMIT 1",
+                (phone_last10,),
             )
-            vin_row = cur.fetchone()
-            if not vin_row:
-                return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'VIN не совпадает ни с одной заявкой этого номера'})}
+            v_row = cur.fetchone()
+            if not v_row:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Сначала закажите звонок'})}
+            v_id, expected_suffix, attempts = v_row
+            if attempts >= 5:
+                return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Слишком много попыток. Закажите новый звонок'})}
+            if entered_code != expected_suffix:
+                cur.execute(
+                    f"UPDATE {schema}.call_verifications SET attempts = attempts + 1 WHERE id = %s",
+                    (v_id,),
+                )
+                conn.commit()
+                return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный код'})}
 
             new_password = (body.get('password') or '').strip()
             if len(new_password) != 4:
                 return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Пароль — ровно 4 символа'})}
             new_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
             cur.execute(
-                f"INSERT INTO {schema}.garage_accounts (phone_last10, password_hash, updated_at) "
-                f"VALUES (%s, %s, now()) "
-                f"ON CONFLICT (phone_last10) DO UPDATE SET password_hash = EXCLUDED.password_hash, updated_at = now()",
+                f"UPDATE {schema}.call_verifications SET status = 'verified', verified_at = now() WHERE id = %s",
+                (v_id,),
+            )
+            cur.execute(
+                f"INSERT INTO {schema}.garage_accounts "
+                f"(phone_last10, password_hash, phone_verified, phone_verified_at, updated_at) "
+                f"VALUES (%s, %s, true, now(), now()) "
+                f"ON CONFLICT (phone_last10) DO UPDATE SET "
+                f"password_hash = EXCLUDED.password_hash, phone_verified = true, "
+                f"phone_verified_at = COALESCE(garage_accounts.phone_verified_at, EXCLUDED.phone_verified_at), "
+                f"updated_at = now()",
                 (phone_last10, new_hash),
             )
             user_agent = req_headers.get('User-Agent') or req_headers.get('user-agent') or ''

@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 import PageBackground from "@/components/site/PageBackground";
 import { normalizePhoneInput } from "@/lib/phone";
-import { sanitizeVinInput } from "@/lib/vin";
 import {
   Popover,
   PopoverContent,
@@ -156,28 +155,34 @@ export const CallVerificationView = ({
 
 type ResetPasswordViewProps = {
   phone: string;
-  resetVinInput: string;
-  setResetVinInput: (v: string) => void;
+  resetCallRequested: boolean;
+  resetCallLoading: boolean;
+  resetCodeInput: string;
+  setResetCodeInput: (v: string) => void;
   resetPasswordInput: string;
   setResetPasswordInput: (v: string) => void;
   resetError: string;
   resetLoading: boolean;
+  resetCallCooldown: number;
+  requestResetCall: () => void;
   submitResetPassword: (e: React.FormEvent) => void;
-  setResetPasswordMode: (v: boolean) => void;
-  setResetError: (v: string) => void;
+  backToPasswordFromReset: () => void;
 };
 
 export const ResetPasswordView = ({
   phone,
-  resetVinInput,
-  setResetVinInput,
+  resetCallRequested,
+  resetCallLoading,
+  resetCodeInput,
+  setResetCodeInput,
   resetPasswordInput,
   setResetPasswordInput,
   resetError,
   resetLoading,
+  resetCallCooldown,
+  requestResetCall,
   submitResetPassword,
-  setResetPasswordMode,
-  setResetError,
+  backToPasswordFromReset,
 }: ResetPasswordViewProps) => (
   <PageBackground>
     <div className="min-h-screen flex items-center justify-center px-5">
@@ -194,48 +199,71 @@ export const ResetPasswordView = ({
         <h1 className="font-head uppercase tracking-wide text-2xl text-center">
           Восстановление пароля
         </h1>
-        <p className="text-muted-foreground text-sm text-center">
-          Введите VIN любого автомобиля из заявок с номера {phone},
-          и задайте новый пароль.
-        </p>
-        <Input
-          value={resetVinInput}
-          onChange={(e) => setResetVinInput(sanitizeVinInput(e.target.value))}
-          maxLength={20}
-          inputMode="text"
-          autoCapitalize="characters"
-          autoCorrect="off"
-          autoComplete="off"
-          spellCheck={false}
-          placeholder="VIN автомобиля"
-          className="uppercase tracking-[0.14em]"
-          autoFocus
-        />
-        <Input
-          type="password"
-          value={resetPasswordInput}
-          onChange={(e) => setResetPasswordInput(e.target.value)}
-          maxLength={4}
-          placeholder="Новый пароль (4 символа)"
-        />
+        {!resetCallRequested ? (
+          <p className="text-muted-foreground text-sm text-center">
+            Нажмите кнопку — мы позвоним на номер {phone}, введите последние
+            4 цифры номера звонившего и задайте новый пароль.
+          </p>
+        ) : (
+          <p className="text-muted-foreground text-sm text-center">
+            Ждите звонка на номер {phone}, введите последние 4 цифры номера
+            звонившего и новый пароль.
+          </p>
+        )}
+        {resetCallRequested && (
+          <>
+            <Input
+              value={resetCodeInput}
+              onChange={(e) => setResetCodeInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              maxLength={4}
+              inputMode="numeric"
+              placeholder="0000"
+              className="text-center tracking-[0.4em] text-lg"
+              autoFocus
+            />
+            <Input
+              type="password"
+              value={resetPasswordInput}
+              onChange={(e) => setResetPasswordInput(e.target.value)}
+              maxLength={4}
+              placeholder="Новый пароль (4 символа)"
+            />
+          </>
+        )}
         {resetError && (
           <p className="text-primary text-sm text-center">{resetError}</p>
         )}
-        <Button
-          type="submit"
-          disabled={resetLoading}
-          className="font-head uppercase tracking-wide h-11"
-        >
-          {resetLoading ? "Сохраняем…" : "Сохранить и войти"}
-        </Button>
+        {!resetCallRequested ? (
+          <Button
+            type="button"
+            onClick={requestResetCall}
+            disabled={resetCallLoading}
+            className="font-head uppercase tracking-wide h-11"
+          >
+            {resetCallLoading ? "Звоним…" : "Позвонить мне"}
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            disabled={resetLoading || resetCodeInput.length !== 4 || resetPasswordInput.length !== 4}
+            className="font-head uppercase tracking-wide h-11"
+          >
+            {resetLoading ? "Сохраняем…" : "Сохранить и войти"}
+          </Button>
+        )}
+        {resetCallRequested && (
+          <button
+            type="button"
+            onClick={requestResetCall}
+            disabled={resetCallCooldown > 0 || resetCallLoading}
+            className="text-center text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline"
+          >
+            {resetCallCooldown > 0 ? `Повторный звонок через ${resetCallCooldown} с` : "Позвонить ещё раз"}
+          </button>
+        )}
         <button
           type="button"
-          onClick={() => {
-            setResetPasswordMode(false);
-            setResetVinInput("");
-            setResetPasswordInput("");
-            setResetError("");
-          }}
+          onClick={backToPasswordFromReset}
           className="text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           Назад к вводу пароля

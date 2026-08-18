@@ -71,10 +71,16 @@ export const useGarageState = () => {
   const [passwordSettingsLoading, setPasswordSettingsLoading] = useState(false);
   const [passwordSettingsSuccess, setPasswordSettingsSuccess] = useState('');
   const [resetPasswordMode, setResetPasswordMode] = useState(false);
-  const [resetVinInput, setResetVinInput] = useState('');
   const [resetPasswordInput, setResetPasswordInput] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
+  // Восстановление забытого пароля подтверждается отдельным звонком (даже если номер уже
+  // был подтверждён ранее для входа) — свой набор состояний, не пересекающийся с обычной
+  // верификацией номера при входе (callRequested/codeInput/callCooldown выше)
+  const [resetCallRequested, setResetCallRequested] = useState(false);
+  const [resetCallLoading, setResetCallLoading] = useState(false);
+  const [resetCodeInput, setResetCodeInput] = useState('');
+  const [resetCallCooldown, setResetCallCooldown] = useState(0);
   const [callVerificationRequired, setCallVerificationRequired] = useState(false);
   const [callRequested, setCallRequested] = useState(false);
   const [callLoading, setCallLoading] = useState(false);
@@ -102,6 +108,12 @@ export const useGarageState = () => {
     const t = setTimeout(() => setCallCooldown((c) => c - 1), 1000);
     return () => clearTimeout(t);
   }, [callCooldown]);
+
+  useEffect(() => {
+    if (resetCallCooldown <= 0) return;
+    const t = setTimeout(() => setResetCallCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resetCallCooldown]);
 
   const requestCall = async () => {
     setError('');
@@ -310,11 +322,35 @@ export const useGarageState = () => {
     }
   };
 
+  const requestResetCall = async () => {
+    setResetError('');
+    setResetCallLoading(true);
+    try {
+      const res = await fetch(GARAGE_AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start_password_reset_call', phone }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setResetError(data.error || 'Не удалось совершить звонок');
+        return;
+      }
+      setResetCallRequested(true);
+      setResetCodeInput('');
+      setResetCallCooldown(60);
+    } catch {
+      setResetError('Не удалось совершить звонок. Попробуйте ещё раз.');
+    } finally {
+      setResetCallLoading(false);
+    }
+  };
+
   const submitResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetError('');
-    if (resetVinInput.trim().length < 11) {
-      setResetError('Укажите корректный VIN из заявки');
+    if (resetCodeInput.trim().length !== 4) {
+      setResetError('Введите 4 цифры из звонка');
       return;
     }
     if (resetPasswordInput.trim().length !== 4) {
@@ -329,7 +365,7 @@ export const useGarageState = () => {
         body: JSON.stringify({
           action: 'reset_password',
           phone,
-          vin: resetVinInput,
+          code: resetCodeInput.trim(),
           password: resetPasswordInput.trim(),
         }),
       });
@@ -343,7 +379,8 @@ export const useGarageState = () => {
       // resetPasswordMode/passwordRequired сбрасываем только ПОСЛЕ load(), по той же
       // причине, что и в submitPassword — иначе экран на мгновение проваливается
       // в форму ввода телефона, пока authed ещё не стал true
-      setResetVinInput('');
+      setResetCallRequested(false);
+      setResetCodeInput('');
       setPasswordInput(resetPasswordInput.trim());
       setResetPasswordInput('');
       safeSetItem(PASSWORD_VERIFIED_KEY, phone);
@@ -355,6 +392,14 @@ export const useGarageState = () => {
     } finally {
       setResetLoading(false);
     }
+  };
+
+  const backToPasswordFromReset = () => {
+    setResetPasswordMode(false);
+    setResetCallRequested(false);
+    setResetCodeInput('');
+    setResetPasswordInput('');
+    setResetError('');
   };
 
   const logout = () => {
@@ -717,13 +762,18 @@ export const useGarageState = () => {
     passwordSettingsSuccess,
     resetPasswordMode,
     setResetPasswordMode,
-    resetVinInput,
-    setResetVinInput,
     resetPasswordInput,
     setResetPasswordInput,
     resetLoading,
     resetError,
     setResetError,
+    resetCallRequested,
+    resetCallLoading,
+    resetCodeInput,
+    setResetCodeInput,
+    resetCallCooldown,
+    requestResetCall,
+    backToPasswordFromReset,
     callVerificationRequired,
     callRequested,
     callLoading,
