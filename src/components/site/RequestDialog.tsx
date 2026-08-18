@@ -93,7 +93,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       removePartsPhoto={partsPhoto.removePhoto}
       submitting={submitting || checkingVerification}
       onSubmit={submit}
-      showSignupBonusHint={signupBonusAmount > 0 && !knownContact && !knownPhoneNoAuth && !!form.promoCode}
+      showSignupBonusHint={signupBonusAmount > 0 && !knownContact && !knownPhoneNoAuth}
       signupBonusAmount={signupBonusAmount}
     />
   );
