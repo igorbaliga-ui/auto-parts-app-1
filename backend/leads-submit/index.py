@@ -213,20 +213,26 @@ def handler(event: dict, context) -> dict:
             settings_row = cur.fetchone()
             configured_amount = float(settings_row[0]) if settings_row and settings_row[0] is not None else 0.0
             if configured_amount > 0:
-                # Атомарно занимаем «слот» бонуса: UPSERT выставляет signup_bonus_granted_at
-                # только если он ещё NULL (COALESCE сохраняет уже существующую дату), и сразу
-                # возвращаем, было ли поле изменено именно этим запросом — так исключается
-                # гонка при двух параллельных запросах на один и тот же номер.
+                # Атомарно занимаем «слот» бонуса в два шага: сначала гарантируем, что строка
+                # для этого номера существует (INSERT ... ON CONFLICT DO NOTHING), затем сам
+                # UPDATE с условием "signup_bonus_granted_at IS NULL" — эта строка блокируется
+                # на время транзакции, поэтому при двух параллельных запросах на один и тот же
+                # номер выиграет только один: RETURNING вернёт строку только победителю, второй
+                # получит пустой результат. (Раньше здесь был однострочный UPSERT с EXCLUDED в
+                # RETURNING — так делать нельзя, Postgres не разрешает ссылаться на EXCLUDED вне
+                # ON CONFLICT DO UPDATE SET, из-за чего заявка падала с ошибкой 42P01.)
                 cur.execute(
-                    f"INSERT INTO {schema}.garage_accounts (phone_last10, signup_bonus_granted_at, updated_at) "
-                    f"VALUES (%s, now(), now()) "
-                    f"ON CONFLICT (phone_last10) DO UPDATE SET "
-                    f"signup_bonus_granted_at = COALESCE(garage_accounts.signup_bonus_granted_at, EXCLUDED.signup_bonus_granted_at), "
-                    f"updated_at = now() "
-                    f"RETURNING (signup_bonus_granted_at = EXCLUDED.signup_bonus_granted_at)",
+                    f"INSERT INTO {schema}.garage_accounts (phone_last10, updated_at) "
+                    f"VALUES (%s, now()) ON CONFLICT (phone_last10) DO NOTHING",
                     (phone_last10,),
                 )
-                won_slot = bool(cur.fetchone()[0])
+                cur.execute(
+                    f"UPDATE {schema}.garage_accounts SET signup_bonus_granted_at = now(), updated_at = now() "
+                    f"WHERE phone_last10 = %s AND signup_bonus_granted_at IS NULL "
+                    f"RETURNING 1",
+                    (phone_last10,),
+                )
+                won_slot = cur.fetchone() is not None
                 if won_slot:
                     signup_bonus_amount = configured_amount
                     cur.execute(
