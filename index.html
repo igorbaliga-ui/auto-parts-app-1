@@ -34,10 +34,16 @@
          на "all" только после загрузки). Обычный <link rel="stylesheet"> тут — render-blocking
          ресурс: браузер держит экран пустым (белым) до его загрузки, и на iOS в установленном
          приложении в этот момент светлый текст статус-бара (оператор, батарея) сливается с белым
-         фоном и выглядит как "мигание" при запуске. Заставка ниже не должна ждать шрифт. -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@400;500;600&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@400;500;600&display=swap" media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@400;500;600&display=swap" /></noscript>
+         фоном и выглядит как "мигание" при запуске. Заставка ниже не должна ждать шрифт.
+         display=optional (а не swap): если шрифт не успел загрузиться к первой отрисовке текста,
+         браузер один раз показывает системный шрифт и БОЛЬШЕ НЕ переключает его на Oswald/Rubik
+         на этой загрузке страницы — вместо характерного "мерцания" букв (замена шрифта на лету,
+         особенно заметная на «Гараже» из-за обилия крупных uppercase-заголовков font-head) сайт
+         просто один раз использует системный шрифт, а с любого следующего захода (шрифт уже
+         в кеше браузера) отрисовывается сразу правильным. -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@400;500;600&display=optional" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@400;500;600&display=optional" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@400;500;600&display=optional" /></noscript>
     <style>
         /* Красим ТОЛЬКО html (используется браузером как цвет canvas — самый нижний слой,
            виден даже под элементами с отрицательным z-index) в цвет заставки сразу, СИНХРОННО
