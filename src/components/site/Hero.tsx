@@ -164,7 +164,8 @@ const Hero = () => {
                 Все запчасти проверены на подлинность
               </span>
               <span className="flex items-center gap-2">
-                <i className="w-1.5 h-1.5 bg-primary inline-block rotate-45" />
+                <i className="w-1.5 h-1.5 bg-primary inline-block rotate-45" />.{" "}
+                <span className="text-primary"></span>
               </span>
             </div>
           </div>
