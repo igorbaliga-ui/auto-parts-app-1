@@ -6,6 +6,7 @@ import VinForm from '@/components/site/VinForm';
 import HowToOrder from '@/components/site/HowToOrder';
 import Advantages from '@/components/site/Advantages';
 import Contacts from '@/components/site/Contacts';
+import PromoBanner from '@/components/site/PromoBanner';
 import Footer from '@/components/site/Footer';
 import FloatingContactButton from '@/components/site/FloatingContactButton';
 
@@ -26,6 +27,7 @@ const PageContent = () => {
           </div>
         )}
       </main>
+      <PromoBanner />
       <Footer />
       <FloatingContactButton />
     </div>
