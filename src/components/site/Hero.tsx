@@ -85,7 +85,7 @@ const Hero = () => {
                   </p>
                 )}
 
-                <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full max-w-[440px] sm:max-w-[520px] mt-28">
+                <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full max-w-[440px] sm:max-w-[520px] mt-6 sm:mt-28">
                   <div className="flex items-stretch gap-2 min-w-0">
                     <PhotoAttach
                       photos={photos}
