@@ -14,6 +14,9 @@ import { isPushSupported } from "@/hooks/use-push-subscription";
 import GarageOrderHistory from "./GarageOrderHistory";
 import { Order, messengerLabel, formatDate, formatMoney, formatBonus } from "./garageTypes";
 import { sanitizeCarNameInput, sanitizeMileageInput } from "@/lib/text";
+import { safeGetItem, safeSetItem } from "@/lib/storage";
+
+const REFERRAL_GIFT_SEEN_KEY = "referral-gift-seen";
 
 type GarageOrdersListProps = {
   orders: Order[];
@@ -84,6 +87,15 @@ const GarageOrdersList = ({
 }: GarageOrdersListProps) => {
   const [searchOpen, setSearchOpen] = useState(() => !!searchQuery);
   const [mileageInfoOpen, setMileageInfoOpen] = useState(false);
+  const [referralGiftSeen, setReferralGiftSeen] = useState(
+    () => safeGetItem(REFERRAL_GIFT_SEEN_KEY) === "1",
+  );
+
+  const handleShowReferral = () => {
+    setReferralGiftSeen(true);
+    safeSetItem(REFERRAL_GIFT_SEEN_KEY, "1");
+    onShowReferral();
+  };
   return (
     <>
       {orders.length > 0 && (
@@ -95,11 +107,15 @@ const GarageOrdersList = ({
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <button
-              onClick={onShowReferral}
+              onClick={handleShowReferral}
               title="Пригласить друга"
               className="flex items-center justify-center w-8 h-8 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
             >
-              <Icon name="Gift" size={15} />
+              <Icon
+                name="Gift"
+                size={15}
+                className={!referralGiftSeen ? "animate-bell-ring text-primary" : ""}
+              />
             </button>
             <button
               onClick={onShowCashbackHistory}
