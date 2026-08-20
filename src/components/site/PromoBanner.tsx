@@ -61,7 +61,7 @@ const PromoBanner = () => {
 
   return (
     <section
-      className="border-y border-border/60 bg-card/40 py-3 sm:py-4"
+      className="relative -mt-16 sm:mt-0 border-y border-border/60 bg-card/40 py-3 sm:py-4"
       aria-label="Бонусная программа"
     >
       <div className="max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-12 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-x-6 gap-y-1.5">
