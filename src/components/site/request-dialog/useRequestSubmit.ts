@@ -83,10 +83,15 @@ export const useRequestSubmit = ({
 
   const { submitLead, submitting } = useSubmitLead(() => {
     setIsOpen(false);
-    toast({
+    // Стандартный таймаут автозакрытия toast в проекте намеренно очень большой
+    // (см. src/hooks/use-toast.ts, файл защищён от правок), поэтому для этого
+    // конкретного уведомления закрываем его вручную через 5 секунд — иначе оно
+    // выглядит как зависшее и не пропадает само.
+    const { dismiss } = toast({
       title: 'Заявка отправлена',
       description: 'Спасибо! Свяжемся с Вами в ближайшее время.',
     });
+    setTimeout(dismiss, 5000);
     // После успешной заявки клиент сразу попадает в свой личный кабинет «Гараж»
     if (!garageAuthed && form.phone) {
       safeSetItem(GARAGE_PHONE_KEY, form.phone);
