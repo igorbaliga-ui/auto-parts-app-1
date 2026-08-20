@@ -58,7 +58,7 @@ const RequestDialogShell = ({ isMobile, isOpen, setIsOpen, verificationStep, chi
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="bg-card border-border sm:max-w-[460px]">
-        <DialogHeader>
+        <DialogHeader className="text-center sm:text-center">
           <DialogTitle className="font-head uppercase tracking-wide text-2xl">
             {title}
           </DialogTitle>
