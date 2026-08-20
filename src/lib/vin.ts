@@ -35,9 +35,10 @@ export function getVinLengthHint(vin: string): string | null {
   if (len === 0 || len === 10 || len === 17) return null;
   if (len > 17) {
     const extra = len - 17;
-    return `Лишние ${extra} ${pluralizeSymbols(extra)} — должно быть 10 или 17`;
+    return `Лишние ${extra} ${pluralizeSymbols(extra)} — должно быть до Frame или до VIN`;
   }
   const target = len < 10 ? 10 : 17;
+  const targetLabel = target === 10 ? 'Frame' : 'VIN';
   const remaining = target - len;
-  return `Ещё ${remaining} ${pluralizeSymbols(remaining)} до ${target}`;
+  return `Ещё ${remaining} ${pluralizeSymbols(remaining)} до ${targetLabel}`;
 }

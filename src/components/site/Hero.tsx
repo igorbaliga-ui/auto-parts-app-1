@@ -150,11 +150,9 @@ const Hero = () => {
                     Подобрать
                   </button>
                 </div>
-                {getVinLengthHint(vin) && (
-                  <p className="text-muted-foreground text-xs mt-1.5">
-                    {getVinLengthHint(vin)}
-                  </p>
-                )}
+                <p className="text-muted-foreground text-xs mt-1.5 min-h-[1em] leading-none">
+                  {getVinLengthHint(vin)}
+                </p>
               </>
             )}
 
