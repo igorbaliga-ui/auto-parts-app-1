@@ -195,17 +195,17 @@ const GarageOrdersList = ({
           </div>
 
           <div className="flex items-center justify-between gap-1.5 sm:gap-2 mb-4">
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0 overflow-x-auto">
               <button
                 onClick={() => setStatusTab("new")}
-                className={`shrink-0 h-8 sm:h-10 px-2 sm:px-4 rounded-sm border text-[0.7rem] sm:text-sm font-head uppercase tracking-wide transition-colors flex items-center gap-1 sm:gap-1.5 ${
+                className={`shrink-0 h-8 sm:h-10 px-1.5 sm:px-4 rounded-sm border text-[0.65rem] sm:text-sm font-head uppercase tracking-wide transition-colors flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${
                   statusTab === "new"
                     ? "border-primary bg-primary/10 text-foreground"
                     : "border-steel text-muted-foreground hover:border-primary/60"
                 }`}
               >
                 {newOrders.length > 0 && (
-                  <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
+                  <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2 shrink-0">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
                     <span className="relative inline-flex h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-amber-500" />
                   </span>
@@ -214,7 +214,7 @@ const GarageOrdersList = ({
               </button>
               <button
                 onClick={() => setStatusTab("in_progress")}
-                className={`shrink-0 h-8 sm:h-10 px-2 sm:px-4 rounded-sm border text-[0.7rem] sm:text-sm font-head uppercase tracking-wide transition-colors ${
+                className={`shrink-0 h-8 sm:h-10 px-1.5 sm:px-4 rounded-sm border text-[0.65rem] sm:text-sm font-head uppercase tracking-wide transition-colors whitespace-nowrap ${
                   statusTab === "in_progress"
                     ? "border-primary bg-primary/10 text-foreground"
                     : "border-steel text-muted-foreground hover:border-primary/60"
@@ -224,7 +224,7 @@ const GarageOrdersList = ({
               </button>
               <button
                 onClick={() => setStatusTab("done")}
-                className={`shrink-0 h-8 sm:h-10 px-2 sm:px-4 rounded-sm border text-[0.7rem] sm:text-sm font-head uppercase tracking-wide transition-colors ${
+                className={`shrink-0 h-8 sm:h-10 px-1.5 sm:px-4 rounded-sm border text-[0.65rem] sm:text-sm font-head uppercase tracking-wide transition-colors whitespace-nowrap ${
                   statusTab === "done"
                     ? "border-primary bg-primary/10 text-foreground"
                     : "border-steel text-muted-foreground hover:border-primary/60"
