@@ -82,13 +82,17 @@ def handler(event: dict, context) -> dict:
 
     params = event.get('queryStringParameters') or {}
 
-    # Разовый бонус за регистрацию — для подсказки в форме заявки на сайте (не привязана
-    # к телефону, публичный доступ без пароля, как и остальные лёгкие проверки формы)
+    # Разовый бонус за регистрацию и общие проценты кешбэка/реферала «по умолчанию» —
+    # для подсказки в форме заявки и промо-баннера на сайте (не привязана к телефону,
+    # публичный доступ без пароля, как и остальные лёгкие проверки формы)
     if params.get('signup_bonus') == '1':
         conn = psycopg2.connect(dsn)
         try:
             cur = conn.cursor()
-            cur.execute(f"SELECT signup_bonus_amount FROM {schema}.app_settings WHERE id = 1")
+            cur.execute(
+                f"SELECT signup_bonus_amount, default_cashback_percent, default_referral_percent "
+                f"FROM {schema}.app_settings WHERE id = 1"
+            )
             row = cur.fetchone()
             cur.close()
         finally:
@@ -96,7 +100,11 @@ def handler(event: dict, context) -> dict:
         return {
             'statusCode': 200,
             'headers': headers,
-            'body': json.dumps({'signup_bonus_amount': float(row[0]) if row and row[0] is not None else 0}),
+            'body': json.dumps({
+                'signup_bonus_amount': float(row[0]) if row and row[0] is not None else 0,
+                'default_cashback_percent': float(row[1]) if row and row[1] is not None else 3.0,
+                'default_referral_percent': float(row[2]) if row and row[2] is not None else 2.0,
+            }),
         }
 
     # Проверка промокода друга прямо в форме заявки, без ожидания ответа на всю заявку —

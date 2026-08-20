@@ -20,8 +20,9 @@ def handler(event: dict, context) -> dict:
     процент реферального бонуса за приглашённых друзей (action=set_percent) (для /admin).
     Для каждого клиента также отдаёт referral_details — список приглашённых им друзей
     (телефон, имя, заметка менеджера, начисленный с него бонус) для вкладки «Рефералы».
-    Также управляет разовым бонусом за регистрацию — общей суммой для всех новых клиентов
-    (GET ?settings=1 — прочитать, action=set_signup_bonus — изменить).
+    Также управляет разовым бонусом за регистрацию и общими процентами кешбэка/реферала
+    «по умолчанию» (для промо-баннера на сайте) — общими настройками для всех новых
+    клиентов (GET ?settings=1 — прочитать, action=set_signup_bonus / set_default_percents — изменить).
     Автоматические начисления (выполненные заказы) продолжают суммироваться в общий кэшбэк.
     Клиент в «Гараже» видит итоговую сумму."""
     method = event.get('httpMethod', 'GET')
@@ -64,8 +65,13 @@ def handler(event: dict, context) -> dict:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
             if params.get('settings') == '1':
-                # Разовый бонус за регистрацию — общая сумма для всех новых клиентов
-                cur.execute(f"SELECT signup_bonus_amount FROM {schema}.app_settings WHERE id = 1")
+                # Разовый бонус за регистрацию и общие проценты кешбэка/реферала «по умолчанию»
+                # (используются в промо-баннере на сайте; индивидуальные проценты конкретных
+                # клиентов настраиваются отдельно, см. action=set_percent)
+                cur.execute(
+                    f"SELECT signup_bonus_amount, default_cashback_percent, default_referral_percent "
+                    f"FROM {schema}.app_settings WHERE id = 1"
+                )
                 settings_row = cur.fetchone()
                 cur.close()
                 return {
@@ -73,6 +79,8 @@ def handler(event: dict, context) -> dict:
                     'headers': headers,
                     'body': json.dumps({
                         'signup_bonus_amount': float(settings_row['signup_bonus_amount']) if settings_row else 0,
+                        'default_cashback_percent': float(settings_row['default_cashback_percent']) if settings_row else 3.0,
+                        'default_referral_percent': float(settings_row['default_referral_percent']) if settings_row else 2.0,
                     }),
                 }
 
@@ -237,6 +245,31 @@ def handler(event: dict, context) -> dict:
             cur.execute(
                 f"UPDATE {schema}.app_settings SET signup_bonus_amount = %s, updated_at = now() WHERE id = 1",
                 (signup_bonus_amount,),
+            )
+            conn.commit()
+            cur.close()
+        finally:
+            conn.close()
+
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+
+    if action == 'set_default_percents':
+        # Меняет общие проценты кешбэка/реферала «по умолчанию» — те, что показываются
+        # в промо-баннере на сайте всем посетителям (не привязаны к конкретному клиенту)
+        try:
+            default_cashback_percent = float(body.get('default_cashback_percent'))
+            default_referral_percent = float(body.get('default_referral_percent'))
+        except (TypeError, ValueError):
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный процент'})}
+        if not (0 <= default_cashback_percent <= 100) or not (0 <= default_referral_percent <= 100):
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Процент должен быть от 0 до 100'})}
+
+        conn = psycopg2.connect(dsn)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                f"UPDATE {schema}.app_settings SET default_cashback_percent = %s, default_referral_percent = %s, updated_at = now() WHERE id = 1",
+                (default_cashback_percent, default_referral_percent),
             )
             conn.commit()
             cur.close()

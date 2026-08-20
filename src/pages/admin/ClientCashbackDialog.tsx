@@ -51,6 +51,9 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
   const [savingPercentPhone, setSavingPercentPhone] = useState<string | null>(null);
   const [signupBonusDraft, setSignupBonusDraft] = useState('');
   const [savingSignupBonus, setSavingSignupBonus] = useState(false);
+  const [defaultCashbackDraft, setDefaultCashbackDraft] = useState('');
+  const [defaultReferralDraft, setDefaultReferralDraft] = useState('');
+  const [savingDefaultPercents, setSavingDefaultPercents] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -81,6 +84,12 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
         if (data && typeof data.signup_bonus_amount === 'number') {
           setSignupBonusDraft(String(data.signup_bonus_amount));
         }
+        if (data && typeof data.default_cashback_percent === 'number') {
+          setDefaultCashbackDraft(String(data.default_cashback_percent));
+        }
+        if (data && typeof data.default_referral_percent === 'number') {
+          setDefaultReferralDraft(String(data.default_referral_percent));
+        }
       })
       .catch(() => {});
   };
@@ -110,6 +119,38 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
       setError('Не удалось сохранить бонус за регистрацию. Попробуйте ещё раз.');
     } finally {
       setSavingSignupBonus(false);
+    }
+  };
+
+  const saveDefaultPercents = async () => {
+    const cashbackPercent = Number(defaultCashbackDraft);
+    const referralPercent = Number(defaultReferralDraft);
+    if (!Number.isFinite(cashbackPercent) || cashbackPercent < 0 || cashbackPercent > 100) {
+      setError('Кешбэк по умолчанию должен быть от 0 до 100');
+      return;
+    }
+    if (!Number.isFinite(referralPercent) || referralPercent < 0 || referralPercent > 100) {
+      setError('Кешбэк за друга по умолчанию должен быть от 0 до 100');
+      return;
+    }
+    setError('');
+    setSavingDefaultPercents(true);
+    try {
+      const res = await fetch(CLIENT_CASHBACK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword },
+        body: JSON.stringify({
+          action: 'set_default_percents',
+          default_cashback_percent: cashbackPercent,
+          default_referral_percent: referralPercent,
+        }),
+      });
+      if (!res.ok) throw new Error('request failed');
+      toast({ title: 'Проценты по умолчанию сохранены' });
+    } catch {
+      setError('Не удалось сохранить проценты по умолчанию. Попробуйте ещё раз.');
+    } finally {
+      setSavingDefaultPercents(false);
     }
   };
 
@@ -240,6 +281,54 @@ const ClientCashbackDialog = ({ adminPassword, adminName, open, onOpenChange }: 
               className="font-head uppercase tracking-wide text-xs h-9"
             >
               {savingSignupBonus ? '…' : 'Сохранить'}
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap items-end gap-3 border border-steel rounded-sm p-3">
+            <div>
+              <label className="text-muted-foreground text-xs uppercase tracking-wide block mb-1">
+                Кешбэк по умолчанию
+              </label>
+              <p className="text-xs text-muted-foreground mb-1.5 max-w-xs">
+                Показывается на сайте всем посетителям и применяется новым клиентам
+              </p>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={100}
+                placeholder="3"
+                value={defaultCashbackDraft}
+                onChange={(e) => setDefaultCashbackDraft(e.target.value)}
+                className="w-32 h-9"
+              />
+            </div>
+            <div>
+              <label className="text-muted-foreground text-xs uppercase tracking-wide block mb-1">
+                Кешбэк за друга по умолчанию
+              </label>
+              <p className="text-xs text-muted-foreground mb-1.5 max-w-xs">
+                Показывается на сайте всем посетителям
+              </p>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={100}
+                placeholder="2"
+                value={defaultReferralDraft}
+                onChange={(e) => setDefaultReferralDraft(e.target.value)}
+                className="w-32 h-9"
+              />
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={savingDefaultPercents}
+              onClick={saveDefaultPercents}
+              className="font-head uppercase tracking-wide text-xs h-9"
+            >
+              {savingDefaultPercents ? '…' : 'Сохранить'}
             </Button>
           </div>
 
