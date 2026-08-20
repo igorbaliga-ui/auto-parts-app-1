@@ -44,7 +44,7 @@ const RequestPromoSubmit = ({
       >
         <div className="min-h-0">
           <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-            Промокод друга (друг будет получасть 2% с ваших заказов)
+            Промокод друга (друг будет получать 2% с ваших заказов)
           </label>
           <div className="relative mt-1.5">
             <Input
