@@ -61,31 +61,23 @@ const PromoBanner = () => {
 
   return (
     <section
-      className="relative overflow-hidden border-y border-primary/30 bg-gradient-to-r from-primary/10 via-card to-primary/10 py-10 sm:py-12"
+      className="border-y border-border/60 bg-card/40 py-3 sm:py-4"
       aria-label="Бонусная программа"
     >
-      <div
-        className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-primary/10 to-transparent animate-shimmer-sweep"
-        aria-hidden="true"
-      />
-      <div className="relative max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-12 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-6 sm:gap-8">
+      <div className="max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-12 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-x-6 gap-y-1.5">
         {items.map((item, i) => (
-          <div key={item.icon} className="flex items-center gap-6 sm:gap-8">
-            <div className="flex items-center gap-3">
-              <span
-                className={`w-12 h-12 shrink-0 rounded-full bg-primary/15 flex items-center justify-center ${i === 0 ? "animate-glow-pulse" : ""}`}
-              >
-                <Icon name={item.icon} className="text-primary" size={22} />
-              </span>
-              <p className="text-sm sm:text-base leading-snug text-center sm:text-left">
-                <span className="font-head font-bold uppercase tracking-wide text-foreground">
+          <div key={item.icon} className="flex items-center gap-3 sm:gap-6">
+            <div className="flex items-center gap-2">
+              <Icon name={item.icon} className="text-primary shrink-0" size={14} />
+              <p className="text-xs leading-snug text-center sm:text-left">
+                <span className="font-head font-semibold uppercase tracking-wide text-foreground">
                   {item.title}
                 </span>
                 <span className="text-muted-foreground"> {item.text}</span>
               </p>
             </div>
             {i < items.length - 1 && (
-              <span className="hidden sm:block w-px h-10 bg-primary/25" aria-hidden="true" />
+              <span className="hidden sm:block w-px h-3 bg-border" aria-hidden="true" />
             )}
           </div>
         ))}
