@@ -5,13 +5,14 @@ import AdminLeadsTable from './admin/AdminLeadsTable';
 import AdminContactsTab from './admin/AdminContactsTab';
 import AdminReferralsTab from './admin/AdminReferralsTab';
 import AdminErrorsTab from './admin/AdminErrorsTab';
+import AdminClientErrorsTab from './admin/AdminClientErrorsTab';
 import Icon from '@/components/ui/icon';
 import { useAdminLeads } from './admin/useAdminLeads';
 import { usePushNotificationSound } from '@/hooks/use-push-notification-sound';
 
 const Admin = () => {
   const a = useAdminLeads();
-  const [page, setPage] = useState<'leads' | 'contacts' | 'referrals' | 'errors'>('leads');
+  const [page, setPage] = useState<'leads' | 'contacts' | 'referrals' | 'errors' | 'client-errors'>('leads');
   usePushNotificationSound();
 
   if (!a.authed) {
@@ -76,6 +77,17 @@ const Admin = () => {
           Ошибки
         </button>
         <button
+          onClick={() => setPage('client-errors')}
+          className={`h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors flex items-center gap-2 ${
+            page === 'client-errors'
+              ? 'border-primary bg-primary/10 text-foreground'
+              : 'border-steel text-muted-foreground hover:border-primary/60'
+          }`}
+        >
+          <Icon name="MonitorX" size={15} />
+          Падения
+        </button>
+        <button
           onClick={a.logout}
           title="Выйти из админки"
           className="h-10 px-4 ml-auto rounded-sm border border-steel text-sm font-head uppercase tracking-wide text-muted-foreground hover:border-destructive/60 hover:text-destructive transition-colors flex items-center gap-2"
@@ -95,6 +107,10 @@ const Admin = () => {
       ) : page === 'errors' ? (
         <div className="px-5 sm:px-8 lg:px-12 py-10">
           <AdminErrorsTab adminPassword={a.password} />
+        </div>
+      ) : page === 'client-errors' ? (
+        <div className="px-5 sm:px-8 lg:px-12 py-10">
+          <AdminClientErrorsTab adminPassword={a.password} />
         </div>
       ) : (
         <AdminLeadsTable

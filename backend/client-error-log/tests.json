@@ -1,0 +1,37 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET without password rejected",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401
+    },
+    {
+      "name": "POST empty message rejected",
+      "method": "POST",
+      "path": "/",
+      "body": {"message": ""},
+      "expectedStatus": 400
+    },
+    {
+      "name": "POST resolve without password rejected",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "resolve", "id": 1},
+      "expectedStatus": 401
+    },
+    {
+      "name": "POST valid error report accepted",
+      "method": "POST",
+      "path": "/",
+      "body": {"message": "Test error", "url": "/garage"},
+      "expectedStatus": 200
+    }
+  ]
+}
