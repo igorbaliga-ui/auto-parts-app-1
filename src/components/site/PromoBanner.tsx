@@ -10,9 +10,11 @@ type PromoSettings = {
 
 const formatPercent = (n: number) => (n % 1 === 0 ? n.toFixed(0) : n.toFixed(2).replace(/0+$/, "").replace(/\.$/, ""));
 
-/** Лаконичный анимированный баннер внизу страницы: кешбэк с заказов, бонус за
- * регистрацию и повышенный кешбэк за приглашённого друга. Все значения задаются
- * менеджером в /admin («Бонусы клиентов») — баннер сам подхватывает актуальные цифры. */
+/** Лаконичный баннер бонусной программы: кешбэк с заказов, бонус за регистрацию и
+ * повышенный кешбэк за приглашённого друга. Все значения задаются менеджером в
+ * /admin («Бонусы клиентов») — баннер сам подхватывает актуальные цифры.
+ * На мобильных — бегущая строка с мягкой анимированной подсветкой, на десктопе —
+ * статичная строка, приподнятая так, чтобы поместиться на экране без прокрутки. */
 const PromoBanner = () => {
   const [settings, setSettings] = useState<PromoSettings | null>(null);
 
@@ -61,15 +63,43 @@ const PromoBanner = () => {
 
   return (
     <section
-      className="relative -mt-16 sm:mt-0 border-y border-border/60 bg-card/40 py-3 sm:py-4"
+      className="relative overflow-hidden border-y border-border/60 bg-card/40 -mt-10 sm:-mt-14 lg:-mt-16"
       aria-label="Бонусная программа"
     >
-      <div className="max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-12 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-x-6 gap-y-1.5">
+      {/* мягкая анимированная подсветка, медленно проходящая по всей полосе */}
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-primary/10 to-transparent blur-sm animate-shimmer-sweep"
+        aria-hidden="true"
+      />
+
+      {/* Мобильная версия: бегущая строка, повторяется бесконечно */}
+      <div className="sm:hidden relative overflow-hidden py-2.5">
+        <div className="flex w-max animate-marquee">
+          {[...items, ...items].map((item, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center gap-1.5 pr-6 text-[11px] leading-none whitespace-nowrap shrink-0"
+            >
+              <Icon name={item.icon} size={12} className="text-primary shrink-0" />
+              <span className="font-head font-semibold uppercase tracking-wide text-foreground">
+                {item.title}
+              </span>
+              <span className="text-muted-foreground">{item.text}</span>
+              <span className="text-primary/40 pl-6" aria-hidden="true">
+                •
+              </span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Версия для планшета/десктопа: статичная строка */}
+      <div className="hidden sm:flex relative max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-12 py-3 lg:py-4 flex-wrap items-center justify-center gap-x-6 gap-y-1.5">
         {items.map((item, i) => (
           <div key={item.icon} className="flex items-center gap-3 sm:gap-6">
             <div className="flex items-center gap-2">
               <Icon name={item.icon} className="text-primary shrink-0" size={14} />
-              <p className="text-xs leading-snug text-center sm:text-left">
+              <p className="text-xs leading-snug text-left">
                 <span className="font-head font-semibold uppercase tracking-wide text-foreground">
                   {item.title}
                 </span>

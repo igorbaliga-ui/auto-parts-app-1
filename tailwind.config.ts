@@ -126,6 +126,10 @@ export default {
 				'shimmer-sweep': {
 					from: { transform: 'translateX(-100%)' },
 					to: { transform: 'translateX(100%)' }
+				},
+				'marquee': {
+					from: { transform: 'translateX(0)' },
+					to: { transform: 'translateX(-50%)' }
 				}
 			},
 			animation: {
@@ -137,7 +141,8 @@ export default {
 				'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
 				'bell-ring': 'bell-ring 2.5s ease-in-out infinite',
 				'share-glow': 'share-glow 2.2s ease-in-out infinite',
-				'shimmer-sweep': 'shimmer-sweep 1.6s ease-in-out infinite'
+				'shimmer-sweep': 'shimmer-sweep 1.6s ease-in-out infinite',
+				'marquee': 'marquee 16s linear infinite'
 			}
 		}
 	},
