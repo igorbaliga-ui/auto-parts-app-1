@@ -160,7 +160,13 @@
     // Синхронно, до первой отрисовки: при повторном визите (заставку уже видели —
     // см. src/main.tsx) сразу помечаем блок как скрытый через inline-style, чтобы
     // браузер не отрисовал его вообще ни на один кадр — визуально заставки просто нет.
-    if (localStorage.getItem('app_splash_seen')) {
+    // localStorage обёрнут в try/catch: в приватном режиме или при отключённых
+    // сайтовых данных (бывает в некоторых Android-браузерах) обращение к нему
+    // выбрасывает исключение — без catch это остановило бы разбор HTML прямо
+    // здесь, ещё до загрузки React, и пользователь увидел бы чёрный экран.
+    var splashSeen = false;
+    try { splashSeen = !!localStorage.getItem('app_splash_seen'); } catch (e) {}
+    if (splashSeen) {
         document.write('<div id="app-splash" style="display:none">');
     } else {
         document.write('<div id="app-splash">');
