@@ -286,7 +286,7 @@ const GarageOrdersList = ({
                   >
                     {o.status === "done" ? "Выполнен" : o.status === "new" ? "Новая" : "В работе"}
                   </span>
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pr-20">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3 mt-5 sm:mt-0 pr-20">
                     <span className="font-head tracking-[0.1em] text-lg">
                       {o.vin || "VIN не указан (по фото)"}
                     </span>
