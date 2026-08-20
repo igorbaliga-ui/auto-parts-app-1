@@ -8,7 +8,10 @@ type PromoSettings = {
   default_referral_percent: number;
 };
 
-const formatPercent = (n: number) => (n % 1 === 0 ? n.toFixed(0) : n.toFixed(2).replace(/0+$/, "").replace(/\.$/, ""));
+const formatPercent = (n: number) =>
+  n % 1 === 0
+    ? n.toFixed(0)
+    : n.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
 
 /** Лаконичный баннер бонусной программы: кешбэк с заказов, бонус за регистрацию и
  * повышенный кешбэк за приглашённого друга. Все значения задаются менеджером в
@@ -25,9 +28,18 @@ const PromoBanner = () => {
       .then((data) => {
         if (!cancelled && data) {
           setSettings({
-            signup_bonus_amount: typeof data.signup_bonus_amount === "number" ? data.signup_bonus_amount : 0,
-            default_cashback_percent: typeof data.default_cashback_percent === "number" ? data.default_cashback_percent : 3,
-            default_referral_percent: typeof data.default_referral_percent === "number" ? data.default_referral_percent : 2,
+            signup_bonus_amount:
+              typeof data.signup_bonus_amount === "number"
+                ? data.signup_bonus_amount
+                : 0,
+            default_cashback_percent:
+              typeof data.default_cashback_percent === "number"
+                ? data.default_cashback_percent
+                : 3,
+            default_referral_percent:
+              typeof data.default_referral_percent === "number"
+                ? data.default_referral_percent
+                : 2,
           });
         }
       })
@@ -57,7 +69,7 @@ const PromoBanner = () => {
     {
       icon: "Users",
       title: `+${formatPercent(settings.default_referral_percent)}% кешбэк`,
-      text: "со всех заказов приглашённого друга",
+      text: "со всех заказов приглашенных друзей",
     },
   ];
 
@@ -80,7 +92,11 @@ const PromoBanner = () => {
               key={i}
               className="inline-flex items-center gap-1.5 pr-6 text-[11px] leading-none whitespace-nowrap shrink-0"
             >
-              <Icon name={item.icon} size={12} className="text-primary shrink-0" />
+              <Icon
+                name={item.icon}
+                size={12}
+                className="text-primary shrink-0"
+              />
               <span className="font-head font-semibold uppercase tracking-wide text-foreground">
                 {item.title}
               </span>
@@ -98,7 +114,11 @@ const PromoBanner = () => {
         {items.map((item, i) => (
           <div key={item.icon} className="flex items-center gap-3 sm:gap-6">
             <div className="flex items-center gap-2">
-              <Icon name={item.icon} className="text-primary shrink-0" size={14} />
+              <Icon
+                name={item.icon}
+                className="text-primary shrink-0"
+                size={14}
+              />
               <p className="text-xs leading-snug text-left">
                 <span className="font-head font-semibold uppercase tracking-wide text-foreground">
                   {item.title}
@@ -107,7 +127,10 @@ const PromoBanner = () => {
               </p>
             </div>
             {i < items.length - 1 && (
-              <span className="hidden sm:block w-px h-3 bg-border" aria-hidden="true" />
+              <span
+                className="hidden sm:block w-px h-3 bg-border"
+                aria-hidden="true"
+              />
             )}
           </div>
         ))}
