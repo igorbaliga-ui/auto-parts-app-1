@@ -1,15 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -89,6 +82,27 @@ const RequestFormFields = ({
     setForm((f) => ({ ...f, phone: normalizePhoneInput(f.phone, e.target.value) }));
   };
   const [partsExpanded, setPartsExpanded] = useState(false);
+  const [carPickerOpen, setCarPickerOpen] = useState(false);
+  const carPickerRef = useRef<HTMLDivElement>(null);
+
+  // Свой выпадающий список вместо Radix Select: тот открывался ВНУТРИ диалога
+  // заявки и на части Android-браузеров (в т.ч. Samsung Internet) после выбора
+  // машины из списка не до конца снимал внутреннюю блокировку клика по фону —
+  // диалог визуально закрывался, а страница переставала реагировать на touch,
+  // выглядело как зависание с чёрным экраном, помогал только перезапуск.
+  useEffect(() => {
+    if (!carPickerOpen) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (carPickerRef.current && !carPickerRef.current.contains(e.target as Node)) {
+        setCarPickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [carPickerOpen]);
+
+  const selectedCar =
+    vinSource === 'garage' ? garageCars.find((c) => c.vin === form.vin) : undefined;
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4 mt-2">
@@ -103,26 +117,36 @@ const RequestFormFields = ({
           <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
             Ваш автомобиль
           </label>
-          <div className="relative mt-1.5">
-            <Select
-              value={vinSource === 'garage' && garageCars.some((c) => c.vin === form.vin) ? form.vin : ''}
-              onValueChange={(vin) => {
-                setForm((f) => ({ ...f, vin }));
-                setVinSource('garage');
-              }}
+          <div className="relative mt-1.5" ref={carPickerRef}>
+            <button
+              type="button"
+              onClick={() => vinSource !== 'manual' && setCarPickerOpen((v) => !v)}
               disabled={vinSource === 'manual'}
+              className={`flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${vinSource === 'garage' ? 'pr-9' : ''}`}
             >
-              <SelectTrigger className={`bg-background ${vinSource === 'garage' ? 'pr-9' : ''}`}>
-                <SelectValue placeholder="Выберите из гаража или введите VIN ниже" />
-              </SelectTrigger>
-              <SelectContent>
+              <span className={`truncate text-left ${selectedCar ? '' : 'text-muted-foreground'}`}>
+                {selectedCar ? `${selectedCar.car_name} — ${selectedCar.vin}` : 'Выберите из гаража или введите VIN ниже'}
+              </span>
+              <Icon name="ChevronDown" size={16} className="opacity-50 shrink-0" />
+            </button>
+            {carPickerOpen && (
+              <div className="absolute z-50 top-full left-0 mt-1 w-full bg-popover border border-border rounded-sm shadow-md overflow-hidden max-h-60 overflow-y-auto">
                 {garageCars.map((c) => (
-                  <SelectItem key={c.vin} value={c.vin}>
+                  <button
+                    key={c.vin}
+                    type="button"
+                    onClick={() => {
+                      setForm((f) => ({ ...f, vin: c.vin }));
+                      setVinSource('garage');
+                      setCarPickerOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors truncate"
+                  >
                     {c.car_name} — {c.vin}
-                  </SelectItem>
+                  </button>
                 ))}
-              </SelectContent>
-            </Select>
+              </div>
+            )}
             {vinSource === 'garage' && (
               <button
                 type="button"
