@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import ExpandableTextarea from "@/components/admin/ExpandableTextarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -265,6 +265,7 @@ const AdminLeadCard = ({
           value={l.parts || ""}
           displayLabel="Запчасти"
           multiline
+          expandable
           onSave={(v) => saveLeadField(l.id, "parts", v)}
           className="text-left whitespace-pre-wrap break-words line-clamp-5 max-w-full"
         />
@@ -327,9 +328,10 @@ const AdminLeadCard = ({
         <label className="text-muted-foreground text-xs uppercase tracking-wide block mb-1 mt-2">
           Заметка (видна только менеджерам)
         </label>
-        <Textarea
+        <ExpandableTextarea
           value={draft.note}
-          onChange={(e) => setNoteDraft(l.id, e.target.value)}
+          onChange={(v) => setNoteDraft(l.id, v)}
+          title="Заметка (видна только менеджерам)"
           placeholder="Заметка для менеджеров"
           className="min-h-16 text-sm"
         />

@@ -1,6 +1,6 @@
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { TableCell } from '@/components/ui/table';
+import ExpandableTextarea from '@/components/admin/ExpandableTextarea';
 import Icon from '@/components/ui/icon';
 import InlineEditableCell from './InlineEditableCell';
 import ImageLightbox from '@/components/shared/ImageLightbox';
@@ -61,6 +61,7 @@ const AdminLeadOrderCells = ({
             value={l.parts || ''}
             displayLabel="Запчасти"
             multiline
+            expandable
             onSave={(v) => saveLeadField(l.id, 'parts', v)}
             inputClassName="w-48"
             textareaClassName="w-80"
@@ -180,12 +181,12 @@ const AdminLeadOrderCells = ({
       )}
       {isColumnVisible('internal_note') && (
         <TableCell>
-          <Textarea
+          <ExpandableTextarea
             value={drafts[l.id]?.note ?? ''}
-            onChange={(e) => setNoteDraft(l.id, e.target.value)}
+            onChange={(v) => setNoteDraft(l.id, v)}
+            title="Заметка (видна только менеджерам)"
             placeholder="Заметка для менеджеров"
-            title="Видна только менеджерам, клиент её не видит"
-            className="w-48 min-h-9 h-9 text-xs resize-y"
+            className="w-48 min-h-9 h-9 text-xs"
           />
         </TableCell>
       )}
