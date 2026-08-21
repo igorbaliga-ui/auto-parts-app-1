@@ -58,7 +58,7 @@ const RequestPhoneVerificationStep = ({
         maxLength={4}
         inputMode="numeric"
         placeholder="0000"
-        className="text-center tracking-[0.4em] text-lg"
+        className="text-center tracking-[0.4em] pr-[0.4em] text-lg"
         autoFocus
       />
     )}
