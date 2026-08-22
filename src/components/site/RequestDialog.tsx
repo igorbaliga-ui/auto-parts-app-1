@@ -50,6 +50,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     handleRequestCall,
     handleBackFromVerification,
     step,
+    stepDirection,
     totalSteps,
     goNext,
     goBack,
@@ -102,6 +103,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       showSignupBonusHint={signupBonusAmount > 0 && !knownContact && !knownPhoneNoAuth}
       signupBonusAmount={signupBonusAmount}
       step={step}
+      stepDirection={stepDirection}
       totalSteps={totalSteps}
       onNext={goNext}
       onBack={goBack}

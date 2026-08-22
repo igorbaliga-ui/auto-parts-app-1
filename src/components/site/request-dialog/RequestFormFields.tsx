@@ -37,6 +37,7 @@ type RequestFormFieldsProps = {
   showSignupBonusHint?: boolean;
   signupBonusAmount?: number;
   step: number;
+  stepDirection: 'forward' | 'backward';
   totalSteps: number;
   onNext: () => void;
   onBack: () => void;
@@ -71,6 +72,7 @@ const RequestFormFields = ({
   showSignupBonusHint,
   signupBonusAmount,
   step,
+  stepDirection,
   totalSteps,
   onNext,
   onBack,
@@ -106,61 +108,68 @@ const RequestFormFields = ({
         </div>
       </div>
 
-      {step === 1 && (
-        <RequestCarVinFields
-          form={form}
-          setForm={setForm}
-          errors={errors}
-          garageCars={garageCars}
-          vinSource={vinSource}
-          setVinSource={setVinSource}
-          vinHistory={vinHistory}
-          vinPhotos={vinPhotos}
-          vinPhotoPreviews={vinPhotoPreviews}
-          addVinPhotos={addVinPhotos}
-          removeVinPhoto={removeVinPhoto}
-          showSignupBonusHint={showSignupBonusHint}
-          signupBonusAmount={signupBonusAmount}
-          vinOptionalHint={vinPhotos.length > 0 || partsPhotos.length > 0}
-        />
-      )}
-
-      {step === 2 && (
-        <RequestContactFields
-          form={form}
-          setForm={setForm}
-          errors={errors}
-          nameAutoFilled={nameAutoFilled}
-          messenger={messenger}
-          setMessenger={setMessenger}
-          knownContact={knownContact}
-        />
-      )}
-
-      {step === 3 && (
-        <>
-          <RequestPartsFields
+      <div
+        key={step}
+        className={`flex flex-col gap-4 ${
+          stepDirection === 'forward' ? 'animate-step-in-forward' : 'animate-step-in-backward'
+        }`}
+      >
+        {step === 1 && (
+          <RequestCarVinFields
             form={form}
             setForm={setForm}
             errors={errors}
-            partsPhotos={partsPhotos}
-            partsPhotoPreviews={partsPhotoPreviews}
-            addPartsPhotos={addPartsPhotos}
-            removePartsPhoto={removePartsPhoto}
+            garageCars={garageCars}
+            vinSource={vinSource}
+            setVinSource={setVinSource}
+            vinHistory={vinHistory}
+            vinPhotos={vinPhotos}
+            vinPhotoPreviews={vinPhotoPreviews}
+            addVinPhotos={addVinPhotos}
+            removeVinPhoto={removeVinPhoto}
+            showSignupBonusHint={showSignupBonusHint}
+            signupBonusAmount={signupBonusAmount}
+            vinOptionalHint={vinPhotos.length > 0 || partsPhotos.length > 0}
           />
+        )}
 
-          <RequestPromoSubmit
+        {step === 2 && (
+          <RequestContactFields
             form={form}
             setForm={setForm}
             errors={errors}
-            promoStatus={promoStatus}
-            promoAlreadyUsed={promoAlreadyUsed}
+            nameAutoFilled={nameAutoFilled}
+            messenger={messenger}
+            setMessenger={setMessenger}
             knownContact={knownContact}
-            submitting={submitting}
-            onBack={onBack}
           />
-        </>
-      )}
+        )}
+
+        {step === 3 && (
+          <>
+            <RequestPartsFields
+              form={form}
+              setForm={setForm}
+              errors={errors}
+              partsPhotos={partsPhotos}
+              partsPhotoPreviews={partsPhotoPreviews}
+              addPartsPhotos={addPartsPhotos}
+              removePartsPhoto={removePartsPhoto}
+            />
+
+            <RequestPromoSubmit
+              form={form}
+              setForm={setForm}
+              errors={errors}
+              promoStatus={promoStatus}
+              promoAlreadyUsed={promoAlreadyUsed}
+              knownContact={knownContact}
+              submitting={submitting}
+              onBack={onBack}
+            />
+          </>
+        )}
+      </div>
 
       {step < totalSteps && (
         <div className="flex items-center gap-2 mt-1">

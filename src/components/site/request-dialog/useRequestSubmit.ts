@@ -45,6 +45,9 @@ export const useRequestSubmit = ({
   // 3 — запчасти/промокод. Шаг подтверждения номера звонком (verificationStep)
   // отдельный и показывается поверх шагов после нажатия «Отправить заявку» на шаге 3.
   const [step, setStep] = useState(1);
+  // Направление последнего перехода между шагами — определяет, с какой стороны
+  // заезжает контент следующего шага (вперёд — справа, назад — слева).
+  const [stepDirection, setStepDirection] = useState<'forward' | 'backward'>('forward');
   const TOTAL_STEPS = 3;
   const [verificationStep, setVerificationStep] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState<(() => void) | null>(null);
@@ -101,16 +104,21 @@ export const useRequestSubmit = ({
     validateStep(step, e);
     setErrors(e);
     if (Object.keys(e).length === 0) {
+      setStepDirection('forward');
       setStep((s) => Math.min(s + 1, TOTAL_STEPS));
     }
   };
 
   const goBack = () => {
     setErrors({});
+    setStepDirection('backward');
     setStep((s) => Math.max(s - 1, 1));
   };
 
-  const resetStep = () => setStep(1);
+  const resetStep = () => {
+    setStep(1);
+    setStepDirection('forward');
+  };
 
   const { submitLead, submitting } = useSubmitLead(() => {
     setIsOpen(false);
@@ -222,6 +230,7 @@ export const useRequestSubmit = ({
     handleRequestCall,
     handleBackFromVerification,
     step,
+    stepDirection,
     totalSteps: TOTAL_STEPS,
     goNext,
     goBack,
