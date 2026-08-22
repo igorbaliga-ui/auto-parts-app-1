@@ -49,6 +49,11 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
     handleVerifyCode,
     handleRequestCall,
     handleBackFromVerification,
+    step,
+    totalSteps,
+    goNext,
+    goBack,
+    resetStep,
   } = useRequestSubmit({
     form,
     messenger,
@@ -65,6 +70,7 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
 
   const open = (vin?: string, photos?: File[], phone?: string, name?: string, history?: string[], city?: string) => {
     setErrors({});
+    resetStep();
     openForm(vin, photos, phone, name, history, city);
   };
 
@@ -95,6 +101,10 @@ export const RequestProvider = ({ children }: { children: ReactNode }) => {
       onSubmit={submit}
       showSignupBonusHint={signupBonusAmount > 0 && !knownContact && !knownPhoneNoAuth}
       signupBonusAmount={signupBonusAmount}
+      step={step}
+      totalSteps={totalSteps}
+      onNext={goNext}
+      onBack={goBack}
     />
   );
 

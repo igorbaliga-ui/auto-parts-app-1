@@ -9,14 +9,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import CityInput from '@/components/shared/CityInput';
 import PhotoAttach from '@/components/site/PhotoAttach';
-import { setStoredCity } from '@/lib/garage-city';
 import { sanitizePartsInput } from '@/lib/text';
 
 type FormState = { vin: string; name: string; phone: string; parts: string; city: string; promoCode: string };
 
-type RequestPartsCityFieldsProps = {
+type RequestPartsFieldsProps = {
   form: FormState;
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
   errors: Record<string, string>;
@@ -26,7 +24,7 @@ type RequestPartsCityFieldsProps = {
   removePartsPhoto: (index: number) => void;
 };
 
-const RequestPartsCityFields = ({
+const RequestPartsFields = ({
   form,
   setForm,
   errors,
@@ -34,7 +32,7 @@ const RequestPartsCityFields = ({
   partsPhotoPreviews,
   addPartsPhotos,
   removePartsPhoto,
-}: RequestPartsCityFieldsProps) => {
+}: RequestPartsFieldsProps) => {
   const [partsExpanded, setPartsExpanded] = useState(false);
 
   return (
@@ -115,30 +113,8 @@ const RequestPartsCityFields = ({
           </div>
         </DialogContent>
       </Dialog>
-
-      <div>
-        <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-          Город
-        </label>
-        <div className="mt-1.5 w-[220px]">
-          <CityInput
-            value={form.city}
-            onChange={(v) => {
-              setForm((f) => ({ ...f, city: v }));
-              setStoredCity(v);
-            }}
-            placeholder="Выбрать город"
-            className={`h-11 px-4 rounded-sm border text-sm bg-background ${
-              errors.city ? 'border-primary text-primary' : 'border-steel text-foreground'
-            }`}
-          />
-        </div>
-        {errors.city && (
-          <p className="text-primary text-xs mt-1">{errors.city}</p>
-        )}
-      </div>
     </>
   );
 };
 
-export default RequestPartsCityFields;
+export default RequestPartsFields;
