@@ -217,9 +217,13 @@
     transform: rotate(360deg);
   }
 }
+/* Пунктирное кольцо вращается как единое целое (чистый transform: rotate),
+   а не через stroke-dashoffset — так анимация идёт по кругу без единого
+   рывка или "прерывания" на стыке цикла, ровно так же плавно и без монтажных
+   склеек, как дымка на фоновой картинке позади колеса. */
 @keyframes gear-dash {
   to {
-    stroke-dashoffset: -184;
+    transform: rotate(-360deg);
   }
 }
 .animate-gear-spin {
@@ -227,7 +231,8 @@
   transform-origin: 50% 50%;
 }
 .animate-gear-dash {
-  animation: gear-dash 6s linear infinite;
+  animation: gear-dash 34s linear infinite;
+  transform-origin: 50% 50%;
 }
 
 @media (prefers-reduced-motion: reduce) {

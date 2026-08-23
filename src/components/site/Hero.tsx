@@ -205,6 +205,7 @@ const Hero = () => {
                   stroke="hsl(var(--primary))"
                   strokeWidth="5"
                   strokeDasharray="26 20"
+                  strokeLinecap="round"
                   opacity="0.9"
                 />
               </svg>
