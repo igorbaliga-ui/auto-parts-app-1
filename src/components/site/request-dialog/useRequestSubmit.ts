@@ -41,83 +41,44 @@ export const useRequestSubmit = ({
   const navigate = useNavigate();
   const location = useLocation();
   const [errors, setErrors] = useState<Record<string, string>>({});
-  // Форма разбита на 3 шага: 1 — VIN, 2 — телефон/имя/мессенджер/город,
-  // 3 — запчасти/промокод. Шаг подтверждения номера звонком (verificationStep)
-  // отдельный и показывается поверх шагов после нажатия «Отправить заявку» на шаге 3.
-  const [step, setStep] = useState(1);
-  // Направление последнего перехода между шагами — определяет, с какой стороны
-  // заезжает контент следующего шага (вперёд — справа, назад — слева).
-  const [stepDirection, setStepDirection] = useState<'forward' | 'backward'>('forward');
-  const TOTAL_STEPS = 3;
+  // Шаг подтверждения номера звонком: показывается только если у клиента ещё нет
+  // подтверждённого номера (проверяем перед фактической отправкой заявки в базу)
   const [verificationStep, setVerificationStep] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState<(() => void) | null>(null);
   const [checkingVerification, setCheckingVerification] = useState(false);
   const verification = usePhoneCallVerification();
 
-  const validateStep = (targetStep: number, e: Record<string, string>) => {
-    if (targetStep === 1) {
-      const vin = form.vin.trim();
-      const vinValid = vin.length === 10 || vin.length === 17;
-      if (!vinValid) {
-        if (vin.length === 0) {
-          if (vinPhoto.photos.length === 0 && partsPhoto.photos.length === 0) {
-            e.vin = 'Укажите VIN или прикрепите фото';
-          }
-        } else {
-          e.vin = 'VIN должен содержать 10 или 17 символов';
-        }
-      }
-    }
-    if (targetStep === 2) {
-      if (!knownContact && !knownPhoneNoAuth && form.name.trim().length < 2) {
-        e.name = 'Укажите имя';
-      }
-      const phoneDigits = form.phone.replace(/\D/g, '');
-      if (!knownContact && phoneDigits.length < 10) {
-        e.phone = 'Укажите корректный телефон';
-      }
-      if (!messenger) {
-        e.messenger = 'Выберите мессенджер';
-      }
-      if (!form.city) {
-        e.city = 'Выберите город';
-      }
-    }
-    if (targetStep === 3) {
-      if (form.parts.trim().length < 2) {
-        e.parts = 'Укажите интересующие запчасти';
-      }
-    }
-  };
-
   const validate = () => {
     const e: Record<string, string> = {};
-    validateStep(1, e);
-    validateStep(2, e);
-    validateStep(3, e);
+    const vin = form.vin.trim();
+    const vinValid = vin.length === 10 || vin.length === 17;
+    if (!vinValid) {
+      if (vin.length === 0) {
+        if (vinPhoto.photos.length === 0 && partsPhoto.photos.length === 0) {
+          e.vin = 'Укажите VIN или прикрепите фото';
+        }
+      } else {
+        e.vin = 'VIN должен содержать 10 или 17 символов';
+      }
+    }
+    if (!knownContact && !knownPhoneNoAuth && form.name.trim().length < 2) {
+      e.name = 'Укажите имя';
+    }
+    const phoneDigits = form.phone.replace(/\D/g, '');
+    if (!knownContact && phoneDigits.length < 10) {
+      e.phone = 'Укажите корректный телефон';
+    }
+    if (!messenger) {
+      e.messenger = 'Выберите мессенджер';
+    }
+    if (!form.city) {
+      e.city = 'Выберите город';
+    }
+    if (form.parts.trim().length < 2) {
+      e.parts = 'Укажите интересующие запчасти';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
-  };
-
-  const goNext = () => {
-    const e: Record<string, string> = {};
-    validateStep(step, e);
-    setErrors(e);
-    if (Object.keys(e).length === 0) {
-      setStepDirection('forward');
-      setStep((s) => Math.min(s + 1, TOTAL_STEPS));
-    }
-  };
-
-  const goBack = () => {
-    setErrors({});
-    setStepDirection('backward');
-    setStep((s) => Math.max(s - 1, 1));
-  };
-
-  const resetStep = () => {
-    setStep(1);
-    setStepDirection('forward');
   };
 
   const { submitLead, submitting } = useSubmitLead(() => {
@@ -146,7 +107,6 @@ export const useRequestSubmit = ({
     setVerificationStep(false);
     verification.reset();
     setPendingSubmit(null);
-    resetStep();
   });
 
   const performSubmit = async () => {
@@ -229,11 +189,5 @@ export const useRequestSubmit = ({
     handleVerifyCode,
     handleRequestCall,
     handleBackFromVerification,
-    step,
-    stepDirection,
-    totalSteps: TOTAL_STEPS,
-    goNext,
-    goBack,
-    resetStep,
   };
 };

@@ -1,9 +1,7 @@
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
-import CityInput from '@/components/shared/CityInput';
 import { normalizePhoneInput } from '@/lib/phone';
 import { sanitizeNameInput } from '@/lib/name';
-import { setStoredCity } from '@/lib/garage-city';
 import { messengers } from './RequestContext';
 
 type FormState = { vin: string; name: string; phone: string; parts: string; city: string; promoCode: string };
@@ -127,28 +125,6 @@ const RequestContactFields = ({
         </div>
         {errors.messenger && (
           <p className="text-primary text-xs mt-1">{errors.messenger}</p>
-        )}
-      </div>
-
-      <div>
-        <label className="font-head uppercase tracking-[0.12em] text-xs text-muted-foreground">
-          Город
-        </label>
-        <div className="mt-1.5 w-[220px]">
-          <CityInput
-            value={form.city}
-            onChange={(v) => {
-              setForm((f) => ({ ...f, city: v }));
-              setStoredCity(v);
-            }}
-            placeholder="Выбрать город"
-            className={`h-11 px-4 rounded-sm border text-sm bg-background ${
-              errors.city ? 'border-primary text-primary' : 'border-steel text-foreground'
-            }`}
-          />
-        </div>
-        {errors.city && (
-          <p className="text-primary text-xs mt-1">{errors.city}</p>
         )}
       </div>
     </>

@@ -196,15 +196,15 @@ const Hero = () => {
                     strokeWidth="10"
                   />
                 </g>
-                {/* Пунктирное кольцо с обрывом на 3 часа (справа от центра) — не полная окружность */}
-                <path
+                <circle
                   className="animate-gear-dash"
-                  d="M174.34 115.8 A76 76 0 1 1 174.34 84.2"
+                  cx="100"
+                  cy="100"
+                  r="76"
                   fill="none"
                   stroke="hsl(var(--primary))"
                   strokeWidth="5"
                   strokeDasharray="26 20"
-                  strokeLinecap="round"
                   opacity="0.9"
                 />
               </svg>

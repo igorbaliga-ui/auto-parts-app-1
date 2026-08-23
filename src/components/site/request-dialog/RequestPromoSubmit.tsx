@@ -21,7 +21,6 @@ type RequestPromoSubmitProps = {
   promoAlreadyUsed?: boolean;
   knownContact: boolean;
   submitting: boolean;
-  onBack?: () => void;
 };
 
 const RequestPromoSubmit = ({
@@ -32,7 +31,6 @@ const RequestPromoSubmit = ({
   promoAlreadyUsed,
   knownContact,
   submitting,
-  onBack,
 }: RequestPromoSubmitProps) => (
   <>
     {!knownContact && (
@@ -113,27 +111,13 @@ const RequestPromoSubmit = ({
       </div>
     )}
 
-    <div className="flex items-center gap-2">
-      {onBack && (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onBack}
-          disabled={submitting}
-          className="font-head uppercase tracking-wide h-12 gap-1.5"
-        >
-          <Icon name="ChevronLeft" size={16} />
-          Назад
-        </Button>
-      )}
-      <Button
-        type="submit"
-        disabled={submitting}
-        className="font-head uppercase tracking-wide font-bold h-12 flex-1"
-      >
-        {submitting ? "Отправляем…" : "Отправить заявку"}
-      </Button>
-    </div>
+    <Button
+      type="submit"
+      disabled={submitting}
+      className="font-head uppercase tracking-wide font-bold h-12"
+    >
+      {submitting ? "Отправляем…" : "Отправить заявку"}
+    </Button>
     <p className="text-center text-xs text-muted-foreground">
       Нажимая кнопку, вы соглашаетесь на обработку данных.
     </p>
