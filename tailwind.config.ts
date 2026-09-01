@@ -130,6 +130,14 @@ export default {
 				'marquee': {
 					from: { transform: 'translateX(0)' },
 					to: { transform: 'translateX(-50%)' }
+				},
+				'step-in-forward': {
+					from: { opacity: '0', transform: 'translateX(32px)' },
+					to: { opacity: '1', transform: 'translateX(0)' }
+				},
+				'step-in-backward': {
+					from: { opacity: '0', transform: 'translateX(-32px)' },
+					to: { opacity: '1', transform: 'translateX(0)' }
 				}
 			},
 			animation: {
@@ -142,7 +150,9 @@ export default {
 				'bell-ring': 'bell-ring 2.5s ease-in-out infinite',
 				'share-glow': 'share-glow 2.2s ease-in-out infinite',
 				'shimmer-sweep': 'shimmer-sweep 1.6s ease-in-out infinite',
-				'marquee': 'marquee 16s linear infinite'
+				'marquee': 'marquee 16s linear infinite',
+				'step-in-forward': 'step-in-forward 0.32s cubic-bezier(0.22, 1, 0.36, 1) both',
+				'step-in-backward': 'step-in-backward 0.32s cubic-bezier(0.22, 1, 0.36, 1) both'
 			}
 		}
 	},
