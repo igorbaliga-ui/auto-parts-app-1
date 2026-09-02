@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
@@ -10,10 +10,17 @@ import { useGarageArrived } from "@/hooks/use-garage-arrived";
 import { useGarageReferralCode } from "@/hooks/use-garage-referral-code";
 import { safeGetItem, safeSetItem } from "@/lib/storage";
 import { SITE_URL } from "@/lib/site";
+import { getMobileOs } from "@/lib/browser-detect";
 import { toast } from "@/hooks/use-toast";
 import InstallGuide from "./InstallGuide";
 
 const INSTALL_HINT_SEEN_KEY = "install-hint-seen";
+// iOS не даёт события вроде 'appinstalled' — единственный сигнал, что сайт
+// уже установлен, это факт запуска в standalone-режиме (значок с домашнего
+// экрана). Запоминаем это раз и навсегда в localStorage, чтобы при обычном
+// открытии сайта в Safari (не standalone) можно было узнать, что установка
+// уже была, и не показывать инструкцию повторно — аналогично Android.
+const IOS_INSTALLED_KEY = "ios-installed";
 
 const links: { label: string; tab: Tab }[] = [
   { label: "Как заказать", tab: "how" },
@@ -35,17 +42,38 @@ const Header = () => {
   const { authed: garageAuthed } = useGarageAuth();
   const hasArrived = useGarageArrived();
   const referralCode = useGarageReferralCode();
+  const [iosInstalled, setIosInstalled] = useState(
+    () => safeGetItem(IOS_INSTALLED_KEY) === "1",
+  );
+
+  // Если сайт сейчас открыт как standalone-приложение на iPhone — значит,
+  // установка уже состоялась, запоминаем это, чтобы при следующем открытии
+  // в обычном Safari иконка Apple не вела на инструкцию заново.
+  useEffect(() => {
+    if (isStandalone && getMobileOs() === "ios" && !iosInstalled) {
+      setIosInstalled(true);
+      safeSetItem(IOS_INSTALLED_KEY, "1");
+    }
+  }, [isStandalone, iosInstalled]);
 
   const dismissInstallHint = () => {
     setInstallHint(false);
     safeSetItem(INSTALL_HINT_SEEN_KEY, "1");
   };
 
-  const openGuide = (tab: "ios" | "android") => {
+  // На iOS нет программного способа проверить установку или вызвать нативный
+  // промпт — но если мы уже знаем (см. эффект выше), что приложение когда-то
+  // было установлено на этом устройстве, инструкцию повторно не показываем,
+  // аналогично поведению иконки Android после установки.
+  const handleIosClick = () => {
     setOpen(false);
     dismissInstallHint();
-    setGuideTab(tab);
-    setGuideOpen(true);
+    if (iosInstalled) {
+      toast({ title: "Приложение уже установлено" });
+    } else {
+      setGuideTab("ios");
+      setGuideOpen(true);
+    }
   };
 
   // На Android Chrome браузер умеет сам показать системное окно установки —
@@ -141,7 +169,7 @@ const Header = () => {
               }}
             >
               <button
-                onClick={() => openGuide("ios")}
+                onClick={handleIosClick}
                 aria-label="Установить на iPhone"
                 title="Установить на iPhone"
                 className="flex items-center justify-center w-8 h-8 text-slate-200 hover:text-white hover:scale-110 transition-all"
