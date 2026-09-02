@@ -47,6 +47,21 @@ const Header = () => {
     setGuideOpen(true);
   };
 
+  // На Android Chrome браузер умеет сам показать системное окно установки —
+  // не показываем инструкцию, а сразу вызываем нативный промпт. Инструкция
+  // остаётся запасным вариантом на случай, если промпт по какой-то причине
+  // недоступен (например, приложение уже установлено чуть раньше).
+  const handleAndroidClick = () => {
+    setOpen(false);
+    dismissInstallHint();
+    if (canInstall) {
+      promptInstall();
+    } else {
+      setGuideTab("android");
+      setGuideOpen(true);
+    }
+  };
+
   const navigate = (tab: Tab) => {
     setOpen(false);
     goTo(tab);
@@ -129,7 +144,7 @@ const Header = () => {
                 <Icon name="Apple" size={17} />
               </button>
               <button
-                onClick={() => openGuide("android")}
+                onClick={handleAndroidClick}
                 aria-label="Установить на Android"
                 title="Установить на Android"
                 className="flex items-center justify-center w-8 h-8 text-[#3DDC84] hover:brightness-125 hover:scale-110 transition-all"

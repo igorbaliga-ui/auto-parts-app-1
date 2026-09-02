@@ -19,14 +19,6 @@ type Props = {
 };
 
 // {SITE} — место, куда подставляется название сайта
-const iosSteps = [
-  "Откройте сайт {SITE} в браузере Safari (важно — именно Safari, не Chrome).",
-  "Нажмите на иконку «Поделиться» внизу экрана — квадрат со стрелкой вверх.",
-  "В открывшемся списке выберите «На экран Домой».",
-  "Нажмите «Добавить» в правом верхнем углу.",
-  "Готово — на главном экране появится значок ЗАП ОПТОМ, как обычное приложение.",
-];
-
 const androidSteps = [
   "Откройте сайт {SITE} в браузере Chrome.",
   "Нажмите на иконку ⬇ «Установить» рядом с названием сайта, либо на три точки в правом верхнем углу браузера.",
@@ -34,6 +26,32 @@ const androidSteps = [
   "Подтвердите установку в появившемся окне.",
   "Готово — значок ЗАП ОПТОМ появится на главном экране и в списке приложений.",
 ];
+
+// Упрощённая карточка для iOS: один крупный шаг вместо списка из 5 пунктов.
+// Safari технически не даёт сайтам вызвать установку в один клик (в отличие
+// от Android Chrome) — но сам единственный ручной шаг «Поделиться → На экран
+// Домой» можно показать заметно и просто, без нумерованного списка.
+const IosQuickStep = ({ showOpenSafari }: { showOpenSafari: boolean }) => (
+  <div className="flex flex-col items-center gap-4 mt-4 py-2 text-center">
+    {showOpenSafari && (
+      <p className="text-sm text-muted-foreground">
+        Откройте сайт в Safari, затем:
+      </p>
+    )}
+    <div className="flex items-center gap-3 px-5 py-4 rounded-sm border border-primary/60 bg-primary/10 text-primary font-head font-bold uppercase tracking-wide">
+      <Icon name="Share" size={22} />
+      <Icon name="ArrowRight" size={16} className="opacity-60" />
+      <Icon name="PlusSquare" size={22} />
+      <span className="normal-case text-sm text-foreground/90 font-body font-medium">
+        Поделиться → На экран Домой
+      </span>
+    </div>
+    <p className="text-sm text-foreground/90 max-w-[32ch]">
+      Нажмите на иконку «Поделиться» внизу экрана, выберите «На экран Домой» и
+      подтвердите «Добавить» — готово.
+    </p>
+  </div>
+);
 
 const StepList = ({ steps }: { steps: string[] }) => (
   <ol className="flex flex-col gap-3 mt-4">
@@ -96,8 +114,7 @@ const CopySiteHost = ({ browser, icon }: { browser: string; icon: string }) => {
 const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
   const [tab, setTab] = useState<"ios" | "android">(defaultTab);
   // Шаг «откройте сайт в нужном браузере» не нужен, если пользователь и так
-  // уже в нём находится (Safari на iOS / Chrome на Android)
-  const visibleIosSteps = isIosSafari() ? iosSteps.slice(1) : iosSteps;
+  // уже в нём находится (Chrome на Android)
   const visibleAndroidSteps = isAndroidChrome() ? androidSteps.slice(1) : androidSteps;
   // Устройство уже однозначно определено (iPhone или Android) — инструкция для
   // другой платформы человеку не нужна и не показывается вовсе, вместе с
@@ -127,8 +144,10 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
           <CopySiteHost browser="Safari" icon="Compass" />
         ) : androidNonChrome ? (
           <CopySiteHost browser="Chrome" icon="Chrome" />
-        ) : detectedOs ? (
-          <StepList steps={detectedOs === "ios" ? visibleIosSteps : visibleAndroidSteps} />
+        ) : detectedOs === "ios" ? (
+          <IosQuickStep showOpenSafari={!isIosSafari()} />
+        ) : detectedOs === "android" ? (
+          <StepList steps={visibleAndroidSteps} />
         ) : (
           <Tabs value={tab} onValueChange={(v) => setTab(v as "ios" | "android")}>
             <TabsList className="grid grid-cols-2 w-full">
@@ -142,7 +161,7 @@ const InstallGuide = ({ open, onOpenChange, defaultTab = "ios" }: Props) => {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="ios">
-              <StepList steps={visibleIosSteps} />
+              <IosQuickStep showOpenSafari={!isIosSafari()} />
             </TabsContent>
             <TabsContent value="android">
               <StepList steps={visibleAndroidSteps} />
