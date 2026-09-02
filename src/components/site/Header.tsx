@@ -10,6 +10,7 @@ import { useGarageArrived } from "@/hooks/use-garage-arrived";
 import { useGarageReferralCode } from "@/hooks/use-garage-referral-code";
 import { safeGetItem, safeSetItem } from "@/lib/storage";
 import { SITE_URL } from "@/lib/site";
+import { toast } from "@/hooks/use-toast";
 import InstallGuide from "./InstallGuide";
 
 const INSTALL_HINT_SEEN_KEY = "install-hint-seen";
@@ -22,7 +23,7 @@ const links: { label: string; tab: Tab }[] = [
 
 const Header = () => {
   const [open, setOpen] = useState(false);
-  const { canInstall, promptInstall } = usePwaInstall();
+  const { canInstall, installed, promptInstall } = usePwaInstall();
   const isStandalone = useIsStandalone();
   const isMobileOs = useIsMobileOs();
   const [guideOpen, setGuideOpen] = useState(false);
@@ -48,14 +49,18 @@ const Header = () => {
   };
 
   // На Android Chrome браузер умеет сам показать системное окно установки —
-  // не показываем инструкцию, а сразу вызываем нативный промпт. Инструкция
-  // остаётся запасным вариантом на случай, если промпт по какой-то причине
-  // недоступен (например, приложение уже установлено чуть раньше).
+  // не показываем инструкцию, а сразу вызываем нативный промпт. Если
+  // приложение уже установлено — событие 'beforeinstallprompt' повторно не
+  // сработает, и вместо устаревшей инструкции показываем короткую подсказку.
+  // Инструкция остаётся запасным вариантом только для остальных случаев
+  // (например, промпт ещё не подгрузился браузером).
   const handleAndroidClick = () => {
     setOpen(false);
     dismissInstallHint();
     if (canInstall) {
       promptInstall();
+    } else if (installed) {
+      toast({ title: "Приложение уже установлено" });
     } else {
       setGuideTab("android");
       setGuideOpen(true);
