@@ -14,17 +14,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ЗАП ОПТОМ">
     <script>
-        // Браузер может прислать 'beforeinstallprompt' очень рано — ещё до того, как
-        // React успел смонтировать <Header> и подписаться на событие в usePwaInstall
-        // (особенно на медленных устройствах/первой загрузке). Слушатель, повешенный
-        // здесь, в самом начале <head>, ловит событие в любом случае и кладёт его в
-        // window, откуда хук потом его подхватывает — без этой подстраховки такое
-        // раннее событие терялось безвозвратно, и кнопка установки не появлялась
-        // до следующей перезагрузки страницы.
-        window.addEventListener('beforeinstallprompt', function (e) {
-            e.preventDefault();
-            window.__deferredPwaPrompt = e;
-        });
         // Синхронно (ДО загрузки React) подстраиваем манифест и apple-mobile-web-app-title
         // под /admin. Это критично именно для iOS Safari: при «Добавить на экран Домой»
         // название и манифест берутся из состояния DOM в момент добавления, а не пересчитываются
