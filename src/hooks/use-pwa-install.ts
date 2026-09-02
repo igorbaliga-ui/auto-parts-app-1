@@ -6,6 +6,17 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+// index.html вешает свой слушатель 'beforeinstallprompt' синхронно, в самом
+// начале <head> — раньше, чем React успевает смонтировать компонент и
+// подписаться на событие здесь. Пойманное там событие кладётся сюда, и хук
+// подхватывает его при монтировании (см. эффект ниже), иначе очень раннее
+// событие терялось бы безвозвратно на этой загрузке страницы.
+declare global {
+  interface Window {
+    __deferredPwaPrompt?: BeforeInstallPromptEvent;
+  }
+}
+
 // Хранится в localStorage, чтобы "запомнить" установку между перезагрузками
 // страницы: событие 'beforeinstallprompt' на Android после установки больше
 // не срабатывает повторно в этой же вкладке браузера, поэтому без сохранённого
@@ -32,7 +43,11 @@ const isRunningStandalone = () =>
     (navigator as unknown as { standalone?: boolean }).standalone === true);
 
 export const usePwaInstall = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(() => {
+    const early = (typeof window !== 'undefined' && window.__deferredPwaPrompt) || null;
+    if (early) safeSetItem(PWA_PROMPT_SEEN_KEY, '1');
+    return early;
+  });
   const [installed, setInstalled] = useState(
     () => safeGetItem(PWA_INSTALLED_KEY) === '1' || isRunningStandalone(),
   );
