@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 import PageBackground from "@/components/site/PageBackground";
-import { normalizePhoneInput } from "@/lib/phone";
+import { normalizePhoneInput, getPhoneLengthHint } from "@/lib/phone";
 import {
   Popover,
   PopoverContent,
@@ -403,6 +403,11 @@ export const PhoneEntryView = ({
           placeholder="+7 900 000-00-00"
           autoFocus
         />
+        {!error && (
+          <p className="text-xs -mt-2 min-h-[1em] leading-none text-center text-muted-foreground">
+            {getPhoneLengthHint(phone)}
+          </p>
+        )}
         {error && error !== NO_ORDERS_ERROR && (
           <p className="text-primary text-sm text-center">{error}</p>
         )}

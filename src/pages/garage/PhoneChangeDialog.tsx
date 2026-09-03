@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { normalizePhoneInput } from '@/lib/phone';
+import { normalizePhoneInput, getPhoneLengthHint } from '@/lib/phone';
 
 type PhoneChangeDialogProps = {
   open: boolean;
@@ -73,6 +73,11 @@ const PhoneChangeDialog = ({
               className="mt-1.5 bg-background"
               autoFocus
             />
+            {!error && (
+              <p className="text-xs mt-1 min-h-[1em] leading-none text-muted-foreground">
+                {getPhoneLengthHint(newPhone)}
+              </p>
+            )}
           </div>
           {error && <p className="text-primary text-sm">{error}</p>}
           <Button

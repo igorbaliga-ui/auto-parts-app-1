@@ -33,3 +33,23 @@ export function normalizePhoneInput(prevValue: string, rawValue: string): string
 
   return sanitized;
 }
+
+function pluralizeDigits(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'цифра';
+  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return 'цифры';
+  return 'цифр';
+}
+
+/**
+ * Живая подсказка под полем телефона: сколько цифр ещё нужно ввести до полного
+ * номера (+7 и 10 цифр — 11 цифр всего). Возвращает null, если поле пустое
+ * (тогда достаточно placeholder) или номер уже введён полностью.
+ */
+export function getPhoneLengthHint(phone: string): string | null {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 0 || digits.length >= 11) return null;
+  const remaining = 11 - digits.length;
+  return `Ещё ${remaining} ${pluralizeDigits(remaining)}`;
+}

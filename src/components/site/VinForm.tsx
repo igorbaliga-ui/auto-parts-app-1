@@ -11,7 +11,7 @@ import {
   GARAGE_PHONE_KEY,
   notifyGarageAuthChanged,
 } from "@/hooks/use-garage-auth";
-import { normalizePhoneInput } from "@/lib/phone";
+import { normalizePhoneInput, getPhoneLengthHint } from "@/lib/phone";
 import { sanitizeVinInput, getVinLengthHint } from "@/lib/vin";
 import { safeSetItem } from "@/lib/storage";
 import { setLastVin } from "@/hooks/use-last-vin";
@@ -211,9 +211,13 @@ const VinForm = () => {
                     placeholder="+7 900 000-00-00"
                     className="mt-1.5 h-12"
                   />
-                  {errors.phone && (
-                    <p className="text-primary text-xs mt-1">{errors.phone}</p>
-                  )}
+                  <p className="text-xs mt-1 min-h-[1em] leading-none">
+                    {errors.phone ? (
+                      <span className="text-primary">{errors.phone}</span>
+                    ) : (
+                      <span className="text-muted-foreground">{getPhoneLengthHint(form.phone)}</span>
+                    )}
+                  </p>
                 </div>
               </div>
               <div>

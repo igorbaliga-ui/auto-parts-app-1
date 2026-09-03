@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import CityInput from '@/components/shared/CityInput';
-import { normalizePhoneInput } from '@/lib/phone';
+import { normalizePhoneInput, getPhoneLengthHint } from '@/lib/phone';
 import { sanitizeNameInput } from '@/lib/name';
 import { setStoredCity } from '@/lib/garage-city';
 import { messengers } from './RequestContext';
@@ -53,9 +53,13 @@ const RequestContactFields = ({
               autoComplete="off"
               name="request-phone"
             />
-            {errors.phone && (
-              <p className="text-primary text-xs mt-1">{errors.phone}</p>
-            )}
+            <p className="text-xs mt-1 min-h-[1em] leading-none">
+              {errors.phone ? (
+                <span className="text-primary">{errors.phone}</span>
+              ) : (
+                <span className="text-muted-foreground">{getPhoneLengthHint(form.phone)}</span>
+              )}
+            </p>
             <p
               className={`flex items-center gap-1 text-xs text-primary transition-all duration-300 ease-in-out overflow-hidden ${
                 nameAutoFilled ? 'max-h-5 opacity-100 mt-1.5' : 'max-h-0 opacity-0 mt-0'
