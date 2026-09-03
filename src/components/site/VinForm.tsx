@@ -53,8 +53,8 @@ const VinForm = () => {
       }
     }
     if (form.name.trim().length < 2) e.name = "Укажите имя";
-    if (form.phone.replace(/\D/g, "").length < 10)
-      e.phone = "Укажите корректный телефон";
+    if (form.phone.replace(/\D/g, "").length < 11)
+      e.phone = "Телефон указан не полностью";
     if (!messenger) e.messenger = "Выберите мессенджер";
     if (form.parts.trim().length < 2) e.parts = "Укажите интересующие запчасти";
     setErrors(e);

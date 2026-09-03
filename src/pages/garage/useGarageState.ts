@@ -272,8 +272,8 @@ export const useGarageState = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phone.replace(/\D/g, '').length < 10) {
-      setError('Укажите корректный телефон');
+    if (phone.replace(/\D/g, '').length < 11) {
+      setError('Телефон указан не полностью');
       return;
     }
     setCheckingPassword(true);

@@ -6,7 +6,7 @@ export type Ctx = {
 };
 
 export const isValidName = (name?: string) => !!name && name.trim().length >= 2;
-export const isValidPhone = (phone?: string) => !!phone && phone.replace(/\D/g, '').length >= 10;
+export const isValidPhone = (phone?: string) => !!phone && phone.replace(/\D/g, '').length >= 11;
 
 export const RequestContext = createContext<Ctx>({ open: () => {} });
 

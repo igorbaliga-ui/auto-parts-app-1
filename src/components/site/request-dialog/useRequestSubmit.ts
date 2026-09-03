@@ -73,8 +73,8 @@ export const useRequestSubmit = ({
         e.name = 'Укажите имя';
       }
       const phoneDigits = form.phone.replace(/\D/g, '');
-      if (!knownContact && phoneDigits.length < 10) {
-        e.phone = 'Укажите корректный телефон';
+      if (!knownContact && phoneDigits.length < 11) {
+        e.phone = 'Телефон указан не полностью';
       }
       if (!messenger) {
         e.messenger = 'Выберите мессенджер';

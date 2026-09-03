@@ -47,8 +47,8 @@ export const usePhoneChange = (currentPhone: string, onSuccess: (newPhone: strin
 
   const requestCall = async () => {
     setError('');
-    if (newPhone.replace(/\D/g, '').length < 10) {
-      setError('Укажите корректный номер');
+    if (newPhone.replace(/\D/g, '').length < 11) {
+      setError('Телефон указан не полностью');
       return;
     }
     setCallLoading(true);
