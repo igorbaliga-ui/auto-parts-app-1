@@ -106,10 +106,6 @@ const RequestFormFields = ({
             />
           ))}
         </div>
-        <p className="flex items-center gap-1.5 text-muted-foreground text-xs mt-2">
-          <Icon name="ShieldCheck" size={13} className="shrink-0 text-primary" />
-          Введённые данные сохраняются автоматически — можно закрыть форму и продолжить позже
-        </p>
       </div>
 
       <div
