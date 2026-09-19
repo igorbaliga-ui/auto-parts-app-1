@@ -1,4 +1,4 @@
-const CACHE_NAME = "zap-optom-v6";
+const CACHE_NAME = "zap-optom-v7";
 const PRECACHE_URLS = ["/pwa-192.png", "/pwa-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -35,7 +35,15 @@ self.addEventListener("fetch", (event) => {
     request.mode === "navigate" || request.destination === "document";
   const isManifest = url.pathname.endsWith(".webmanifest");
   if (isNavigation || isManifest) {
-    event.respondWith(fetch(request).catch(() => caches.match(request)));
+    event.respondWith(
+      fetch(request).catch(
+        () =>
+          caches.match(request).then(
+            (cached) =>
+              cached || new Response("", { status: 503, statusText: "Offline" }),
+          ),
+      ),
+    );
     return;
   }
 
@@ -49,7 +57,7 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() => cached);
+        .catch(() => cached || new Response("", { status: 503, statusText: "Offline" }));
       return cached || network;
     }),
   );
