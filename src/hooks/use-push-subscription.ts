@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/lib/storage';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 const PUSH_SUBSCRIBE_URL = 'https://functions.poehali.dev/30d578c6-e25c-4fdc-b648-85e2cbdc2a65';
 
@@ -62,7 +63,7 @@ export const usePushSubscription = (phone: string | null) => {
       setPermission(perm);
       if (perm !== 'granted') return false;
 
-      const keyRes = await fetch(PUSH_SUBSCRIBE_URL);
+      const keyRes = await fetchWithTimeout(PUSH_SUBSCRIBE_URL);
       const keyData = await keyRes.json();
       const publicKey = keyData.public_key;
       if (!publicKey) return false;

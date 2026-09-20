@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePhotoAttach } from "@/hooks/use-photo-attach";
 import { getStoredCity } from "@/lib/garage-city";
 import { safeSetItem, safeRemoveItem } from "@/lib/storage";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { setLastVin } from "@/hooks/use-last-vin";
 import {
   isValidName,
@@ -66,7 +67,7 @@ export const useRequestFormState = ({
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`${GARAGE_LOOKUP_URL}?signup_bonus=1`)
+    fetchWithTimeout(`${GARAGE_LOOKUP_URL}?signup_bonus=1`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (
@@ -90,7 +91,7 @@ export const useRequestFormState = ({
       return;
     }
     let cancelled = false;
-    fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(garagePhone)}`)
+    fetchWithTimeout(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(garagePhone)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (cancelled || !data) return;
@@ -150,7 +151,7 @@ export const useRequestFormState = ({
     nameLookupTimer.current = setTimeout(async () => {
       lastLookupPhone.current = digits;
       try {
-        const res = await fetch(
+        const res = await fetchWithTimeout(
           `${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(digits)}`,
         );
         if (!res.ok) return;
@@ -197,7 +198,7 @@ export const useRequestFormState = ({
     existsCheckTimer.current = setTimeout(async () => {
       lastExistsCheckPhone.current = digits;
       try {
-        const res = await fetch(
+        const res = await fetchWithTimeout(
           `${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(digits)}&exists_only=1`,
         );
         if (!res.ok) return;
@@ -238,7 +239,7 @@ export const useRequestFormState = ({
     promoUsedCheckTimer.current = setTimeout(async () => {
       lastPromoUsedCheckPhone.current = digits;
       try {
-        const res = await fetch(
+        const res = await fetchWithTimeout(
           `${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(digits)}&promo_used=1`,
         );
         if (!res.ok) return;
@@ -274,7 +275,7 @@ export const useRequestFormState = ({
     }
     setPromoStatus("checking");
     try {
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `${GARAGE_LOOKUP_URL}?check_promo=${encodeURIComponent(code)}`,
       );
       if (!res.ok) throw new Error("request failed");

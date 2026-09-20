@@ -1,5 +1,27 @@
-const CACHE_NAME = "zap-optom-v7";
+const CACHE_NAME = "zap-optom-v8";
 const PRECACHE_URLS = ["/pwa-192.png", "/pwa-512.png"];
+
+// На слабой мобильной сети (LTE, переключение вышек) fetch() к серверу иногда не падает
+// с ошибкой, а просто зависает на неопределённое время — без этой обёртки открытие
+// установленного приложения могло "вечно грузиться", пока пользователь не закроет его
+// полностью и не откроет заново. Обгоняем такой зависший запрос таймером и в этом случае
+// отдаём сохранённую копию из кэша, не дожидаясь сети.
+const NETWORK_TIMEOUT_MS = 6000;
+function fetchWithTimeout(request) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("network-timeout")), NETWORK_TIMEOUT_MS);
+    fetch(request).then(
+      (response) => {
+        clearTimeout(timer);
+        resolve(response);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -36,7 +58,7 @@ self.addEventListener("fetch", (event) => {
   const isManifest = url.pathname.endsWith(".webmanifest");
   if (isNavigation || isManifest) {
     event.respondWith(
-      fetch(request).catch(
+      fetchWithTimeout(request).catch(
         () =>
           caches.match(request).then(
             (cached) =>
@@ -49,7 +71,7 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(
     caches.match(request).then((cached) => {
-      const network = fetch(request)
+      const network = fetchWithTimeout(request)
         .then((response) => {
           if (response && response.status === 200) {
             const clone = response.clone();

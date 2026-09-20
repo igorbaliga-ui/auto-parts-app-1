@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Icon from "@/components/ui/icon";
 import { useLastVin } from "@/hooks/use-last-vin";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 import { useNav } from "./NavContext";
 
 const SITE_CONTACTS_URL = "https://functions.poehali.dev/2da0d397-3cdf-4621-8dce-e973cad2dc6d";
@@ -49,7 +50,7 @@ const FloatingContactButton = () => {
   const lastVin = useLastVin();
 
   useEffect(() => {
-    fetch(SITE_CONTACTS_URL)
+    fetchWithTimeout(SITE_CONTACTS_URL)
       .then((res) => (res.ok ? res.json() : null))
       .then((d) => {
         if (!d) return;

@@ -4,6 +4,7 @@ import { notifyGarageAuthChanged } from '@/hooks/use-garage-auth';
 import { getStoredCity } from '@/lib/garage-city';
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/lib/storage';
 import { usePushSubscription } from '@/hooks/use-push-subscription';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 import { setAppBadge } from '@/lib/app-badge';
 import { toast } from '@/hooks/use-toast';
 import { sanitizeMileageInput, MILEAGE_MAX_VALUE } from '@/lib/text';
@@ -92,7 +93,7 @@ export const useGarageState = () => {
 
   const checkAccountStatus = async (ph: string) => {
     try {
-      const res = await fetch(`${GARAGE_AUTH_URL}?phone=${encodeURIComponent(ph)}`);
+      const res = await fetchWithTimeout(`${GARAGE_AUTH_URL}?phone=${encodeURIComponent(ph)}`);
       if (!res.ok) return { hasPassword: false, phoneVerified: false };
       const data = await res.json();
       return { hasPassword: !!data.has_password, phoneVerified: !!data.phone_verified };
@@ -119,7 +120,7 @@ export const useGarageState = () => {
     setError('');
     setCallLoading(true);
     try {
-      const res = await fetch(GARAGE_AUTH_URL, {
+      const res = await fetchWithTimeout(GARAGE_AUTH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'start_call_verification', phone }),
@@ -144,7 +145,7 @@ export const useGarageState = () => {
     setError('');
     setVerifyLoading(true);
     try {
-      const res = await fetch(GARAGE_AUTH_URL, {
+      const res = await fetchWithTimeout(GARAGE_AUTH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'verify_call', phone, code: codeInput }),
@@ -181,7 +182,7 @@ export const useGarageState = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(ph)}`);
+      const res = await fetchWithTimeout(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(ph)}`);
       if (res.status === 429) {
         setError('Слишком много запросов. Подождите немного и попробуйте снова.');
         return;
@@ -297,7 +298,7 @@ export const useGarageState = () => {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(GARAGE_AUTH_URL, {
+      const res = await fetchWithTimeout(GARAGE_AUTH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'login', phone, password: passwordInput }),
@@ -326,7 +327,7 @@ export const useGarageState = () => {
     setResetError('');
     setResetCallLoading(true);
     try {
-      const res = await fetch(GARAGE_AUTH_URL, {
+      const res = await fetchWithTimeout(GARAGE_AUTH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'start_password_reset_call', phone }),
@@ -359,7 +360,7 @@ export const useGarageState = () => {
     }
     setResetLoading(true);
     try {
-      const res = await fetch(GARAGE_AUTH_URL, {
+      const res = await fetchWithTimeout(GARAGE_AUTH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -445,7 +446,7 @@ export const useGarageState = () => {
     }
     setPasswordSettingsLoading(true);
     try {
-      const res = await fetch(GARAGE_AUTH_URL, {
+      const res = await fetchWithTimeout(GARAGE_AUTH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -481,7 +482,7 @@ export const useGarageState = () => {
     setPasswordSettingsSuccess('');
     setPasswordSettingsLoading(true);
     try {
-      const res = await fetch(GARAGE_AUTH_URL, {
+      const res = await fetchWithTimeout(GARAGE_AUTH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'remove_password', phone, old_password: oldPasswordInput }),
@@ -534,7 +535,7 @@ export const useGarageState = () => {
     const carName = (carNameDrafts[order.id] || '').trim();
     setSavingCarId(order.id);
     try {
-      const res = await fetch(GARAGE_CAR_NAME_URL, {
+      const res = await fetchWithTimeout(GARAGE_CAR_NAME_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, vin: order.vin, car_name: carName }),
@@ -578,7 +579,7 @@ export const useGarageState = () => {
     });
     setSavingMileageId(order.id);
     try {
-      const res = await fetch(GARAGE_MILEAGE_URL, {
+      const res = await fetchWithTimeout(GARAGE_MILEAGE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, vin: order.vin, mileage: raw || null }),
@@ -632,7 +633,7 @@ export const useGarageState = () => {
   const refresh = async () => {
     if (!phone) return;
     try {
-      const res = await fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(phone)}`);
+      const res = await fetchWithTimeout(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(phone)}`);
       if (!res.ok) return;
       const data = await res.json();
       const list: Order[] = data.orders || [];
@@ -665,7 +666,7 @@ export const useGarageState = () => {
     setApplyReferralCodeError('');
     setApplyingReferralCode(true);
     try {
-      const res = await fetch(GARAGE_AUTH_URL, {
+      const res = await fetchWithTimeout(GARAGE_AUTH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'apply_referral_code', phone, referral_code: code }),

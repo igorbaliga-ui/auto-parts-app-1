@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useGarageAuth } from '@/hooks/use-garage-auth';
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout';
 
 const GARAGE_LOOKUP_URL = 'https://functions.poehali.dev/767e29c1-99e4-40b9-a0c8-d5b8e2aaddf1';
 
@@ -18,7 +19,7 @@ export const useGarageReferralCode = () => {
       return;
     }
     let cancelled = false;
-    fetch(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(phone)}`)
+    fetchWithTimeout(`${GARAGE_LOOKUP_URL}?phone=${encodeURIComponent(phone)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (cancelled || !data) return;
