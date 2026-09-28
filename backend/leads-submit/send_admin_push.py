@@ -38,10 +38,12 @@ def send_push_to_admins(dsn: str, schema: str, title: str, body: str, url: str =
                 )
             except WebPushException as e:
                 status_code = getattr(e.response, 'status_code', None)
+                body_text = getattr(e.response, 'text', None)
+                print(f"admin push WebPushException sub_id={sub_id} status={status_code} body={body_text}")
                 if status_code in (404, 410):
                     stale_ids.append(sub_id)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"admin push generic error sub_id={sub_id}: {type(e).__name__}: {e}")
 
         if stale_ids:
             cur = conn.cursor()
