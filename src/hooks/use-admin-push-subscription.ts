@@ -20,6 +20,8 @@ export const useAdminPushSubscription = (adminPassword: string | null) => {
   );
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isPushSupported() || !adminPassword) return;
@@ -65,5 +67,42 @@ export const useAdminPushSubscription = (adminPassword: string | null) => {
     }
   }, [adminPassword]);
 
-  return { permission, subscribing, subscribed, subscribe };
+  // Отправляет тестовый пуш только на это устройство — не дожидаясь новой заявки,
+  // чтобы менеджер мог сразу проверить, доходят ли уведомления. Возвращает результат
+  // напрямую (а не только через state), чтобы вызывающий код мог сразу показать
+  // тост с точным текстом ошибки, не дожидаясь следующего рендера.
+  const sendTest = useCallback(async (): Promise<{ ok: boolean; error: string | null }> => {
+    if (!isPushSupported() || !adminPassword) return { ok: false, error: 'Push не поддерживается' };
+    setTesting(true);
+    setTestError(null);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        const msg = 'Сначала включите уведомления кнопкой выше';
+        setTestError(msg);
+        return { ok: false, error: msg };
+      }
+      const res = await fetch(ADMIN_PUSH_SUBSCRIBE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword },
+        body: JSON.stringify({ action: 'test', subscription: sub.toJSON() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data.error || 'Не удалось отправить тестовое уведомление';
+        setTestError(msg);
+        return { ok: false, error: msg };
+      }
+      return { ok: true, error: null };
+    } catch {
+      const msg = 'Не удалось отправить тестовое уведомление';
+      setTestError(msg);
+      return { ok: false, error: msg };
+    } finally {
+      setTesting(false);
+    }
+  }, [adminPassword]);
+
+  return { permission, subscribing, subscribed, subscribe, testing, testError, sendTest };
 };

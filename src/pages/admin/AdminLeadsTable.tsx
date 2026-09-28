@@ -33,6 +33,9 @@ type AdminLeadsTableProps = {
   pushPermission: NotificationPermission | 'unsupported';
   pushSubscribing: boolean;
   subscribePush: () => void;
+  pushTesting: boolean;
+  pushTestError: string | null;
+  sendTestPush: () => Promise<{ ok: boolean; error: string | null }>;
   saveLead: (id: number) => void;
   saveLeadField: (id: number, field: string, value: string) => Promise<void>;
   toggleStatus: (id: number) => void;
@@ -72,6 +75,9 @@ const AdminLeadsTable = ({
   pushPermission,
   pushSubscribing,
   subscribePush,
+  pushTesting,
+  pushTestError,
+  sendTestPush,
   saveLead,
   saveLeadField,
   toggleStatus,
@@ -107,6 +113,9 @@ const AdminLeadsTable = ({
           pushPermission={pushPermission}
           pushSubscribing={pushSubscribing}
           subscribePush={subscribePush}
+          pushTesting={pushTesting}
+          pushTestError={pushTestError}
+          sendTestPush={sendTestPush}
         />
 
         <AdminToolbar

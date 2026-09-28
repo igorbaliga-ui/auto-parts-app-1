@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
 import { useIsStandalone } from '@/hooks/use-standalone';
 import { SITE_URL } from '@/lib/site';
+import { toast } from '@/hooks/use-toast';
 
 type AdminInstallBannersProps = {
   canInstall: boolean;
@@ -10,6 +11,9 @@ type AdminInstallBannersProps = {
   pushPermission: NotificationPermission | 'unsupported';
   pushSubscribing: boolean;
   subscribePush: () => void;
+  pushTesting: boolean;
+  pushTestError: string | null;
+  sendTestPush: () => Promise<{ ok: boolean; error: string | null }>;
 };
 
 const AdminInstallBanners = ({
@@ -19,8 +23,19 @@ const AdminInstallBanners = ({
   pushPermission,
   pushSubscribing,
   subscribePush,
+  pushTesting,
+  sendTestPush,
 }: AdminInstallBannersProps) => {
   const isStandalone = useIsStandalone();
+
+  const handleTestPush = async () => {
+    const { ok, error } = await sendTestPush();
+    if (ok) {
+      toast({ title: 'Тестовое уведомление отправлено', description: 'Должно прийти в течение нескольких секунд' });
+    } else {
+      toast({ title: 'Не удалось отправить', description: error || 'Попробуйте ещё раз', variant: 'destructive' });
+    }
+  };
 
   const handleShare = async () => {
     const shareData = {
@@ -111,6 +126,27 @@ const AdminInstallBanners = ({
             className="font-head uppercase tracking-wide text-xs shrink-0"
           >
             {pushSubscribing ? 'Включаем…' : 'Включить'}
+          </Button>
+        </div>
+      )}
+      {pushPermission === 'granted' && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-card border border-steel rounded-sm p-4">
+          <div className="flex items-center gap-3">
+            <span className="w-9 h-9 shrink-0 rounded-full bg-primary/15 flex items-center justify-center">
+              <Icon name="BellRing" className="text-primary" size={18} />
+            </span>
+            <p className="text-sm text-muted-foreground">
+              Уведомления включены. Проверьте, что они правда доходят на это устройство.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={pushTesting}
+            onClick={handleTestPush}
+            className="font-head uppercase tracking-wide text-xs shrink-0"
+          >
+            {pushTesting ? 'Отправляем…' : 'Проверить уведомления'}
           </Button>
         </div>
       )}

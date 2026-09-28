@@ -60,6 +60,9 @@ export const useAdminLeads = () => {
     permission: pushPermission,
     subscribing: pushSubscribing,
     subscribe: subscribePush,
+    testing: pushTesting,
+    testError: pushTestError,
+    sendTest: sendTestPush,
   } = useAdminPushSubscription(authed ? password : null);
 
   const load = async (pwd: string) => {
@@ -472,6 +475,9 @@ export const useAdminLeads = () => {
     pushPermission,
     pushSubscribing,
     subscribePush,
+    pushTesting,
+    pushTestError,
+    sendTestPush,
     submit,
     setDraft,
     setPrepaymentDraft,

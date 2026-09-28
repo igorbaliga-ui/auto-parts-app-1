@@ -1,6 +1,7 @@
 import json
 import os
 import psycopg2
+from pywebpush import webpush, WebPushException
 from rate_limit import get_client_ip, check_rate_limit
 
 
@@ -59,6 +60,35 @@ def handler(event: dict, context) -> dict:
             conn.commit()
             cur.close()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+
+        if action == 'test':
+            # Отправляет тестовый пуш только на ЭТО устройство (не всем менеджерам) —
+            # кнопка «Проверить уведомления» в /admin, чтобы убедиться, что пуши доходят,
+            # не дожидаясь новой заявки.
+            subscription = body.get('subscription') or {}
+            endpoint = subscription.get('endpoint')
+            keys = subscription.get('keys') or {}
+            p256dh = keys.get('p256dh')
+            auth = keys.get('auth')
+            if not endpoint or not p256dh or not auth:
+                return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Подписка не найдена. Сначала включите уведомления'})}
+            private_key = os.environ.get('VAPID_PRIVATE_KEY')
+            if not private_key:
+                return {'statusCode': 500, 'headers': headers, 'body': json.dumps({'error': 'VAPID-ключ не настроен на сервере'})}
+            try:
+                webpush(
+                    subscription_info={'endpoint': endpoint, 'keys': {'p256dh': p256dh, 'auth': auth}},
+                    data=json.dumps({'title': 'Тестовое уведомление', 'body': 'Если вы это видите — push работает', 'url': '/admin'}),
+                    vapid_private_key=private_key,
+                    vapid_claims={'sub': 'mailto:zapoptom@bk.ru'},
+                    ttl=86400,
+                    headers={'Urgency': 'high'},
+                )
+                return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'success': True})}
+            except WebPushException as e:
+                status_code = getattr(e.response, 'status_code', None)
+                detail = getattr(e.response, 'text', None) or str(e)
+                return {'statusCode': 502, 'headers': headers, 'body': json.dumps({'error': f'Не удалось отправить (код {status_code}): {detail}'[:300]})}
 
         subscription = body.get('subscription') or {}
         endpoint = subscription.get('endpoint')

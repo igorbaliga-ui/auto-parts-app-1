@@ -135,6 +135,9 @@ const Admin = () => {
           pushPermission={a.pushPermission}
           pushSubscribing={a.pushSubscribing}
           subscribePush={a.subscribePush}
+          pushTesting={a.pushTesting}
+          pushTestError={a.pushTestError}
+          sendTestPush={a.sendTestPush}
           saveLead={a.saveLead}
           saveLeadField={a.saveLeadField}
           toggleStatus={a.toggleStatus}
