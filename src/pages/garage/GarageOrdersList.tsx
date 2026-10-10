@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import ExpandableText from "@/components/shared/ExpandableText";
 import { isPushSupported } from "@/hooks/use-push-subscription";
+import PushPromptDialog from "./PushPromptDialog";
 import GarageOrderHistory from "./GarageOrderHistory";
 import { Order, messengerLabel, formatDate, formatMoney, formatBonus } from "./garageTypes";
 import { sanitizeCarNameInput, sanitizeMileageInput } from "@/lib/text";
@@ -26,7 +27,7 @@ type GarageOrdersListProps = {
   pushPermission: NotificationPermission | "unsupported";
   pushSubscribing: boolean;
   pushSubscribed: boolean;
-  subscribePush: () => void;
+  subscribePush: () => Promise<boolean> | void;
   onNewRequest: () => void;
   onOpenArchive: () => void;
   statusTab: "new" | "in_progress" | "done";
@@ -128,26 +129,11 @@ const GarageOrdersList = ({
         </div>
       )}
 
-      {isPushSupported() && pushPermission !== "denied" && !pushSubscribed && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-primary/15 via-card to-card border border-primary/60 rounded-sm p-4 animate-glow-pulse">
-          <div className="flex items-center gap-3">
-            <span className="w-9 h-9 shrink-0 rounded-full bg-primary/20 flex items-center justify-center">
-              <Icon name="Bell" className="text-primary animate-bell-ring" size={18} />
-            </span>
-            <p className="text-sm text-foreground">
-              Включите уведомления — сообщим, когда деталь поступит.
-            </p>
-          </div>
-          <Button
-            size="sm"
-            disabled={pushSubscribing}
-            onClick={subscribePush}
-            className="font-head uppercase tracking-wide text-xs shrink-0"
-          >
-            {pushSubscribing ? "Включаем…" : "Включить"}
-          </Button>
-        </div>
-      )}
+      <PushPromptDialog
+        visible={isPushSupported() && pushPermission !== "denied" && !pushSubscribed}
+        subscribing={pushSubscribing}
+        subscribe={subscribePush}
+      />
       {orders.length === 0 ? (
         <div className="mt-8 flex flex-col items-start gap-4">
           <p className="text-muted-foreground">
