@@ -9,6 +9,7 @@ import Contacts from '@/components/site/Contacts';
 import PromoBanner from '@/components/site/PromoBanner';
 import Footer from '@/components/site/Footer';
 import FloatingContactButton from '@/components/site/FloatingContactButton';
+import InstallAppBanner from '@/components/site/InstallAppBanner';
 
 const PageContent = () => {
   const { tab } = useNav();
@@ -30,6 +31,7 @@ const PageContent = () => {
       <PromoBanner />
       <Footer />
       <FloatingContactButton />
+      <InstallAppBanner />
     </div>
   );
 };
