@@ -63,7 +63,7 @@ const InstallAppBanner = () => {
             </p>
             <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary leading-tight">
               <Icon name="Gift" size={15} />
-              Бонус в подарок за установку
+              500 бонусов в подарок за регистрацию
             </p>
             <p className="text-sm text-muted-foreground leading-tight mt-1.5">
               Быстрый доступ и уведомления о заказах
