@@ -7,6 +7,7 @@ import { useIsMobileOs } from "@/hooks/use-mobile-os";
 import { getMobileOs } from "@/lib/browser-detect";
 import { safeGetItem, safeSetItem, safeGetSession, safeSetSession } from "@/lib/storage";
 import InstallGuide from "./InstallGuide";
+import { GARAGE_LOOKUP_URL } from "./request-dialog/RequestContext";
 
 const DISMISSED_KEY = "install-banner-dismissed";
 const IOS_INSTALLED_KEY = "ios-installed";
@@ -18,6 +19,22 @@ const InstallAppBanner = () => {
   const { canInstall, installed, promptInstall } = usePwaInstall();
   const [dismissed, setDismissed] = useState(() => safeGetSession(DISMISSED_KEY) === "1");
   const [guideOpen, setGuideOpen] = useState(false);
+  const [signupBonus, setSignupBonus] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${GARAGE_LOOKUP_URL}?signup_bonus=1`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data && typeof data.signup_bonus_amount === "number") {
+          setSignupBonus(data.signup_bonus_amount);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const os = getMobileOs();
   const alreadyInstalled =
@@ -61,10 +78,12 @@ const InstallAppBanner = () => {
                 ЗАП ОПТОМ
               </span>
             </p>
-            <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary leading-tight">
-              <Icon name="Gift" size={15} />
-              500 бонусов в подарок за регистрацию
-            </p>
+            {signupBonus > 0 && (
+              <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary leading-tight">
+                <Icon name="Gift" size={15} />
+                {signupBonus % 1 === 0 ? signupBonus : signupBonus.toFixed(2)} бонусов в подарок за регистрацию
+              </p>
+            )}
             <p className="text-sm text-muted-foreground leading-tight mt-1.5">
               Быстрый доступ и уведомления о заказах
             </p>
