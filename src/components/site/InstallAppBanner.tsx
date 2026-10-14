@@ -1,15 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Icon from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { useIsStandalone } from "@/hooks/use-standalone";
 import { useIsMobileOs } from "@/hooks/use-mobile-os";
 import { getMobileOs } from "@/lib/browser-detect";
-import { safeGetItem, safeGetSession, safeSetSession } from "@/lib/storage";
+import { safeGetItem, safeSetItem, safeGetSession, safeSetSession } from "@/lib/storage";
 import InstallGuide from "./InstallGuide";
 
 const DISMISSED_KEY = "install-banner-dismissed";
 const IOS_INSTALLED_KEY = "ios-installed";
+const PWA_INSTALLED_KEY = "pwa-installed";
 
 const InstallAppBanner = () => {
   const isMobileOs = useIsMobileOs();
@@ -20,7 +21,16 @@ const InstallAppBanner = () => {
 
   const os = getMobileOs();
   const alreadyInstalled =
-    os === "ios" ? safeGetItem(IOS_INSTALLED_KEY) === "1" : installed;
+    installed ||
+    safeGetItem(PWA_INSTALLED_KEY) === "1" ||
+    safeGetItem(IOS_INSTALLED_KEY) === "1";
+
+  useEffect(() => {
+    if (isStandalone) {
+      safeSetItem(IOS_INSTALLED_KEY, "1");
+      safeSetItem(PWA_INSTALLED_KEY, "1");
+    }
+  }, [isStandalone]);
 
   if (!isMobileOs || isStandalone || alreadyInstalled || dismissed) return null;
 
