@@ -56,7 +56,10 @@ const InstallAppBanner = () => {
           </span>
           <div className="min-w-0">
             <p className="text-base font-medium text-foreground leading-tight">
-              Установите приложение ЗАП ОПТОМ
+              Установите приложение
+              <span className="block whitespace-nowrap text-primary font-head uppercase tracking-wide mt-1">
+                ЗАП ОПТОМ
+              </span>
             </p>
             <p className="text-sm text-muted-foreground leading-tight mt-1.5">
               Быстрый доступ и уведомления о заказах
