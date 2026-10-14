@@ -131,6 +131,7 @@ const Header = () => {
       }
     } else if (navigator.clipboard) {
       await navigator.clipboard.writeText(referralCode || SITE_URL);
+      toast({ title: referralCode ? "Промокод скопирован" : "Ссылка скопирована" });
     }
   };
 
@@ -146,18 +147,18 @@ const Header = () => {
           </span>
         </button>
 
-        {isStandalone ? (
-          garageAuthed && (
-            <button
-              onClick={handleShare}
-              aria-label="Поделиться промокодом"
-              title="Поделиться промокодом"
-              className="flex items-center justify-center w-9 h-9 ml-4 rounded-full border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-share-glow"
-            >
-              <Icon name="Share2" size={16} />
-            </button>
-          )
-        ) : isMobileOs ? (
+        {garageAuthed && (
+          <button
+            onClick={handleShare}
+            aria-label="Поделиться промокодом"
+            title="Поделиться промокодом"
+            className="flex items-center justify-center w-9 h-9 ml-4 rounded-full border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-colors animate-share-glow"
+          >
+            <Icon name="Share2" size={16} />
+          </button>
+        )}
+
+        {!isStandalone && isMobileOs ? (
           <div className="relative ml-4">
             {installHint && (
               <div
