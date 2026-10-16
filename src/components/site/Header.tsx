@@ -131,7 +131,9 @@ const Header = () => {
       }
     } else if (navigator.clipboard) {
       await navigator.clipboard.writeText(referralCode || SITE_URL);
-      toast({ title: referralCode ? "Промокод скопирован" : "Ссылка скопирована" });
+      toast({
+        title: referralCode ? "Промокод скопирован" : "Ссылка скопирована",
+      });
     }
   };
 
@@ -182,22 +184,26 @@ const Header = () => {
                   "inset 0 2px 4px rgba(0,0,0,0.55), inset 0 -1px 0 rgba(255,255,255,0.04)",
               }}
             >
-              <button
-                onClick={handleIosClick}
-                aria-label="Установить на iPhone"
-                title="Установить на iPhone"
-                className="flex items-center justify-center w-8 h-8 text-slate-200 hover:text-white hover:scale-110 transition-all"
-              >
-                <Icon name="Apple" size={17} />
-              </button>
-              <button
-                onClick={handleAndroidClick}
-                aria-label="Установить на Android"
-                title="Установить на Android"
-                className="flex items-center justify-center w-8 h-8 text-[#3DDC84] hover:brightness-125 hover:scale-110 transition-all"
-              >
-                <Icon name="Smartphone" size={17} />
-              </button>
+              {getMobileOs() === "ios" && (
+                <button
+                  onClick={handleIosClick}
+                  aria-label="Установить на iPhone"
+                  title="Установить на iPhone"
+                  className="flex items-center justify-center w-8 h-8 text-slate-200 hover:text-white hover:scale-110 transition-all"
+                >
+                  <Icon name="Apple" size={17} />
+                </button>
+              )}
+              {getMobileOs() === "android" && (
+                <button
+                  onClick={handleAndroidClick}
+                  aria-label="Установить на Android"
+                  title="Установить на Android"
+                  className="flex items-center justify-center w-8 h-8 text-[#3DDC84] hover:brightness-125 hover:scale-110 transition-all"
+                >
+                  <Icon name="Smartphone" size={17} />
+                </button>
+              )}
             </div>
           </div>
         ) : null}
