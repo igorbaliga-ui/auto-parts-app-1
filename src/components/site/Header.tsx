@@ -81,12 +81,8 @@ const Header = () => {
   const handleIosClick = () => {
     setOpen(false);
     dismissInstallHint();
-    if (iosInstalled) {
-      toast({ title: "Приложение уже установлено" });
-    } else {
-      setGuideTab("ios");
-      setGuideOpen(true);
-    }
+    setGuideTab("ios");
+    setGuideOpen(true);
   };
 
   // На Android Chrome браузер умеет сам показать системное окно установки —
