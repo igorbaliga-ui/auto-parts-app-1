@@ -48,9 +48,14 @@ export const usePwaInstall = () => {
     if (early) safeSetItem(PWA_PROMPT_SEEN_KEY, '1');
     return early;
   });
-  const [installed, setInstalled] = useState(
-    () => safeGetItem(PWA_INSTALLED_KEY) === '1' || isRunningStandalone(),
-  );
+  const [installed, setInstalled] = useState(() => {
+    if (isRunningStandalone()) return true;
+    if (typeof window !== 'undefined' && window.__deferredPwaPrompt) {
+      safeSetItem(PWA_INSTALLED_KEY, '0');
+      return false;
+    }
+    return safeGetItem(PWA_INSTALLED_KEY) === '1';
+  });
   // true, если раньше на этом устройстве браузер уже показывал промпт установки
   const [promptSeenBefore] = useState(() => safeGetItem(PWA_PROMPT_SEEN_KEY) === '1');
   // true, как только PROMPT_GRACE_MS истекло без нового события на этой загрузке
@@ -71,6 +76,10 @@ export const usePwaInstall = () => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       safeSetItem(PWA_PROMPT_SEEN_KEY, '1');
+      if (!isRunningStandalone()) {
+        setInstalled(false);
+        safeSetItem(PWA_INSTALLED_KEY, '0');
+      }
     };
     const onInstalled = () => {
       setInstalled(true);
