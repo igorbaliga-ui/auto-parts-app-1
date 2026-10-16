@@ -12,12 +12,19 @@ import { GARAGE_LOOKUP_URL } from "./request-dialog/RequestContext";
 const DISMISSED_KEY = "install-banner-dismissed";
 const IOS_INSTALLED_KEY = "ios-installed";
 const PWA_INSTALLED_KEY = "pwa-installed";
+const IOS_DISMISSED_DAY_KEY = "install-banner-dismissed-day";
+
+const todayKey = () => new Date().toLocaleDateString("sv-SE");
 
 const InstallAppBanner = () => {
   const isMobileOs = useIsMobileOs();
   const isStandalone = useIsStandalone();
   const { canInstall, installed, promptInstall } = usePwaInstall();
-  const [dismissed, setDismissed] = useState(() => safeGetSession(DISMISSED_KEY) === "1");
+  const [dismissed, setDismissed] = useState(
+    () =>
+      safeGetSession(DISMISSED_KEY) === "1" ||
+      (getMobileOs() === "ios" && safeGetItem(IOS_DISMISSED_DAY_KEY) === todayKey()),
+  );
   const [guideOpen, setGuideOpen] = useState(false);
   const [signupBonus, setSignupBonus] = useState(0);
 
@@ -52,6 +59,7 @@ const InstallAppBanner = () => {
 
   const dismiss = () => {
     safeSetSession(DISMISSED_KEY, "1");
+    if (os === "ios") safeSetItem(IOS_DISMISSED_DAY_KEY, todayKey());
     setDismissed(true);
   };
 
@@ -60,7 +68,6 @@ const InstallAppBanner = () => {
       promptInstall();
       return;
     }
-    if (os === "ios") safeSetItem(IOS_INSTALLED_KEY, "1");
     setGuideOpen(true);
   };
 
