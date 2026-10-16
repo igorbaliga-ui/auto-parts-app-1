@@ -60,6 +60,7 @@ const InstallAppBanner = () => {
       promptInstall();
       return;
     }
+    if (os === "ios") safeSetItem(IOS_INSTALLED_KEY, "1");
     setGuideOpen(true);
   };
 
