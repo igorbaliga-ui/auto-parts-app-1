@@ -39,8 +39,7 @@ const InstallAppBanner = () => {
   const os = getMobileOs();
   const alreadyInstalled =
     installed ||
-    safeGetItem(PWA_INSTALLED_KEY) === "1" ||
-    safeGetItem(IOS_INSTALLED_KEY) === "1";
+    (os === "android" ? !canInstall : safeGetItem(IOS_INSTALLED_KEY) === "1");
 
   useEffect(() => {
     if (isStandalone) {

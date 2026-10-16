@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { safeGetItem, safeSetItem } from '@/lib/storage';
+import { safeSetItem } from '@/lib/storage';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -35,7 +35,6 @@ const PWA_PROMPT_SEEN_KEY = 'pwa-prompt-seen';
 // Даём событию 'beforeinstallprompt' шанс прийти на этой же загрузке страницы,
 // прежде чем считать отсутствие события признаком того, что приложение уже
 // установлено — на некоторых устройствах Chrome присылает его не мгновенно.
-const PROMPT_GRACE_MS = 1500;
 
 const isRunningStandalone = () =>
   typeof window !== 'undefined' &&
@@ -48,19 +47,7 @@ export const usePwaInstall = () => {
     if (early) safeSetItem(PWA_PROMPT_SEEN_KEY, '1');
     return early;
   });
-  const [installed, setInstalled] = useState(() => {
-    if (isRunningStandalone()) return true;
-    if (typeof window !== 'undefined' && window.__deferredPwaPrompt) {
-      safeSetItem(PWA_INSTALLED_KEY, '0');
-      return false;
-    }
-    return safeGetItem(PWA_INSTALLED_KEY) === '1';
-  });
-  // true, если раньше на этом устройстве браузер уже показывал промпт установки
-  const [promptSeenBefore] = useState(() => safeGetItem(PWA_PROMPT_SEEN_KEY) === '1');
-  // true, как только PROMPT_GRACE_MS истекло без нового события на этой загрузке
-  const [graceElapsed, setGraceElapsed] = useState(false);
-
+  const [installed, setInstalled] = useState(() => isRunningStandalone());
   // Если сайт сейчас реально открыт в standalone-режиме — установка точно
   // есть, фиксируем это сразу вне зависимости от того, что успели поймать
   // события 'beforeinstallprompt'/'appinstalled' или нет.
@@ -88,23 +75,11 @@ export const usePwaInstall = () => {
     };
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
     window.addEventListener('appinstalled', onInstalled);
-    const timer = window.setTimeout(() => setGraceElapsed(true), PROMPT_GRACE_MS);
     return () => {
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
       window.removeEventListener('appinstalled', onInstalled);
-      window.clearTimeout(timer);
     };
   }, []);
-
-  // Промпт уже показывался на этом устройстве раньше, но сейчас (спустя
-  // разумное время ожидания) не пришёл повторно — значит, приложение,
-  // вероятнее всего, уже установлено, хоть мы это и пропустили.
-  useEffect(() => {
-    if (graceElapsed && promptSeenBefore && !deferredPrompt && !installed) {
-      setInstalled(true);
-      safeSetItem(PWA_INSTALLED_KEY, '1');
-    }
-  }, [graceElapsed, promptSeenBefore, deferredPrompt, installed]);
 
   const promptInstall = async () => {
     if (!deferredPrompt) return;
