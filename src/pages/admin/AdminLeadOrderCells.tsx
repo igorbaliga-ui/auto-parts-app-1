@@ -2,6 +2,7 @@ import { Input } from '@/components/ui/input';
 import { TableCell } from '@/components/ui/table';
 import ExpandableTextarea from '@/components/admin/ExpandableTextarea';
 import Icon from '@/components/ui/icon';
+import AiArticlesCell from './AiArticlesCell';
 import InlineEditableCell from './InlineEditableCell';
 import ImageLightbox from '@/components/shared/ImageLightbox';
 import { Lead, ColumnKey, messengerLabel, statusLabel, formatDate } from './adminTypes';
@@ -67,6 +68,14 @@ const AdminLeadOrderCells = ({
             textareaClassName="w-80"
             className="w-[220px] max-w-[220px] line-clamp-5 whitespace-pre-wrap break-words align-top"
           />
+          <div className="mt-2 pt-2 border-t border-border/40 w-[220px] max-w-[220px]">
+            <AiArticlesCell
+              leadId={l.id}
+              value={l.ai_articles}
+              hasParts={!!l.parts}
+              saveLeadField={saveLeadField}
+            />
+          </div>
         </TableCell>
       )}
       {isColumnVisible('photo') && (
