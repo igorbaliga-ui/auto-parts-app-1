@@ -1,4 +1,5 @@
 import json
+import re
 import os
 import urllib.error
 import urllib.parse
@@ -63,7 +64,7 @@ def partsapi(method: str, **params):
     step = STEP_NAMES.get(method, method)
     query = urllib.parse.urlencode({'method': method, 'key': method_key(method), **params})
     try:
-        with urllib.request.urlopen(f'{PARTSAPI_URL}?{query}', timeout=12) as resp:
+        with urllib.request.urlopen(f'{PARTSAPI_URL}?{query}', timeout=8) as resp:
             raw = resp.read().decode('utf-8')
     except urllib.error.HTTPError as e:
         body = e.read().decode('utf-8', 'ignore')[:300]
@@ -82,7 +83,7 @@ def partsapi(method: str, **params):
     except ValueError:
         print(f'PartsAPI {method} not json: {raw[:300]}')
         raise CatalogError(f'{step}: каталог недоступен (неверный ответ)')
-    print(f'PartsAPI {method} ok: {raw[:1500]}')
+    print(f'PartsAPI {method} ok: {raw[:600]}')
     if isinstance(data, dict) and (data.get('error_code') or data.get('status') in (401, 402, 403, 404, 429)):
         raise CatalogError(f'{step}: {reason_text(data.get("status"), str(data.get("message") or ""))}')
     return data
@@ -145,30 +146,54 @@ def load_tree(car_id):
     for car_type in CAR_TYPES:
         rows = [r for r in as_list(partsapi('getSearchTree', lang=LANG_ID, carId=car_id, carType=car_type)) if isinstance(r, dict)]
         if rows:
+            parents = {str(r.get('STR_ID_PARENT')) for r in rows if r.get('STR_ID_PARENT')}
             nodes = {}
             for r in rows:
-                for lvl in (3, 2, 1):
-                    sid, txt = r.get(f'NODE_{lvl}_STR_ID'), r.get(f'NODE_{lvl}_TEXT')
-                    if sid and txt:
-                        nodes[str(sid)] = f"{r.get('ROOT_NODE_TEXT') or ''} / {txt}".strip(' /')
-                        break
-            return car_type, nodes
+                sid = r.get('STR_ID')
+                path = r.get('STR_PATH') or r.get('STR_NODE_NAME')
+                if sid and path and str(sid) not in parents:
+                    nodes[str(sid)] = str(path)
+            if nodes:
+                return car_type, nodes
     raise CatalogError('дерево групп запчастей: для этого авто в каталоге нет данных')
+
+
+def stems(text: str):
+    words = re.findall(r'[а-яёa-z0-9]+', text.lower())
+    return {w[:max(4, len(w) - 2)] for w in words if len(w) >= 4}
+
+
+def shortlist(nodes: dict, part_lines: list, per_part: int = 12) -> dict:
+    chosen = {}
+    node_stems = {k: stems(v) for k, v in nodes.items()}
+    for line in part_lines:
+        ps = stems(line)
+        if not ps:
+            continue
+        scored = []
+        for k, ns in node_stems.items():
+            score = sum(1 for p in ps if any(n.startswith(p) or p.startswith(n) for n in ns))
+            if score:
+                scored.append((score, -len(nodes[k]), k))
+        scored.sort(reverse=True)
+        for _, _, k in scored[:per_part]:
+            chosen[k] = nodes[k]
+    return chosen
 
 
 def fetch_articles(car_id, car_type, str_id):
     rows = [r for r in as_list(partsapi('getArticles', lang=LANG_ID, strId=str_id, carId=car_id, carType=car_type)) if isinstance(r, dict)]
     seen, out = set(), []
     for r in rows:
-        brand = first_of(r, 'ART_SUP_BRAND', 'SUP_BRAND')
-        nr = first_of(r, 'ART_ARTICLE_NR')
+        brand = first_of(r, 'ART_SUP_BRAND', 'SUP_BRAND', 'BRAND', 'brand')
+        nr = first_of(r, 'ART_ARTICLE_NR', 'ARTICLE_NR', 'ART_NR', 'articleNo', 'number')
         if brand and nr and (brand, nr) not in seen:
             seen.add((brand, nr))
             out.append(f'{brand} {nr}')
     return out
 
 
-def deepseek(api_key: str, system: str, user: str):
+def deepseek(api_key: str, system: str, user: str, timeout: int = 40):
     payload = {
         'model': 'deepseek-chat',
         'temperature': 0.1,
@@ -180,7 +205,7 @@ def deepseek(api_key: str, system: str, user: str):
         data=json.dumps(payload).encode('utf-8'),
         headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {api_key}'},
     )
-    with urllib.request.urlopen(req, timeout=40) as resp:
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
         data = json.loads(resp.read().decode('utf-8'))
     return json.loads(data['choices'][0]['message']['content'])
 
@@ -205,8 +230,13 @@ def catalog_articles(api_key: str, vin: str, parts: str):
         if not car_id:
             return decoded, None, 'расшифровка VIN: каталог не вернул идентификатор авто'
         car_type, nodes = load_tree(car_id)
-        tree_text = '\n'.join(f'{k}: {v}' for k, v in nodes.items())[:30000]
-        matched = deepseek(api_key, MATCH_PROMPT, f'Запчасти:\n{parts}\n\nГруппы каталога:\n{tree_text}')
+        part_lines = [p.strip() for p in re.split(r'[\n;,]+', parts) if p.strip()][:10]
+        candidates = shortlist(nodes, part_lines)
+        if not candidates:
+            return decoded, None, 'дерево групп запчастей: не нашлось подходящих групп для запчастей из заявки'
+        nodes = candidates
+        tree_text = '\n'.join(f'{k}: {v}' for k, v in nodes.items())
+        matched = deepseek(api_key, MATCH_PROMPT, f'Запчасти:\n' + '\n'.join(part_lines) + f'\n\nГруппы каталога:\n{tree_text}', timeout=12)
         items = [i for i in matched.get('items', []) if isinstance(i, dict) and i.get('part')]
         with ThreadPoolExecutor(max_workers=6) as pool:
             results = list(pool.map(
