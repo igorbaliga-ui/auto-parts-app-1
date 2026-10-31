@@ -24,23 +24,56 @@ CAR_TYPES = ['PC', '1']
 LANG_ID = 16
 
 
+class CatalogError(Exception):
+    pass
+
+
+STEP_NAMES = {
+    'VINdecode': 'расшифровка VIN',
+    'getSearchTree': 'дерево групп запчастей',
+    'getArticles': 'поиск артикулов',
+}
+
+
+def reason_text(status, message: str) -> str:
+    text = (message or '').lower()
+    if status == 402 or 'subscr' in text or 'payment' in text or 'balance' in text or 'expired' in text:
+        return 'нет подписки на метод или она закончилась'
+    if status in (401, 403) or 'authorization' in text or 'key' in text:
+        return 'ключ не принят каталогом или нет доступа к методу'
+    if status == 429 or 'limit' in text or 'too many' in text:
+        return 'исчерпан лимит запросов'
+    if status == 404:
+        return 'каталог не нашёл данные'
+    return 'каталог вернул ошибку'
+
+
 def partsapi(method: str, **params):
+    step = STEP_NAMES.get(method, method)
     query = urllib.parse.urlencode({'method': method, 'key': os.environ.get('PARTSAPI_KEY', ''), **params})
     try:
         with urllib.request.urlopen(f'{PARTSAPI_URL}?{query}', timeout=12) as resp:
             raw = resp.read().decode('utf-8')
     except urllib.error.HTTPError as e:
-        print(f'PartsAPI {method} error {e.code}: {e.read().decode("utf-8", "ignore")[:300]}')
-        return None
+        body = e.read().decode('utf-8', 'ignore')[:300]
+        print(f'PartsAPI {method} error {e.code}: {body}')
+        message = ''
+        try:
+            message = str(json.loads(body).get('message') or '')
+        except ValueError:
+            pass
+        raise CatalogError(f'{step}: {reason_text(e.code, message)}')
     except Exception as e:
         print(f'PartsAPI {method} failed: {e}')
-        return None
+        raise CatalogError(f'{step}: каталог недоступен (нет ответа)')
     try:
         data = json.loads(raw)
     except ValueError:
         print(f'PartsAPI {method} not json: {raw[:300]}')
-        return None
+        raise CatalogError(f'{step}: каталог недоступен (неверный ответ)')
     print(f'PartsAPI {method} ok: {raw[:300]}')
+    if isinstance(data, dict) and (data.get('error_code') or data.get('status') in (401, 402, 403, 404, 429)):
+        raise CatalogError(f'{step}: {reason_text(data.get("status"), str(data.get("message") or ""))}')
     return data
 
 
@@ -51,8 +84,6 @@ def as_list(data):
         for v in data.values():
             if isinstance(v, list):
                 return v
-        if data.get('error_code') or data.get('status') in (401, 403, 404):
-            return []
         return [data]
     return []
 
@@ -68,7 +99,7 @@ def first_of(d: dict, *keys):
 def decode_vin(vin: str):
     items = as_list(partsapi('VINdecode', vin=vin, lang='ru'))
     if not items or not isinstance(items[0], dict):
-        return None, None
+        raise CatalogError('расшифровка VIN: каталог не знает такой VIN')
     c = items[0]
     car_id = first_of(c, 'carId', 'TecDocExternalId')
     parts = []
@@ -106,7 +137,7 @@ def load_tree(car_id):
                         nodes[str(sid)] = f"{r.get('ROOT_NODE_TEXT') or ''} / {txt}".strip(' /')
                         break
             return car_type, nodes
-    return None, {}
+    raise CatalogError('дерево групп запчастей: для этого авто в каталоге нет данных')
 
 
 def fetch_articles(car_id, car_type, str_id):
@@ -147,30 +178,38 @@ MATCH_PROMPT = (
 
 
 def catalog_articles(api_key: str, vin: str, parts: str):
-    """Возвращает (расшифровка VIN, текст артикулов) из каталога или (None, None)."""
-    if not vin or not os.environ.get('PARTSAPI_KEY'):
-        return None, None
-    car_id, decoded = decode_vin(vin.strip())
-    if not car_id:
-        return decoded, None
-    car_type, nodes = load_tree(car_id)
-    if not nodes:
-        return decoded, None
-    tree_text = '\n'.join(f'{k}: {v}' for k, v in nodes.items())[:30000]
-    matched = deepseek(api_key, MATCH_PROMPT, f'Запчасти:\n{parts}\n\nГруппы каталога:\n{tree_text}')
-    items = [i for i in matched.get('items', []) if isinstance(i, dict) and i.get('part')]
-    with ThreadPoolExecutor(max_workers=6) as pool:
-        results = list(pool.map(
-            lambda i: fetch_articles(car_id, car_type, i['id']) if i.get('id') and str(i['id']) in nodes else [],
-            items,
-        ))
+    """Возвращает (расшифровка VIN, текст артикулов, причина почему каталог не помог)."""
+    if not vin:
+        return None, None, 'в заявке нет VIN, каталог не использовался'
+    if not os.environ.get('PARTSAPI_KEY'):
+        return None, None, 'ключ каталога не задан'
+    decoded = None
+    try:
+        car_id, decoded = decode_vin(vin.strip())
+        if not car_id:
+            return decoded, None, 'расшифровка VIN: каталог не вернул идентификатор авто'
+        car_type, nodes = load_tree(car_id)
+        tree_text = '\n'.join(f'{k}: {v}' for k, v in nodes.items())[:30000]
+        matched = deepseek(api_key, MATCH_PROMPT, f'Запчасти:\n{parts}\n\nГруппы каталога:\n{tree_text}')
+        items = [i for i in matched.get('items', []) if isinstance(i, dict) and i.get('part')]
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            results = list(pool.map(
+                lambda i: fetch_articles(car_id, car_type, i['id']) if i.get('id') and str(i['id']) in nodes else [],
+                items,
+            ))
+    except CatalogError as e:
+        return decoded, None, str(e)
     lines = []
+    found = 0
     for item, arts in zip(items, results):
         if arts:
+            found += 1
             lines.append(f"{item['part']} — {', '.join(arts[:8])}")
         else:
             lines.append(f"{item['part']} — в каталоге не найдено, нужна проверка")
-    return decoded, ('\n'.join(lines) if lines else None)
+    if not found:
+        return decoded, None, 'поиск артикулов: каталог не нашёл подходящих запчастей'
+    return decoded, '\n'.join(lines), None
 
 
 def handler(event: dict, context) -> dict:
@@ -228,11 +267,12 @@ def handler(event: dict, context) -> dict:
         if not parts:
             return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'В заявке нет списка запчастей'})}
 
-        decoded, answer = None, None
+        decoded, answer, note = None, None, None
         try:
-            decoded, answer = catalog_articles(api_key, vin, parts)
+            decoded, answer, note = catalog_articles(api_key, vin, parts)
         except Exception as e:
             print(f'catalog flow failed: {e}')
+            note = 'каталог недоступен (внутренняя ошибка)'
         source = 'catalog' if answer else 'ai'
 
         if not answer:
@@ -247,12 +287,12 @@ def handler(event: dict, context) -> dict:
             decoded = decoded or str(parsed.get('decoded') or '').strip()
 
         cur.execute(
-            f"UPDATE {schema}.leads SET ai_articles = %s, vin_decoded = %s WHERE id = %s",
-            (answer, decoded or None, lead_id),
+            f"UPDATE {schema}.leads SET ai_articles = %s, vin_decoded = %s, catalog_note = %s WHERE id = %s",
+            (answer, decoded or None, note, lead_id),
         )
         conn.commit()
         cur.close()
     finally:
         conn.close()
 
-    return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'ai_articles': answer, 'vin_decoded': decoded or '', 'source': source})}
+    return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'ai_articles': answer, 'vin_decoded': decoded or '', 'source': source, 'catalog_note': note or ''})}

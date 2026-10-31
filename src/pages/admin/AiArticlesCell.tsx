@@ -11,11 +11,12 @@ type Props = {
   leadId: number;
   value: string | null;
   vinDecoded?: string | null;
+  catalogNote?: string | null;
   hasParts: boolean;
   saveLeadField: (id: number, field: string, value: string) => Promise<void>;
 };
 
-const AiArticlesCell = ({ leadId, value, vinDecoded, hasParts, saveLeadField }: Props) => {
+const AiArticlesCell = ({ leadId, value, vinDecoded, catalogNote, hasParts, saveLeadField }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fromCatalog, setFromCatalog] = useState(false);
@@ -35,6 +36,7 @@ const AiArticlesCell = ({ leadId, value, vinDecoded, hasParts, saveLeadField }: 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "error");
       setFromCatalog(data.source === "catalog");
+      await saveLeadField(leadId, "catalog_note", data.catalog_note || "");
       await saveLeadField(leadId, "vin_decoded", data.vin_decoded || "");
       await saveLeadField(leadId, "ai_articles", data.ai_articles);
     } catch {
@@ -46,6 +48,12 @@ const AiArticlesCell = ({ leadId, value, vinDecoded, hasParts, saveLeadField }: 
 
   return (
     <div className="flex flex-col gap-1.5 items-start text-left">
+      {catalogNote && (
+        <div className="flex items-start gap-1.5 text-xs text-left w-full rounded-sm bg-amber-500/10 text-amber-600 px-2 py-1.5">
+          <Icon name="TriangleAlert" size={13} className="mt-0.5 shrink-0" />
+          <span className="break-words">Каталог не помог: {catalogNote}. Артикулы подобрал ИИ.</span>
+        </div>
+      )}
       {vinDecoded && (
         <div className="text-xs text-left w-full rounded-sm bg-muted/40 px-2 py-1.5">
           <span className="block text-[11px] text-muted-foreground mb-0.5">

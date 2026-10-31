@@ -8,10 +8,10 @@ from rate_limit import get_client_ip, check_rate_limit
 STATUS_LABEL = {'new': 'Новая', 'in_progress': 'В работе', 'done': 'Выполнен'}
 
 # Текстовые поля, которые можно частично обновлять по одному (клик-редактирование в /admin)
-TEXT_FIELDS = ['vin', 'name', 'phone', 'city', 'messenger', 'parts', 'car_name', 'ai_articles', 'vin_decoded']
+TEXT_FIELDS = ['vin', 'name', 'phone', 'city', 'messenger', 'parts', 'car_name', 'ai_articles', 'vin_decoded', 'catalog_note']
 
 # Поля, для которых пустая строка означает «очистить» (сохраняем NULL, а не '')
-NULLABLE_TEXT_FIELDS = ['vin', 'city', 'messenger', 'parts', 'car_name', 'ai_articles', 'vin_decoded']
+NULLABLE_TEXT_FIELDS = ['vin', 'city', 'messenger', 'parts', 'car_name', 'ai_articles', 'vin_decoded', 'catalog_note']
 
 
 def fmt_amount(v):

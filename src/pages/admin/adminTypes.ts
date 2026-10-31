@@ -23,6 +23,7 @@ export type Lead = {
   internal_note: string | null;
   ai_articles: string | null;
   vin_decoded: string | null;
+  catalog_note: string | null;
   archived: boolean;
   garage_blocked: boolean;
   phone_verified: boolean;

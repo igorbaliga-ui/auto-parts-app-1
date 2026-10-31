@@ -73,6 +73,7 @@ const AdminLeadOrderCells = ({
               leadId={l.id}
               value={l.ai_articles}
               vinDecoded={l.vin_decoded}
+              catalogNote={l.catalog_note}
               hasParts={!!l.parts}
               saveLeadField={saveLeadField}
             />
