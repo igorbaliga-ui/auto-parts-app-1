@@ -53,7 +53,7 @@ def handler(event: dict, context) -> dict:
     if not isinstance(lead_id, int):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный id заявки'})}
 
-    api_key = os.environ.get('OPENAI_API_KEY')
+    api_key = os.environ.get('DEEPSEEK_API_KEY')
     if not api_key:
         return {'statusCode': 500, 'headers': headers, 'body': json.dumps({'error': 'Не задан ключ ИИ'})}
 
@@ -70,7 +70,7 @@ def handler(event: dict, context) -> dict:
 
         user_text = f"VIN: {vin or 'не указан'}\nАвто: {car_name or 'не указано'}\nЗапчасти: {parts}"
         payload = {
-            'model': 'gpt-4o-mini',
+            'model': 'deepseek-chat',
             'temperature': 0.2,
             'messages': [
                 {'role': 'system', 'content': SYSTEM_PROMPT},
@@ -78,7 +78,7 @@ def handler(event: dict, context) -> dict:
             ],
         }
         req = urllib.request.Request(
-            'https://api.openai.com/v1/chat/completions',
+            'https://api.deepseek.com/chat/completions',
             data=json.dumps(payload).encode('utf-8'),
             headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {api_key}'},
         )
