@@ -50,7 +50,7 @@ def reason_text(status, message: str) -> str:
 
 def partsapi(method: str, **params):
     step = STEP_NAMES.get(method, method)
-    query = urllib.parse.urlencode({'method': method, 'key': os.environ.get('PARTSAPI_KEY', ''), **params})
+    query = urllib.parse.urlencode({'method': method, 'key': os.environ.get('PARTSAPI_KEY', '').strip(), **params})
     try:
         with urllib.request.urlopen(f'{PARTSAPI_URL}?{query}', timeout=12) as resp:
             raw = resp.read().decode('utf-8')
