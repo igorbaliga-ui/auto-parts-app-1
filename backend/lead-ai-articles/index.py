@@ -24,7 +24,7 @@ SYSTEM_PROMPT = (
 PARTSAPI_URL = 'https://partsapi.ru/api.php'
 CAR_TYPES = ['PC', '1']
 LANG_ID = 16
-BUDGET_SECONDS = 4.0
+BUDGET_SECONDS = 16.0
 STARTED = {'t': 0.0}
 
 
@@ -219,11 +219,11 @@ def fetch_oem(vin: str, pt_id):
     if not pt_id:
         return []
     left = BUDGET_SECONDS - (time.time() - STARTED['t'])
-    if left < 0.8:
+    if left < 1.5:
         print('getPartsbyVIN skipped: не хватило времени')
         return []
     try:
-        rows = as_list(partsapi('getPartsbyVIN', timeout=min(left, 2.5), vin=vin, cat=pt_id))
+        rows = as_list(partsapi('getPartsbyVIN', timeout=min(left, 8), vin=vin, cat=pt_id))
     except Exception as e:
         print(f'getPartsbyVIN skipped: {e}')
         return []
