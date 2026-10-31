@@ -33,6 +33,7 @@ STEP_NAMES = {
     'VINdecode': 'расшифровка VIN',
     'getSearchTree': 'дерево групп запчастей',
     'getArticles': 'поиск артикулов',
+    'getPartsbyVIN': 'оригинальные номера по VIN',
 }
 
 
@@ -52,6 +53,7 @@ def reason_text(status, message: str) -> str:
 METHOD_KEYS = {
     'getSearchTree': 'PARTSAPI_KEY_TREE',
     'getArticles': 'PARTSAPI_KEY_ARTICLES',
+    'getPartsbyVIN': 'PARTSAPI_KEY_VIN',
 }
 
 
@@ -199,14 +201,41 @@ def brand_rank(item: str) -> int:
 
 def fetch_articles(car_id, car_type, str_id):
     rows = [r for r in as_list(partsapi('getArticles', lang=LANG_ID, strId=str_id, carId=car_id, carType=car_type)) if isinstance(r, dict)]
-    seen, out = set(), []
+    seen, out, pt_id = set(), [], None
     for r in rows:
+        pt_id = pt_id or first_of(r, 'PT_ID')
         brand = first_of(r, 'ART_SUP_BRAND', 'SUP_BRAND', 'BRAND', 'brand')
         nr = first_of(r, 'ART_ARTICLE_NR', 'ARTICLE_NR', 'ART_NR', 'articleNo', 'number')
         if brand and nr and (brand, nr) not in seen:
             seen.add((brand, nr))
             out.append(f'{brand} {nr}')
-    return sorted(out, key=brand_rank)
+    return sorted(out, key=brand_rank), pt_id
+
+
+def fetch_oem(vin: str, pt_id):
+    if not pt_id:
+        return []
+    try:
+        rows = as_list(partsapi('getPartsbyVIN', vin=vin, cat=pt_id))
+    except CatalogError as e:
+        print(f'getPartsbyVIN skipped: {e}')
+        return []
+    found = []
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        for k, v in r.items():
+            kl = k.lower()
+            if v and isinstance(v, (str, int)) and any(x in kl for x in ('oem', 'oe_', 'number', 'article', 'partno', 'nr')):
+                text = str(v).strip()
+                if text and text not in found:
+                    found.append(text)
+    return found[:4]
+
+
+def fetch_part(vin, car_id, car_type, str_id):
+    arts, pt_id = fetch_articles(car_id, car_type, str_id)
+    return arts, fetch_oem(vin, pt_id)
 
 
 def deepseek(api_key: str, system: str, user: str, timeout: int = 40):
@@ -256,17 +285,24 @@ def catalog_articles(api_key: str, vin: str, parts: str):
         items = [i for i in matched.get('items', []) if isinstance(i, dict) and i.get('part')]
         with ThreadPoolExecutor(max_workers=6) as pool:
             results = list(pool.map(
-                lambda i: fetch_articles(car_id, car_type, i['id']) if i.get('id') and str(i['id']) in nodes else [],
+                lambda i: fetch_part(vin.strip(), car_id, car_type, i['id']) if i.get('id') and str(i['id']) in nodes else ([], []),
                 items,
             ))
     except CatalogError as e:
         return decoded, None, str(e)
     lines = []
     found = 0
-    for item, arts in zip(items, results):
-        if arts:
+    for item, (arts, oem) in zip(items, results):
+        if arts or oem:
             found += 1
-            lines.append(f"{item['part']} — {', '.join(arts[:8])}")
+            line = f"{item['part']} — "
+            if oem:
+                line += f"OEM по VIN: {', '.join(oem)}"
+                if arts:
+                    line += '; '
+            if arts:
+                line += f"аналоги: {', '.join(arts[:8])}"
+            lines.append(line)
         else:
             lines.append(f"{item['part']} — в каталоге не найдено, нужна проверка")
     if not found:
