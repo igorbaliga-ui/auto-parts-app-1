@@ -1,6 +1,7 @@
 import json
 import re
 import os
+import time
 import urllib.error
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
@@ -23,6 +24,8 @@ SYSTEM_PROMPT = (
 PARTSAPI_URL = 'https://partsapi.ru/api.php'
 CAR_TYPES = ['PC', '1']
 LANG_ID = 16
+BUDGET_SECONDS = 4.0
+STARTED = {'t': 0.0}
 
 
 class CatalogError(Exception):
@@ -62,11 +65,11 @@ def method_key(method: str) -> str:
     return specific or os.environ.get('PARTSAPI_KEY', '').strip()
 
 
-def partsapi(method: str, **params):
+def partsapi(method: str, timeout: float = 8, **params):
     step = STEP_NAMES.get(method, method)
     query = urllib.parse.urlencode({'method': method, 'key': method_key(method), **params})
     try:
-        with urllib.request.urlopen(f'{PARTSAPI_URL}?{query}', timeout=8) as resp:
+        with urllib.request.urlopen(f'{PARTSAPI_URL}?{query}', timeout=timeout) as resp:
             raw = resp.read().decode('utf-8')
     except urllib.error.HTTPError as e:
         body = e.read().decode('utf-8', 'ignore')[:300]
@@ -85,7 +88,7 @@ def partsapi(method: str, **params):
     except ValueError:
         print(f'PartsAPI {method} not json: {raw[:300]}')
         raise CatalogError(f'{step}: каталог недоступен (неверный ответ)')
-    print(f'PartsAPI {method} ok: {raw[:600]}')
+    print(f'PartsAPI {method} ok: {raw[:1200]}')
     if isinstance(data, dict) and (data.get('error_code') or data.get('status') in (401, 402, 403, 404, 429)):
         raise CatalogError(f'{step}: {reason_text(data.get("status"), str(data.get("message") or ""))}')
     return data
@@ -215,9 +218,13 @@ def fetch_articles(car_id, car_type, str_id):
 def fetch_oem(vin: str, pt_id):
     if not pt_id:
         return []
+    left = BUDGET_SECONDS - (time.time() - STARTED['t'])
+    if left < 0.8:
+        print('getPartsbyVIN skipped: не хватило времени')
+        return []
     try:
-        rows = as_list(partsapi('getPartsbyVIN', vin=vin, cat=pt_id))
-    except CatalogError as e:
+        rows = as_list(partsapi('getPartsbyVIN', timeout=min(left, 2.5), vin=vin, cat=pt_id))
+    except Exception as e:
         print(f'getPartsbyVIN skipped: {e}')
         return []
     found = []
@@ -333,6 +340,7 @@ def handler(event: dict, context) -> dict:
     if method != 'POST':
         return {'statusCode': 405, 'headers': headers, 'body': json.dumps({'error': 'Method not allowed'})}
 
+    STARTED['t'] = time.time()
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']
 
