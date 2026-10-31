@@ -18,6 +18,7 @@ type Props = {
 const AiArticlesCell = ({ leadId, value, vinDecoded, hasParts, saveLeadField }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fromCatalog, setFromCatalog] = useState(false);
 
   const generate = async () => {
     setLoading(true);
@@ -33,6 +34,7 @@ const AiArticlesCell = ({ leadId, value, vinDecoded, hasParts, saveLeadField }: 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "error");
+      setFromCatalog(data.source === "catalog");
       await saveLeadField(leadId, "vin_decoded", data.vin_decoded || "");
       await saveLeadField(leadId, "ai_articles", data.ai_articles);
     } catch {
@@ -54,8 +56,8 @@ const AiArticlesCell = ({ leadId, value, vinDecoded, hasParts, saveLeadField }: 
       )}
       {value && (
         <>
-          <span className="text-[11px] text-amber-500">
-            Предложено ИИ — проверьте
+          <span className={`text-[11px] ${fromCatalog ? "text-emerald-500" : "text-amber-500"}`}>
+            {fromCatalog ? "Из каталога TecDoc — сверьте с VIN" : "Предложено ИИ — проверьте"}
           </span>
           <InlineEditableCell
             value={value}
