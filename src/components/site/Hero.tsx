@@ -1,34 +1,11 @@
-import { useState } from "react";
 import { Link } from "@/lib/router-compat";
 import Icon from "@/components/ui/icon";
 import { useRequest } from "./RequestDialog";
 import { useGarageAuth } from "@/hooks/use-garage-auth";
-import { sanitizeVinInput, getVinLengthHint } from "@/lib/vin";
-import PhotoAttach from "@/components/site/PhotoAttach";
-import { usePhotoAttach } from "@/hooks/use-photo-attach";
-import { setLastVin } from "@/hooks/use-last-vin";
-
-// VIN без дефисов, максимум 17 символов (полный VIN — 17, короткие форматы — 10)
-const sanitizeHeroVin = (raw: string) =>
-  sanitizeVinInput(raw).replace(/-/g, "").slice(0, 17);
 
 const Hero = () => {
   const { open } = useRequest();
   const { authed: garageAuthed } = useGarageAuth();
-  const [vin, setVin] = useState("");
-  const { photos, photoPreviews, addPhotos, removePhoto } = usePhotoAttach();
-
-  const handleAddPhotos = (files: File[]) => {
-    addPhotos(files);
-    setLastVin(vin);
-    open(vin, files);
-  };
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLastVin(vin);
-    open(vin);
-  };
 
   return (
     <section id="top" className="relative min-h-screen overflow-hidden">
@@ -76,83 +53,15 @@ const Hero = () => {
               <>
                 <p className="max-w-[34ch] text-muted-foreground leading-relaxed text-base sm:text-lg mb-4"></p>
 
-                {photoPreviews.length > 0 && (
-                  <p className="text-primary text-xs mb-4 flex items-center gap-1.5">
-                    <Icon name="Check" size={14} />
-                    {photoPreviews.length === 1
-                      ? "Фото прикреплено"
-                      : `Фото прикреплено: ${photoPreviews.length}`}
-                  </p>
-                )}
-
-                <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full max-w-[440px] sm:max-w-[520px] mt-6 sm:mt-28">
-                  <div className="flex items-stretch gap-2 min-w-0">
-                    <PhotoAttach
-                      photos={photos}
-                      photoPreviews={photoPreviews}
-                      onAdd={handleAddPhotos}
-                      onRemove={removePhoto}
-                    />
-                    <div className="flex items-stretch flex-1 min-w-0 sm:hidden border-[1.5px] border-steel rounded-sm bg-card overflow-hidden">
-                      <input
-                        form="hero-vin-form"
-                        value={vin}
-                        onChange={(e) =>
-                          setVin(sanitizeHeroVin(e.target.value))
-                        }
-                        maxLength={17}
-                        type="text"
-                        inputMode="text"
-                        autoCapitalize="characters"
-                        autoCorrect="off"
-                        autoComplete="off"
-                        spellCheck={false}
-                        placeholder="XW8ZZZ...."
-                        aria-label="VIN-код автомобиля"
-                        className="flex-1 min-w-0 bg-transparent text-foreground text-sm tracking-[0.1em] px-3 outline-none placeholder:text-steel"
-                      />
-                    </div>
-                  </div>
-                  <form
-                    id="hero-vin-form"
-                    onSubmit={submit}
-                    className="hidden sm:flex items-stretch flex-1 min-w-0 border-[1.5px] border-steel rounded-sm bg-card overflow-hidden"
-                  >
-                    <span className="hidden sm:flex items-center px-4 font-head font-bold tracking-[0.12em] text-sm text-muted-foreground border-r-[1.5px] border-steel bg-steel-dark shrink-0">
-                      VIN
-                    </span>
-                    <input
-                      value={vin}
-                      onChange={(e) => setVin(sanitizeHeroVin(e.target.value))}
-                      maxLength={17}
-                      type="text"
-                      inputMode="text"
-                      autoCapitalize="characters"
-                      autoCorrect="off"
-                      autoComplete="off"
-                      spellCheck={false}
-                      placeholder="XW8ZZZ • • • •"
-                      aria-label="VIN-код автомобиля"
-                      className="flex-1 min-w-0 bg-transparent text-foreground text-sm tracking-[0.16em] px-4 outline-none placeholder:text-steel"
-                    />
-                    <button
-                      type="submit"
-                      className="shrink-0 bg-primary text-primary-foreground font-head font-bold uppercase tracking-[0.1em] text-sm px-5 hover:brightness-110 transition"
-                    >
-                      Подобрать
-                    </button>
-                  </form>
+                <div className="flex w-full max-w-[440px] sm:max-w-[520px] mt-6 sm:mt-28">
                   <button
-                    type="submit"
-                    form="hero-vin-form"
-                    className="sm:hidden shrink-0 bg-primary text-primary-foreground font-head font-bold uppercase tracking-[0.1em] text-sm px-5 py-3 rounded-sm hover:brightness-110 transition"
+                    type="button"
+                    onClick={() => open("")}
+                    className="w-full bg-primary text-primary-foreground font-head font-bold uppercase tracking-[0.1em] text-base px-5 py-4 rounded-sm hover:brightness-110 transition"
                   >
                     Подобрать
                   </button>
                 </div>
-                <p className="text-muted-foreground text-xs mt-1.5 min-h-[1em] leading-none">
-                  {getVinLengthHint(vin)}
-                </p>
               </>
             )}
 
