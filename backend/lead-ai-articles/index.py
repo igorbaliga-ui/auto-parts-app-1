@@ -181,6 +181,22 @@ def shortlist(nodes: dict, part_lines: list, per_part: int = 12) -> dict:
     return chosen
 
 
+PREFERRED_BRANDS = [
+    'AUDI', 'VAG', 'VW', 'VOLKSWAGEN', 'SKODA', 'SEAT', 'BOSCH', 'MANN-FILTER', 'MANN', 'MAHLE', 'KNECHT', 'HENGST',
+    'FILTRON', 'BREMBO', 'TRW', 'ATE', 'ZIMMERMANN', 'TEXTAR', 'FERODO', 'LEMFORDER', 'SACHS', 'BILSTEIN', 'MONROE',
+    'KYB', 'FEBI BILSTEIN', 'FEBI', 'SWAG', 'MEYLE', 'NGK', 'DENSO', 'VALEO', 'LUK', 'SKF', 'GATES', 'CONTITECH',
+    'DAYCO', 'INA', 'FAG', 'HELLA', 'BEHR', 'NRF', 'CORTECO', 'ELRING', 'PIERBURG', 'VICTOR REINZ', 'REINZ',
+]
+
+
+def brand_rank(item: str) -> int:
+    up = item.upper()
+    for i, b in enumerate(PREFERRED_BRANDS):
+        if up.startswith(b + ' ') or up.startswith(b):
+            return i
+    return len(PREFERRED_BRANDS)
+
+
 def fetch_articles(car_id, car_type, str_id):
     rows = [r for r in as_list(partsapi('getArticles', lang=LANG_ID, strId=str_id, carId=car_id, carType=car_type)) if isinstance(r, dict)]
     seen, out = set(), []
@@ -190,7 +206,7 @@ def fetch_articles(car_id, car_type, str_id):
         if brand and nr and (brand, nr) not in seen:
             seen.add((brand, nr))
             out.append(f'{brand} {nr}')
-    return out
+    return sorted(out, key=brand_rank)
 
 
 def deepseek(api_key: str, system: str, user: str, timeout: int = 40):
