@@ -71,17 +71,22 @@ def partsapi(method: str, **params):
     except ValueError:
         print(f'PartsAPI {method} not json: {raw[:300]}')
         raise CatalogError(f'{step}: каталог недоступен (неверный ответ)')
-    print(f'PartsAPI {method} ok: {raw[:300]}')
+    print(f'PartsAPI {method} ok: {raw[:1500]}')
     if isinstance(data, dict) and (data.get('error_code') or data.get('status') in (401, 402, 403, 404, 429)):
         raise CatalogError(f'{step}: {reason_text(data.get("status"), str(data.get("message") or ""))}')
     return data
 
 
 def as_list(data):
+    if isinstance(data, dict) and 'result' in data:
+        data = data['result']
     if isinstance(data, list):
         return data
     if isinstance(data, dict):
-        for v in data.values():
+        values = list(data.values())
+        if values and all(isinstance(v, dict) for v in values):
+            return values
+        for v in values:
             if isinstance(v, list):
                 return v
         return [data]
@@ -117,8 +122,8 @@ def decode_vin(vin: str):
     codes = c.get('motorCodes')
     if codes:
         parts.append('двигатель ' + (', '.join(map(str, codes)) if isinstance(codes, list) else str(codes)))
-    if first_of(c, 'constructionType'):
-        parts.append(str(first_of(c, 'constructionType')))
+    if first_of(c, 'constructionType', 'bodyStyle'):
+        parts.append(str(first_of(c, 'constructionType', 'bodyStyle')))
     y1, y2 = first_of(c, 'yearOfConstrFrom'), first_of(c, 'yearOfConstrTo')
     if y1:
         parts.append(f'{str(y1)[:4]}–{str(y2)[:4] if y2 else "н.в."} г.')
