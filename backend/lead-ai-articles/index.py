@@ -234,7 +234,72 @@ MATCH_PROMPT = (
 )
 
 
-def catalog_articles(api_key: str, vin: str, parts: str):
+CACHE_DAYS = 30
+
+
+class CatalogCache:
+    def __init__(self, conn, schema: str):
+        self.conn = conn
+        self.table = f'{schema}.catalog_cache'
+
+    def get(self, key: str):
+        try:
+            cur = self.conn.cursor()
+            cur.execute(
+                f"SELECT payload FROM {self.table} WHERE cache_key = %s AND created_at > NOW() - INTERVAL '{CACHE_DAYS} days'",
+                (key,),
+            )
+            row = cur.fetchone()
+            cur.close()
+            return json.loads(row[0]) if row else None
+        except Exception as e:
+            print(f'cache get failed: {e}')
+            self.conn.rollback()
+            return None
+
+    def put(self, key: str, value):
+        try:
+            cur = self.conn.cursor()
+            cur.execute(
+                f"INSERT INTO {self.table} (cache_key, payload, created_at) VALUES (%s, %s, NOW()) "
+                f"ON CONFLICT (cache_key) DO UPDATE SET payload = EXCLUDED.payload, created_at = NOW()",
+                (key, json.dumps(value, ensure_ascii=False)),
+            )
+            self.conn.commit()
+            cur.close()
+        except Exception as e:
+            print(f'cache put failed: {e}')
+            self.conn.rollback()
+
+
+def cached_vin(cache, vin: str):
+    key = f'vin:{vin.upper()}'
+    hit = cache.get(key)
+    if hit and hit.get('car_id'):
+        print(f'cache hit {key}')
+        return hit['car_id'], hit.get('decoded')
+    car_id, decoded = decode_vin(vin)
+    if car_id:
+        cache.put(key, {'car_id': car_id, 'decoded': decoded})
+    return car_id, decoded
+
+
+def cached_tree(cache, car_id):
+    key = f'tree:{car_id}'
+    hit = cache.get(key)
+    if hit and hit.get('nodes'):
+        print(f'cache hit {key}')
+        return hit['car_type'], hit['nodes']
+    car_type, nodes = load_tree(car_id)
+    cache.put(key, {'car_type': car_type, 'nodes': nodes})
+    return car_type, nodes
+
+
+def articles_key(car_id, car_type, str_id) -> str:
+    return f'art:{car_id}:{car_type}:{str_id}'
+
+
+def catalog_articles(api_key: str, vin: str, parts: str, cache):
     """Возвращает (расшифровка VIN, текст артикулов, причина почему каталог не помог)."""
     if not vin:
         return None, None, 'в заявке нет VIN, каталог не использовался'
@@ -242,10 +307,10 @@ def catalog_articles(api_key: str, vin: str, parts: str):
         return None, None, 'ключ каталога не задан'
     decoded = None
     try:
-        car_id, decoded = decode_vin(vin.strip())
+        car_id, decoded = cached_vin(cache, vin.strip())
         if not car_id:
             return decoded, None, 'расшифровка VIN: каталог не вернул идентификатор авто'
-        car_type, nodes = load_tree(car_id)
+        car_type, nodes = cached_tree(cache, car_id)
         part_lines = [p.strip() for p in re.split(r'[\n;,]+', parts) if p.strip()][:10]
         candidates = shortlist(nodes, part_lines)
         if not candidates:
@@ -254,11 +319,25 @@ def catalog_articles(api_key: str, vin: str, parts: str):
         tree_text = '\n'.join(f'{k}: {v}' for k, v in nodes.items())
         matched = deepseek(api_key, MATCH_PROMPT, f'Запчасти:\n' + '\n'.join(part_lines) + f'\n\nГруппы каталога:\n{tree_text}', timeout=12)
         items = [i for i in matched.get('items', []) if isinstance(i, dict) and i.get('part')]
-        with ThreadPoolExecutor(max_workers=6) as pool:
-            results = list(pool.map(
-                lambda i: fetch_articles(car_id, car_type, i['id']) if i.get('id') and str(i['id']) in nodes else [],
-                items,
-            ))
+        valid = [i for i in items if i.get('id') and str(i['id']) in nodes]
+        results_by_id = {}
+        missing = []
+        for i in valid:
+            sid = str(i['id'])
+            hit = cache.get(articles_key(car_id, car_type, sid))
+            if hit and hit.get('items'):
+                print(f'cache hit {articles_key(car_id, car_type, sid)}')
+                results_by_id[sid] = hit['items']
+            elif sid not in missing:
+                missing.append(sid)
+        if missing:
+            with ThreadPoolExecutor(max_workers=6) as pool:
+                fetched = list(pool.map(lambda sid: fetch_articles(car_id, car_type, sid), missing))
+            for sid, arts in zip(missing, fetched):
+                results_by_id[sid] = arts
+                if arts:
+                    cache.put(articles_key(car_id, car_type, sid), {'items': arts})
+        results = [results_by_id.get(str(i['id']), []) if i in valid else [] for i in items]
     except CatalogError as e:
         return decoded, None, str(e)
     lines = []
@@ -331,7 +410,7 @@ def handler(event: dict, context) -> dict:
 
         decoded, answer, note = None, None, None
         try:
-            decoded, answer, note = catalog_articles(api_key, vin, parts)
+            decoded, answer, note = catalog_articles(api_key, vin, parts, CatalogCache(conn, schema))
         except Exception as e:
             print(f'catalog flow failed: {e}')
             note = 'каталог недоступен (внутренняя ошибка)'
