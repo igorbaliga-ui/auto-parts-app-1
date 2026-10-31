@@ -24,7 +24,7 @@ SYSTEM_PROMPT = (
 PARTSAPI_URL = 'https://partsapi.ru/api.php'
 CAR_TYPES = ['PC', '1']
 LANG_ID = 16
-BUDGET_SECONDS = 16.0
+BUDGET_SECONDS = 17.0
 STARTED = {'t': 0.0}
 
 
@@ -46,8 +46,8 @@ def reason_text(status, message: str) -> str:
         return 'нет подписки на метод или она закончилась'
     if status in (401, 403) or 'authorization' in text or 'key' in text:
         return 'ключ не принят каталогом или нет доступа к методу'
-    if status == 429 or 'limit' in text or 'too many' in text:
-        return 'исчерпан лимит запросов'
+    if status == 429 or 'limit' in text or 'too many' in text or 'exceeded' in text:
+        return 'исчерпан лимит запросов с адреса сервера, повторите через минуту'
     if status == 404:
         return 'каталог не нашёл данные'
     return 'каталог вернул ошибку'
@@ -223,7 +223,7 @@ def fetch_oem(vin: str, pt_id):
         print('getPartsbyVIN skipped: не хватило времени')
         return []
     try:
-        rows = as_list(partsapi('getPartsbyVIN', timeout=min(left, 8), vin=vin, cat=pt_id))
+        rows = as_list(partsapi('getPartsbyVIN', timeout=min(left, 14), vin=vin, cat=pt_id))
     except Exception as e:
         print(f'getPartsbyVIN skipped: {e}')
         return []
