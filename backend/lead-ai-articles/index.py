@@ -1,15 +1,20 @@
 import json
 import os
+import urllib.error
 import urllib.request
 import psycopg2
 from rate_limit import get_client_ip, check_rate_limit
 
 SYSTEM_PROMPT = (
-    "Ты помощник менеджера магазина автозапчастей. По VIN, марке авто и списку запчастей "
-    "предложи вероятные артикулы (OEM и популярные аналоги). Отвечай по-русски, коротко, "
-    "по одной строке на позицию в формате: «Запчасть — артикул OEM; аналоги: ...». "
-    "Если не уверен в артикуле — так и напиши «нужна проверка», номера не выдумывай. "
-    "Никакого вступления и заключения."
+    "Ты помощник менеджера магазина автозапчастей. Работай в два шага. "
+    "Шаг 1: расшифруй VIN — марка, модель, кузов, двигатель (объём, тип), год выпуска, страна сборки. "
+    "Что не удаётся определить по VIN — так и пиши «не определено», ничего не выдумывай. "
+    "Шаг 2: используя расшифровку, предложи вероятные артикулы (OEM и популярные аналоги) для каждой запчасти. "
+    "Если не уверен в артикуле — пиши «нужна проверка», номера не выдумывай. "
+    "Отвечай по-русски, коротко. Верни строго JSON: "
+    '{"decoded": "расшифровка VIN в 1-3 строки, например: Audi Q5 (8R), 2.0 TFSI, 2010 г., Германия", '
+    '"articles": "по одной строке на позицию в формате: Запчасть — артикул OEM; аналоги: ..."}. '
+    "Если VIN не указан, decoded — пустая строка."
 )
 
 
@@ -72,6 +77,7 @@ def handler(event: dict, context) -> dict:
         payload = {
             'model': 'deepseek-chat',
             'temperature': 0.2,
+            'response_format': {'type': 'json_object'},
             'messages': [
                 {'role': 'system', 'content': SYSTEM_PROMPT},
                 {'role': 'user', 'content': user_text},
@@ -89,12 +95,21 @@ def handler(event: dict, context) -> dict:
             details = e.read().decode('utf-8', 'ignore')[:500]
             print(f'AI error {e.code}: {details}')
             return {'statusCode': 502, 'headers': headers, 'body': json.dumps({'error': f'ИИ отклонил запрос ({e.code})'})}
-        answer = data['choices'][0]['message']['content'].strip()
+        content = data['choices'][0]['message']['content'].strip()
+        try:
+            parsed = json.loads(content)
+            answer = str(parsed.get('articles') or '').strip() or content
+            decoded = str(parsed.get('decoded') or '').strip()
+        except ValueError:
+            answer, decoded = content, ''
 
-        cur.execute(f"UPDATE {schema}.leads SET ai_articles = %s WHERE id = %s", (answer, lead_id))
+        cur.execute(
+            f"UPDATE {schema}.leads SET ai_articles = %s, vin_decoded = %s WHERE id = %s",
+            (answer, decoded or None, lead_id),
+        )
         conn.commit()
         cur.close()
     finally:
         conn.close()
 
-    return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'ai_articles': answer})}
+    return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'ai_articles': answer, 'vin_decoded': decoded})}

@@ -22,6 +22,7 @@ export type Lead = {
   arrived: boolean;
   internal_note: string | null;
   ai_articles: string | null;
+  vin_decoded: string | null;
   archived: boolean;
   garage_blocked: boolean;
   phone_verified: boolean;

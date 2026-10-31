@@ -275,6 +275,7 @@ const AdminLeadCard = ({
         <AiArticlesCell
           leadId={l.id}
           value={l.ai_articles}
+              vinDecoded={l.vin_decoded}
           hasParts={!!l.parts}
           saveLeadField={saveLeadField}
         />

@@ -10,11 +10,12 @@ const LEAD_AI_ARTICLES_URL =
 type Props = {
   leadId: number;
   value: string | null;
+  vinDecoded?: string | null;
   hasParts: boolean;
   saveLeadField: (id: number, field: string, value: string) => Promise<void>;
 };
 
-const AiArticlesCell = ({ leadId, value, hasParts, saveLeadField }: Props) => {
+const AiArticlesCell = ({ leadId, value, vinDecoded, hasParts, saveLeadField }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -32,6 +33,7 @@ const AiArticlesCell = ({ leadId, value, hasParts, saveLeadField }: Props) => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "error");
+      await saveLeadField(leadId, "vin_decoded", data.vin_decoded || "");
       await saveLeadField(leadId, "ai_articles", data.ai_articles);
     } catch {
       setError("Не удалось подобрать. Попробуйте ещё раз.");
@@ -42,6 +44,14 @@ const AiArticlesCell = ({ leadId, value, hasParts, saveLeadField }: Props) => {
 
   return (
     <div className="flex flex-col gap-1.5 items-start text-left">
+      {vinDecoded && (
+        <div className="text-xs text-left w-full rounded-sm bg-muted/40 px-2 py-1.5">
+          <span className="block text-[11px] text-muted-foreground mb-0.5">
+            Расшифровка VIN
+          </span>
+          <span className="whitespace-pre-wrap break-words">{vinDecoded}</span>
+        </div>
+      )}
       {value && (
         <>
           <span className="text-[11px] text-amber-500">
