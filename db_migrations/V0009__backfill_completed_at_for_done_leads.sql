@@ -1,1 +1,0 @@
-UPDATE leads SET completed_at = now() WHERE status = 'done' AND completed_at IS NULL;

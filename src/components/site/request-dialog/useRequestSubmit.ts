@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from "@/lib/router-compat";
 import { useSubmitLead } from '@/hooks/use-submit-lead';
 import { toast } from '@/hooks/use-toast';
 import { GARAGE_PHONE_KEY, notifyGarageAuthChanged, notifyGarageOrdersChanged } from '@/hooks/use-garage-auth';

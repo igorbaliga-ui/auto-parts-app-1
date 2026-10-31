@@ -1,1 +1,0 @@
-ALTER TABLE garage_accounts ADD COLUMN IF NOT EXISTS referred_by_at timestamptz NULL;

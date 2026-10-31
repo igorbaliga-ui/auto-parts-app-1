@@ -17,10 +17,11 @@ export const setLastVin = (vin: string) => {
 };
 
 export const useLastVin = () => {
-  const [vin, setVin] = useState(() => getLastVin());
+  const [vin, setVin] = useState('');
 
   useEffect(() => {
     const sync = () => setVin(getLastVin());
+    sync();
     window.addEventListener('storage', sync);
     window.addEventListener(LAST_VIN_EVENT, sync);
     return () => {

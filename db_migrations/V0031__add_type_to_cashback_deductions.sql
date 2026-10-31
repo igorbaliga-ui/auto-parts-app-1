@@ -1,2 +1,0 @@
-ALTER TABLE client_cashback_deductions ADD COLUMN IF NOT EXISTS type varchar(10) NOT NULL DEFAULT 'deduct';
-ALTER TABLE client_cashback_deductions ADD CONSTRAINT client_cashback_deductions_type_check CHECK (type IN ('deduct', 'accrue'));

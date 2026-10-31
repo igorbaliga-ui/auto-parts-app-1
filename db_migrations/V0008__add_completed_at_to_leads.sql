@@ -1,1 +1,0 @@
-ALTER TABLE leads ADD COLUMN completed_at timestamp with time zone NULL;

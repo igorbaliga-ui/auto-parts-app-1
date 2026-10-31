@@ -16,10 +16,12 @@ export const notifyGarageOrdersChanged = () => {
 };
 
 export const useGarageAuth = () => {
-  const [phone, setPhone] = useState<string | null>(() => getStoredPhone());
+  // localStorage есть только в браузере: стартуем с null, читаем после монтирования
+  const [phone, setPhone] = useState<string | null>(null);
 
   useEffect(() => {
     const sync = () => setPhone(getStoredPhone());
+    sync();
     window.addEventListener('storage', sync);
     window.addEventListener('garage-auth-changed', sync);
     return () => {

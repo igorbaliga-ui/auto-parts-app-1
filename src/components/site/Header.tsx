@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "@/lib/router-compat";
 import Icon from "@/components/ui/icon";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { useIsStandalone } from "@/hooks/use-standalone";
@@ -35,16 +35,18 @@ const Header = () => {
   const isMobileOs = useIsMobileOs();
   const [guideOpen, setGuideOpen] = useState(false);
   const [guideTab, setGuideTab] = useState<"ios" | "android">("ios");
-  const [installHint, setInstallHint] = useState(
-    () => safeGetItem(INSTALL_HINT_SEEN_KEY) !== "1",
-  );
+  const [installHint, setInstallHint] = useState(false);
   const { goTo } = useNav();
   const { authed: garageAuthed } = useGarageAuth();
   const hasArrived = useGarageArrived();
   const referralCode = useGarageReferralCode();
-  const [iosInstalled, setIosInstalled] = useState(
-    () => safeGetItem(IOS_INSTALLED_KEY) === "1",
-  );
+  const [iosInstalled, setIosInstalled] = useState(false);
+
+  // localStorage есть только в браузере — флаги читаем после монтирования
+  useEffect(() => {
+    setInstallHint(safeGetItem(INSTALL_HINT_SEEN_KEY) !== "1");
+    setIosInstalled(safeGetItem(IOS_INSTALLED_KEY) === "1");
+  }, []);
 
   // Если сайт сейчас открыт как standalone-приложение на iPhone — значит,
   // установка уже состоялась, запоминаем это, чтобы при следующем открытии

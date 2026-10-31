@@ -20,11 +20,15 @@ const InstallAppBanner = () => {
   const isMobileOs = useIsMobileOs();
   const isStandalone = useIsStandalone();
   const { canInstall, installed, promptInstall } = usePwaInstall();
-  const [dismissed, setDismissed] = useState(
-    () =>
+  const [dismissed, setDismissed] = useState(false);
+
+  // Хранилища есть только в браузере — читаем после монтирования
+  useEffect(() => {
+    setDismissed(
       safeGetSession(DISMISSED_KEY) === "1" ||
-      (getMobileOs() === "ios" && safeGetItem(IOS_DISMISSED_DAY_KEY) === todayKey()),
-  );
+        (getMobileOs() === "ios" && safeGetItem(IOS_DISMISSED_DAY_KEY) === todayKey()),
+    );
+  }, []);
   const [guideOpen, setGuideOpen] = useState(false);
   const [signupBonus, setSignupBonus] = useState(0);
 

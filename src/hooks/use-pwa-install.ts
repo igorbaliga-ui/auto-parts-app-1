@@ -42,12 +42,16 @@ const isRunningStandalone = () =>
     (navigator as unknown as { standalone?: boolean }).standalone === true);
 
 export const usePwaInstall = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(() => {
-    const early = (typeof window !== 'undefined' && window.__deferredPwaPrompt) || null;
-    if (early) safeSetItem(PWA_PROMPT_SEEN_KEY, '1');
-    return early;
-  });
-  const [installed, setInstalled] = useState(() => isRunningStandalone());
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installed, setInstalled] = useState(false);
+  // Раннее событие, пойманное скриптом в <head>, подхватываем после монтирования
+  useEffect(() => {
+    const early = window.__deferredPwaPrompt || null;
+    if (early) {
+      safeSetItem(PWA_PROMPT_SEEN_KEY, '1');
+      setDeferredPrompt((prev) => prev ?? early);
+    }
+  }, []);
   // Если сайт сейчас реально открыт в standalone-режиме — установка точно
   // есть, фиксируем это сразу вне зависимости от того, что успели поймать
   // события 'beforeinstallprompt'/'appinstalled' или нет.

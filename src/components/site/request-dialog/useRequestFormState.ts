@@ -37,7 +37,7 @@ export const useRequestFormState = ({
   const [vinHistory, setVinHistory] = useState<string[]>([]);
   const [garageCars, setGarageCars] = useState<GarageCar[]>([]);
   const [vinSource, setVinSource] = useState<"garage" | "manual" | null>(null);
-  const nameLookupTimer = useRef<ReturnType<typeof setTimeout>>();
+  const nameLookupTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lastLookupPhone = useRef<string>("");
   // Промокод друга проверяется бэкендом только в момент отправки заявки (а не по мере
   // набора символов) — иначе живая проверка на каждый символ позволила бы перебором
@@ -54,12 +54,12 @@ export const useRequestFormState = ({
   // если номер уже есть в базе — прячем само поле «Имя» целиком (оно возьмётся на бэкенде
   // из первой заявки клиента по этому номеру)
   const [knownPhoneNoAuth, setKnownPhoneNoAuth] = useState<string | null>(null);
-  const existsCheckTimer = useRef<ReturnType<typeof setTimeout>>();
+  const existsCheckTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lastExistsCheckPhone = useRef<string>("");
   // Промокод друга можно указать только один раз: если к введённому телефону уже
   // привязан чужой промокод — поле «Промокод друга» скрывается, как и поле «Имя»
   const [promoAlreadyUsed, setPromoAlreadyUsed] = useState(false);
-  const promoUsedCheckTimer = useRef<ReturnType<typeof setTimeout>>();
+  const promoUsedCheckTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lastPromoUsedCheckPhone = useRef<string>("");
   // Разовый бонус за регистрацию (задаётся менеджером в /admin) — подсказка в форме,
   // что за первую заявку начислится дополнительно бонус. Грузим один раз при монтировании провайдера.

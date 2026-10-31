@@ -1,1 +1,0 @@
-ALTER TABLE garage_login_history ADD COLUMN IF NOT EXISTS note TEXT NULL;
