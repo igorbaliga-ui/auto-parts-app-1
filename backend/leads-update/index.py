@@ -265,7 +265,7 @@ def handler(event: dict, context) -> dict:
             'messenger': prev_messenger, 'parts': prev_parts, 'car_name': prev_car_name,
         }
         for field in TEXT_FIELDS:
-            if field in body:
+            if field in body and field in text_prev:
                 log_change(cur, schema, lead_id, admin_name, field, text_prev[field], text_values[field])
 
         conn.commit()
