@@ -48,9 +48,20 @@ def reason_text(status, message: str) -> str:
     return 'каталог вернул ошибку'
 
 
+METHOD_KEYS = {
+    'getSearchTree': 'PARTSAPI_KEY_TREE',
+    'getArticles': 'PARTSAPI_KEY_ARTICLES',
+}
+
+
+def method_key(method: str) -> str:
+    specific = os.environ.get(METHOD_KEYS.get(method, ''), '').strip()
+    return specific or os.environ.get('PARTSAPI_KEY', '').strip()
+
+
 def partsapi(method: str, **params):
     step = STEP_NAMES.get(method, method)
-    query = urllib.parse.urlencode({'method': method, 'key': os.environ.get('PARTSAPI_KEY', '').strip(), **params})
+    query = urllib.parse.urlencode({'method': method, 'key': method_key(method), **params})
     try:
         with urllib.request.urlopen(f'{PARTSAPI_URL}?{query}', timeout=12) as resp:
             raw = resp.read().decode('utf-8')
