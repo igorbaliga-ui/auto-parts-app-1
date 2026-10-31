@@ -82,8 +82,13 @@ def handler(event: dict, context) -> dict:
             data=json.dumps(payload).encode('utf-8'),
             headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {api_key}'},
         )
-        with urllib.request.urlopen(req, timeout=40) as resp:
-            data = json.loads(resp.read().decode('utf-8'))
+        try:
+            with urllib.request.urlopen(req, timeout=40) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
+            details = e.read().decode('utf-8', 'ignore')[:500]
+            print(f'AI error {e.code}: {details}')
+            return {'statusCode': 502, 'headers': headers, 'body': json.dumps({'error': f'ИИ отклонил запрос ({e.code})'})}
         answer = data['choices'][0]['message']['content'].strip()
 
         cur.execute(f"UPDATE {schema}.leads SET ai_articles = %s WHERE id = %s", (answer, lead_id))
