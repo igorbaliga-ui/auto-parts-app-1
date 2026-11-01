@@ -227,15 +227,31 @@ def fetch_oem(type_id, node_id):
     return [{'mfi': r.get('mfi'), 'mfd': r.get('mfd', ''), 'n': r['n']} for r in (direct or rows)[:MAX_OE_PER_PART + 1]]
 
 
-def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache):
+def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache, pick_fn=None):
     """Полный подбор через FAPI: (расшифровка VIN, текст, причина)."""
     from concurrent.futures import ThreadPoolExecutor
     type_id, decoded = fapi_vin(vin, cache)
     nodes = fapi_tree(type_id, cache)
+    per_line = {line: shortlist_fn(nodes, [line], per_part=12) for line in part_lines}
+    union = {}
+    for cand in per_line.values():
+        union.update(cand)
+    picked = {}
+    if pick_fn and union:
+        try:
+            picked = pick_fn(part_lines, union) or {}
+        except Exception as e:
+            print(f'AI pick failed: {e}')
+    by_str = {str(k): k for k in union}
     chosen = []
     for line in part_lines:
-        found = shortlist_fn(nodes, [line], per_part=1)
-        chosen.append((line, next(iter(found), None)))
+        cand = per_line[line]
+        pid = picked.get(line)
+        nid = by_str.get(str(pid)) if pid is not None else None
+        if nid is None or nid not in cand:
+            nid = next(iter(cand), None) if not picked else None
+        print(f'FAPI group for "{line}": {nid} {nodes.get(nid) if nid is not None else ""}')
+        chosen.append((line, nid))
     need = sorted({nid for _, nid in chosen if nid})
     oem_by_node = {}
     missing = []

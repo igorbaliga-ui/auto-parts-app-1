@@ -304,9 +304,28 @@ def deepseek(api_key: str, system: str, user: str, timeout: int = 40):
 MATCH_PROMPT = (
     "Ты помощник менеджера автозапчастей. Тебе дан список запчастей из заявки и список групп каталога "
     "в формате «id: путь». Для каждой запчасти выбери ОДИН наиболее подходящий id группы. "
+    "Группа должна быть самой запчастью, а не её частью, кнопкой, датчиком, уплотнителем или крепежом "
+    "(для «крышка багажника» нужна группа с самой крышкой, а не «кнопка открывания»). "
     "Если подходящей группы нет — id null. Верни JSON: "
     '{"items": [{"part": "название запчасти из заявки", "id": "id группы или null"}]}'
 )
+
+
+def make_ai_pick(api_key: str):
+    def pick(part_lines: list, candidates: dict) -> dict:
+        tree_text = '\n'.join(f'{k}: {v}' for k, v in candidates.items())
+        matched = deepseek(api_key, MATCH_PROMPT, 'Запчасти:\n' + '\n'.join(part_lines) + f'\n\nГруппы каталога:\n{tree_text}', timeout=12)
+        out = {}
+        for i in matched.get('items', []):
+            if isinstance(i, dict) and i.get('part'):
+                out[i['part'].strip()] = i.get('id')
+        for line in part_lines:
+            if line not in out:
+                low = {k.lower(): v for k, v in out.items()}
+                if line.lower() in low:
+                    out[line] = low[line.lower()]
+        return out
+    return pick
 
 
 CACHE_DAYS = 30
@@ -393,7 +412,7 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None):
     if fapi_enabled():
         lines_in = [p.strip() for p in re.split(r'[\n;,]+', parts) if p.strip()][:10]
         try:
-            f_decoded, f_answer, f_note = fapi_catalog(vin.strip(), lines_in, shortlist, cache)
+            f_decoded, f_answer, f_note = fapi_catalog(vin.strip(), lines_in, shortlist, cache, make_ai_pick(api_key) if AI_ENABLED and api_key else None)
             if f_answer:
                 if info is not None:
                     info['via'] = 'fapi'
