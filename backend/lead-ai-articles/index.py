@@ -6,7 +6,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 import urllib.request
 import psycopg2
-from fapi import enrich_line, fapi_catalog, fapi_options, fapi_enabled, FapiError, fapi_usage
+from fapi import format_block, enrich_line, fapi_catalog, fapi_options, fapi_enabled, FapiError, fapi_usage
 from rate_limit import get_client_ip, check_rate_limit
 
 SYSTEM_PROMPT = (
@@ -493,12 +493,12 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None, overr
     for item, arts in zip(items, results):
         if arts:
             found += 1
-            lines.append(f"{item['part']} — {', '.join(arts[:8])}" if fapi_note else enrich_line(item['part'], arts, cache))
+            lines.append(format_block(item['part'], arts[:8], []) if fapi_note else enrich_line(item['part'], arts, cache))
         else:
             lines.append(f"{item['part']} — в каталоге не найдено, нужна проверка")
     if not found:
         return decoded, None, '; '.join(x for x in [fapi_note, 'поиск артикулов: каталог не нашёл подходящих запчастей'] if x)
-    return decoded, '\n'.join(lines), None
+    return decoded, '\n\n'.join(lines), None
 
 
 def handler(event: dict, context) -> dict:

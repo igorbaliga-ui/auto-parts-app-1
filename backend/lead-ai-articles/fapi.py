@@ -138,11 +138,21 @@ def applicability_for(mfi, number: str, cache=None) -> list:
     return items
 
 
+def format_block(part: str, originals: list, analogs: list, models=None) -> str:
+    rows = [part]
+    rows.extend(originals)
+    if analogs:
+        rows.append('Аналоги:')
+        rows.extend(analogs)
+    if models:
+        rows.append('Подходит: ' + ', '.join(models))
+    return '\n'.join(rows)
+
+
 def enrich_line(part: str, arts: list, cache=None) -> str:
     """Строка по позиции: артикулы каталога + аналоги FAPI (+ применимость, если FAPI_APPLICABILITY=1)."""
-    base = f"{part} — {', '.join(arts[:8])}"
     if not fapi_enabled():
-        return base
+        return format_block(part, arts[:8], [])
     analogs = []
     models = []
     for number in arts[:MAX_OE_PER_PART]:
@@ -152,12 +162,7 @@ def enrich_line(part: str, arts: list, cache=None) -> str:
                 analogs.append(a)
         if os.environ.get('FAPI_APPLICABILITY') == '1' and info.get('mfi') and not models:
             models = applicability_for(info['mfi'], number, cache)
-    analogs = analogs[:MAX_ANALOGS]
-    if analogs:
-        base += f"; аналоги: {', '.join(analogs)}"
-    if models:
-        base += f"; подходит: {', '.join(models)}"
-    return base
+    return format_block(part, arts[:8], analogs[:MAX_ANALOGS], models)
 
 
 def clean_brand(name: str) -> str:
@@ -325,18 +330,16 @@ def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache, pick_fn=None, 
             lines.append(f'{line} — в каталоге не найдено, нужна проверка')
             continue
         found += 1
-        text = f"{line} — " + ', '.join(f"{clean_brand(o['mfd'])} {o['n']}".strip() for o in oems)
+        originals = [f"{clean_brand(o['mfd'])} {o['n']}".strip() for o in oems]
         analogs = []
         for o in oems:
             for a in analogs_by_num.get(o['n'], []):
                 if a not in analogs:
                     analogs.append(a)
-        if analogs:
-            text += f"; аналоги: {', '.join(analogs[:MAX_ANALOGS])}"
-        lines.append(text)
+        lines.append(format_block(line, originals, analogs[:MAX_ANALOGS]))
     if not found:
         return decoded, None, 'FAPI: подходящих запчастей не найдено'
-    return decoded, '\n'.join(lines), None
+    return decoded, '\n\n'.join(lines), None
 
 
 def fapi_usage() -> dict:
