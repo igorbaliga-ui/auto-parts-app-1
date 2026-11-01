@@ -291,7 +291,11 @@ def collect_numbers(node, out):
                 collect_numbers(v, out)
     elif isinstance(node, list):
         for x in node:
-            collect_numbers(x, out)
+            if isinstance(x, str):
+                if x.strip():
+                    out.append(x.strip())
+            else:
+                collect_numbers(x, out)
 
 
 def fetch_originals(vin: str, str_id):
