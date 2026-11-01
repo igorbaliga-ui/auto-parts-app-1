@@ -81,21 +81,35 @@ def partsapi(method: str, **params):
     raise last
 
 
-def partsapi_check():
+def partsapi_check(vin: str = ''):
+    names = ('PARTSAPI_KEY', 'PARTSAPI_KEY_VIN', 'PARTSAPI_KEY_TREE', 'PARTSAPI_KEY_ARTICLES')
+    checks = [
+        ('Расшифровка VIN', 'VINdecode', {'vin': vin, 'lang': 'ru'}),
+        ('Дерево групп', 'getSearchTree', {'lang': LANG_ID, 'carId': 106459, 'carType': 'PC'}),
+        ('Список артикулов', 'getArticles', {'lang': LANG_ID, 'strId': 100259, 'carId': 106459, 'carType': 'PC'}),
+        ('Оригинальные номера по VIN', 'getPartsbyVIN', {'vin': vin, 'cat': 100259}),
+    ]
+    if not vin:
+        checks = checks[1:3]
+    keys = {n: os.environ.get(n, '').strip() for n in names}
+
+    def run(job):
+        name, label, method, extra = job
+        try:
+            partsapi_call(method, keys[name], **extra)
+            return name, label, 'принят'
+        except CatalogError as e:
+            return name, label, str(e).split(': ', 1)[-1]
+
+    jobs = [(n, label, m, extra) for n in names if keys[n] for label, m, extra in checks]
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        done = list(pool.map(run, jobs))
     out = {}
-    for name in ('PARTSAPI_KEY', 'PARTSAPI_KEY_VIN', 'PARTSAPI_KEY_TREE', 'PARTSAPI_KEY_ARTICLES'):
-        k = os.environ.get(name, '').strip()
-        if not k:
-            out[name] = 'не задан'
-            continue
-        res = {}
-        for method, extra in (('getSearchTree', {'lang': LANG_ID, 'carId': 106459, 'carType': 'PC'}), ('getArticles', {'lang': LANG_ID, 'strId': 100259, 'carId': 106459, 'carType': 'PC'})):
-            try:
-                partsapi_call(method, k, **extra)
-                res[method] = 'принят'
-            except CatalogError as e:
-                res[method] = str(e).split(': ', 1)[-1]
-        out[name] = res
+    for n in names:
+        if not keys[n]:
+            out[n] = 'не задан'
+        else:
+            out[n] = {label: st for name, label, st in done if name == n}
     return out
 
 
@@ -546,7 +560,16 @@ def handler(event: dict, context) -> dict:
 
     body = json.loads(event.get('body') or '{}')
     if body.get('action') == 'partsapi_check':
-        return {'statusCode': 200, 'headers': headers, 'body': json.dumps(partsapi_check())}
+        check_vin = ''
+        c = psycopg2.connect(dsn)
+        try:
+            cu = c.cursor()
+            cu.execute(f"SELECT vin FROM {schema}.leads WHERE vin IS NOT NULL AND length(trim(vin)) = 17 ORDER BY id DESC LIMIT 1")
+            r = cu.fetchone()
+            check_vin = r[0].strip() if r else ''
+        finally:
+            c.close()
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps(partsapi_check(check_vin))}
     if body.get('action') == 'fapi_check':
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps(fapi_usage())}
     lead_id = body.get('id')

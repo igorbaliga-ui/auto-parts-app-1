@@ -25,6 +25,13 @@ const Row = ({ ok, text }: { ok: boolean; text: string }) => (
   </div>
 );
 
+const KEY_LABELS: Record<string, string> = {
+  PARTSAPI_KEY: "Основной ключ",
+  PARTSAPI_KEY_VIN: "Ключ для номеров по VIN",
+  PARTSAPI_KEY_TREE: "Ключ для дерева групп",
+  PARTSAPI_KEY_ARTICLES: "Ключ для артикулов",
+};
+
 type PaResult = Record<string, string | Record<string, string>>;
 
 const FapiCheckButton = () => {
@@ -85,16 +92,16 @@ const FapiCheckButton = () => {
         <span className="hidden sm:inline">Ключ FAPI</span>
       </Button>
       {pa && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-md border bg-background p-3 text-sm shadow-lg flex flex-col gap-1.5">
+        <div className="absolute right-0 top-full mt-2 z-50 w-96 max-w-[90vw] rounded-md border bg-background p-3 text-sm shadow-lg flex flex-col gap-2">
           <button onClick={() => setPa(null)} className="absolute right-2 top-2 text-muted-foreground">
             <Icon name="X" size={14} />
           </button>
           {Object.entries(pa).map(([name, v]) =>
             typeof v === "string" ? (
-              <Row key={name} ok={false} text={`${name}: ${v}`} />
+              <Row key={name} ok={false} text={`${KEY_LABELS[name] || name}: ${v}`} />
             ) : (
               <div key={name} className="flex flex-col gap-0.5">
-                <span className="font-medium">{name}</span>
+                <span className="font-medium">{KEY_LABELS[name] || name}</span>
                 {Object.entries(v).map(([m, st]) => (
                   <Row key={m} ok={st === "принят"} text={`${m}: ${st}`} />
                 ))}
