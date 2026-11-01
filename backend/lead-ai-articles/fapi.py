@@ -179,9 +179,17 @@ def fapi_vin(vin: str, cache):
     hit = cache.get(key)
     if hit and hit.get('type_id'):
         return hit['type_id'], hit.get('text', '')
-    data = fapi_get('/vin', {'vin': vin, 'lang': 'ru'}, timeout=8, step='расшифровка VIN (FAPI)', strict=True)
+    try:
+        data = fapi_get('/vin', {'vin': vin, 'lang': 'ru'}, timeout=10, step='расшифровка VIN (FAPI)', strict=True)
+    except FapiError as e:
+        if 'нет ответа' not in str(e):
+            raise
+        data = fapi_get('/vin', {'vin': vin, 'lang': 'ru'}, timeout=10, step='расшифровка VIN (FAPI)', strict=True)
     if not isinstance(data, dict) or not data.get('dt_type_id'):
-        raise FapiError('расшифровка VIN (FAPI): авто не найдено в каталоге')
+        print(f'FAPI /vin without dt_type_id: {json.dumps(data, ensure_ascii=False)[:600]}')
+        known = decode_text(data) if isinstance(data, dict) else ''
+        conf = data.get('confidence') if isinstance(data, dict) else None
+        raise FapiError(f'расшифровка VIN (FAPI): точную модификацию не определил ({known or "авто неизвестно"}; точность: {conf})')
     text = decode_text(data)
     cache.put(key, {'type_id': data['dt_type_id'], 'text': text})
     return data['dt_type_id'], text
