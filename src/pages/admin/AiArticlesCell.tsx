@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 import InlineEditableCell from "./InlineEditableCell";
+import GroupPickerDialog from "./GroupPickerDialog";
 import { safeGetSession } from "@/lib/storage";
 
 const LEAD_AI_ARTICLES_URL =
@@ -25,7 +26,7 @@ const AiArticlesCell = ({ leadId, value, vinDecoded, catalogNote, aiSource, hasP
 
   const isFapi = viaFapi ?? aiSource === "fapi";
 
-  const generate = async () => {
+  const generate = async (overrides?: Record<string, string>) => {
     setLoading(true);
     setError("");
     try {
@@ -35,7 +36,7 @@ const AiArticlesCell = ({ leadId, value, vinDecoded, catalogNote, aiSource, hasP
           "Content-Type": "application/json",
           "X-Admin-Password": safeGetSession("admin_password") || "",
         },
-        body: JSON.stringify({ id: leadId }),
+        body: JSON.stringify({ id: leadId, ...(overrides ? { overrides } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "error");
@@ -44,8 +45,9 @@ const AiArticlesCell = ({ leadId, value, vinDecoded, catalogNote, aiSource, hasP
       await saveLeadField(leadId, "catalog_note", data.catalog_note || "");
       await saveLeadField(leadId, "vin_decoded", data.vin_decoded || "");
       await saveLeadField(leadId, "ai_articles", data.ai_articles);
-    } catch {
+    } catch (e) {
       setError("Не удалось подобрать. Попробуйте ещё раз.");
+      if (overrides) throw e;
     } finally {
       setLoading(false);
     }
@@ -92,11 +94,14 @@ const AiArticlesCell = ({ leadId, value, vinDecoded, catalogNote, aiSource, hasP
           size="sm"
           variant="outline"
           disabled={loading}
-          onClick={generate}
+          onClick={() => generate()}
         >
           <Icon name={loading ? "Loader" : "Sparkles"} size={14} className="mr-1.5" />
           {loading ? "Подбираю..." : value ? "Подобрать заново" : "Подобрать артикулы"}
         </Button>
+      )}
+      {hasParts && value && isFapi && (
+        <GroupPickerDialog leadId={leadId} disabled={loading} onApply={(o) => generate(o)} />
       )}
       {error && <span className="text-xs text-destructive">{error}</span>}
     </div>

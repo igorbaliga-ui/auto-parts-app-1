@@ -6,7 +6,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 import urllib.request
 import psycopg2
-from fapi import enrich_line, fapi_catalog, fapi_enabled, FapiError, fapi_usage
+from fapi import enrich_line, fapi_catalog, fapi_options, fapi_enabled, FapiError, fapi_usage
 from rate_limit import get_client_ip, check_rate_limit
 
 SYSTEM_PROMPT = (
@@ -404,7 +404,7 @@ def articles_key(car_id, car_type, str_id) -> str:
     return f'art:{car_id}:{car_type}:{str_id}'
 
 
-def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None):
+def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None, overrides=None):
     """Возвращает (расшифровка VIN, текст артикулов, причина почему каталог не помог)."""
     if not vin:
         return None, None, 'в заявке нет VIN, каталог не использовался'
@@ -412,7 +412,7 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None):
     if fapi_enabled():
         lines_in = [p.strip() for p in re.split(r'[\n;,]+', parts) if p.strip()][:10]
         try:
-            f_decoded, f_answer, f_note = fapi_catalog(vin.strip(), lines_in, shortlist, cache, make_ai_pick(api_key) if AI_ENABLED and api_key else None)
+            f_decoded, f_answer, f_note = fapi_catalog(vin.strip(), lines_in, shortlist, cache, make_ai_pick(api_key) if AI_ENABLED and api_key else None, overrides)
             if f_answer:
                 if info is not None:
                     info['via'] = 'fapi'
@@ -539,10 +539,22 @@ def handler(event: dict, context) -> dict:
         if not parts:
             return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'В заявке нет списка запчастей'})}
 
+        if body.get('action') == 'group_options':
+            if not vin or not fapi_enabled():
+                return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'parts': [], 'error': 'Выбор группы доступен только для заявок с VIN через FAPI'})}
+            lines_in = [p.strip() for p in re.split(r'[\n;,]+', parts) if p.strip()][:10]
+            try:
+                opts = fapi_options(vin.strip(), lines_in, shortlist, CatalogCache(conn, schema))
+            except Exception as e:
+                print(f'group options failed: {e}')
+                return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'parts': [], 'error': 'Не удалось получить группы каталога'})}
+            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'parts': opts})}
+
+        overrides = body.get('overrides') if isinstance(body.get('overrides'), dict) else None
         decoded, answer, note = None, None, None
         info = {}
         try:
-            decoded, answer, note = catalog_articles(api_key, vin, parts, CatalogCache(conn, schema), info)
+            decoded, answer, note = catalog_articles(api_key, vin, parts, CatalogCache(conn, schema), info, overrides)
         except Exception as e:
             print(f'catalog flow failed: {e}')
             note = 'каталог недоступен (внутренняя ошибка)'

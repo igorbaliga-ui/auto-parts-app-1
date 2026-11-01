@@ -227,7 +227,17 @@ def fetch_oem(type_id, node_id):
     return [{'mfi': r.get('mfi'), 'mfd': r.get('mfd', ''), 'n': r['n']} for r in (direct or rows)[:MAX_OE_PER_PART + 1]]
 
 
-def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache, pick_fn=None):
+def fapi_options(vin: str, part_lines: list, shortlist_fn, cache) -> list:
+    type_id, _ = fapi_vin(vin, cache)
+    nodes = fapi_tree(type_id, cache)
+    out = []
+    for line in part_lines:
+        cand = shortlist_fn(nodes, [line], per_part=15)
+        out.append({'part': line, 'options': [{'id': k, 'name': v} for k, v in cand.items()]})
+    return out
+
+
+def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache, pick_fn=None, overrides=None):
     """Полный подбор через FAPI: (расшифровка VIN, текст, причина)."""
     from concurrent.futures import ThreadPoolExecutor
     type_id, decoded = fapi_vin(vin, cache)
@@ -250,6 +260,9 @@ def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache, pick_fn=None):
         nid = by_str.get(str(pid)) if pid is not None else None
         if nid is None or nid not in cand:
             nid = next(iter(cand), None) if not picked else None
+        forced = (overrides or {}).get(line)
+        if forced is not None and str(forced) in nodes:
+            nid = str(forced)
         print(f'FAPI group for "{line}": {nid} {nodes.get(nid) if nid is not None else ""}')
         chosen.append((line, nid))
     need = sorted({nid for _, nid in chosen if nid})
