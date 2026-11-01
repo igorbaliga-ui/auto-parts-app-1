@@ -12,8 +12,12 @@ MAX_ANALOGS = 4
 MAX_MODELS = 5
 
 
+def fapi_key() -> str:
+    return os.environ.get('FAPI_KEY', '').strip().strip('"').strip("'")
+
+
 def fapi_enabled() -> bool:
-    return bool(os.environ.get('FAPI_KEY'))
+    return bool(fapi_key())
 
 
 class FapiError(Exception):
@@ -35,7 +39,7 @@ def fapi_reason(code: int) -> str:
 def fapi_get(path: str, params: dict, timeout: int = 6, step: str = '', strict: bool = False):
     url = f'{FAPI_URL}{path}?{urllib.parse.urlencode(params)}'
     req = urllib.request.Request(url, headers={
-        'Authorization': f"Bearer {os.environ['FAPI_KEY']}",
+        'Authorization': f"Bearer {fapi_key()}",
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip',
     })
@@ -282,10 +286,10 @@ def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache):
 
 def fapi_usage() -> dict:
     """Проверка ключа FAPI: принят ли, доступ к VIN, остатки."""
-    if not os.environ.get('FAPI_KEY'):
+    if not fapi_key():
         return {'key': 'missing'}
     req = urllib.request.Request(f'{FAPI_URL}/usage', headers={
-        'Authorization': f"Bearer {os.environ['FAPI_KEY']}",
+        'Authorization': f"Bearer {fapi_key()}",
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip',
     })
