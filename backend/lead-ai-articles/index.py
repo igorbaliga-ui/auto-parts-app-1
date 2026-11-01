@@ -248,6 +248,14 @@ def fetch_articles(car_id, car_type, str_id):
     return sorted(out, key=brand_rank)
 
 
+def safe_articles(car_id, car_type, str_id):
+    try:
+        return fetch_articles(car_id, car_type, str_id)
+    except CatalogError as e:
+        print(f'articles skipped: {e}')
+        return None
+
+
 def collect_numbers(node, out):
     if isinstance(node, dict):
         brand = first_of(node, 'brand', 'BRAND', 'mfr', 'manufacturer', 'brandName')
@@ -478,12 +486,12 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None, overr
                 missing.append(sid)
         if missing:
             with ThreadPoolExecutor(max_workers=6) as pool:
-                fetched = list(pool.map(lambda sid: fetch_articles(car_id, car_type, sid), missing))
+                fetched = list(pool.map(lambda sid: safe_articles(car_id, car_type, sid), missing))
                 originals = list(pool.map(lambda sid: orig_cached(cache, vin.strip(), sid), missing))
             for sid, arts, origs in zip(missing, fetched, originals):
-                merged = origs + [a for a in arts if a not in origs]
+                merged = origs + [a for a in (arts or []) if a not in origs]
                 results_by_id[sid] = merged
-                if merged:
+                if merged and arts is not None:
                     cache.put(articles_key(car_id, car_type, sid), {'items': merged})
         results = [results_by_id.get(str(i['id']), []) if i in valid else [] for i in items]
     except CatalogError as e:
