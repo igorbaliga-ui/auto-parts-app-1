@@ -20,6 +20,7 @@ SYSTEM_PROMPT = (
     "Если VIN не указан, decoded — пустая строка."
 )
 
+AI_ENABLED = False
 PARTSAPI_URL = 'https://partsapi.ru/api.php'
 CAR_TYPES = ['PC', '1']
 LANG_ID = 16
@@ -366,7 +367,10 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache):
             return decoded, None, 'дерево групп запчастей: не нашлось подходящих групп для запчастей из заявки'
         nodes = candidates
         tree_text = '\n'.join(f'{k}: {v}' for k, v in nodes.items())
-        matched = deepseek(api_key, MATCH_PROMPT, f'Запчасти:\n' + '\n'.join(part_lines) + f'\n\nГруппы каталога:\n{tree_text}', timeout=12)
+        if AI_ENABLED:
+            matched = deepseek(api_key, MATCH_PROMPT, f'Запчасти:\n' + '\n'.join(part_lines) + f'\n\nГруппы каталога:\n{tree_text}', timeout=12)
+        else:
+            matched = {'items': [{'part': line, 'id': next(iter(shortlist(nodes, [line], per_part=1)), None)} for line in part_lines]}
         items = [i for i in matched.get('items', []) if isinstance(i, dict) and i.get('part')]
         valid = [i for i in items if i.get('id') and str(i['id']) in nodes]
         results_by_id = {}
@@ -444,8 +448,8 @@ def handler(event: dict, context) -> dict:
     if not isinstance(lead_id, int):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный id заявки'})}
 
-    api_key = os.environ.get('DEEPSEEK_API_KEY')
-    if not api_key:
+    api_key = os.environ.get('DEEPSEEK_API_KEY') or ''
+    if AI_ENABLED and not api_key:
         return {'statusCode': 500, 'headers': headers, 'body': json.dumps({'error': 'Не задан ключ ИИ'})}
 
     conn = psycopg2.connect(dsn)
@@ -467,7 +471,10 @@ def handler(event: dict, context) -> dict:
             note = 'каталог недоступен (внутренняя ошибка)'
         source = 'catalog' if answer else 'ai'
 
-        if not answer:
+        if not answer and not AI_ENABLED:
+            answer = '\n'.join(f'{p.strip()} — в каталоге не найдено, нужна проверка' for p in re.split(r'[\n;,]+', parts) if p.strip())
+            source = 'catalog'
+        elif not answer:
             user_text = f"VIN: {vin or 'не указан'}\nАвто: {car_name or 'не указано'}\nЗапчасти: {parts}"
             try:
                 parsed = deepseek(api_key, SYSTEM_PROMPT, user_text)
