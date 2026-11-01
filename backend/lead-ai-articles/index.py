@@ -21,7 +21,7 @@ SYSTEM_PROMPT = (
     "Если VIN не указан, decoded — пустая строка."
 )
 
-AI_ENABLED = False
+AI_ENABLED = True
 PARTSAPI_URL = 'https://partsapi.ru/api.php'
 CAR_TYPES = ['PC', '1']
 LANG_ID = 16
