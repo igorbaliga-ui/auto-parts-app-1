@@ -6,7 +6,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 import urllib.request
 import psycopg2
-from fapi import format_block, enrich_line, fapi_catalog, fapi_options, fapi_enabled, FapiError, fapi_usage
+from fapi import one_per_brand, format_block, enrich_line, fapi_catalog, fapi_options, fapi_enabled, FapiError, fapi_usage
 from rate_limit import get_client_ip, check_rate_limit
 
 SYSTEM_PROMPT = (
@@ -458,7 +458,7 @@ def orig_cached(cache, vin: str, sid, pt_id=None):
 
 
 def articles_key(car_id, car_type, str_id) -> str:
-    return f'art2:{car_id}:{car_type}:{str_id}'
+    return f'art3:{car_id}:{car_type}:{str_id}'
 
 
 def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None, overrides=None):
@@ -507,9 +507,9 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None, overr
         for i in valid:
             sid = str(i['id'])
             hit = cache.get(articles_key(car_id, car_type, sid))
-            if hit and hit.get('items'):
+            if hit and (hit.get('arts') or hit.get('origs')):
                 print(f'cache hit {articles_key(car_id, car_type, sid)}')
-                results_by_id[sid] = hit['items']
+                results_by_id[sid] = (hit.get('origs') or [], hit.get('arts') or [])
             elif sid not in missing:
                 missing.append(sid)
         if missing:
@@ -518,19 +518,32 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None, overr
                 fetched = list(pool.map(lambda sid: safe_articles(car_id, car_type, sid, pt_by_sid[sid]), missing))
                 originals = list(pool.map(lambda sid: orig_cached(cache, vin.strip(), sid, pt_by_sid[sid][0] if pt_by_sid[sid] else None), missing))
             for sid, arts, origs in zip(missing, fetched, originals):
-                merged = origs + [a for a in (arts or []) if a not in origs]
-                results_by_id[sid] = merged
-                if merged and arts is not None:
-                    cache.put(articles_key(car_id, car_type, sid), {'items': merged})
-        results = [results_by_id.get(str(i['id']), []) if i in valid else [] for i in items]
+                results_by_id[sid] = (origs, arts or [])
+                if (origs or arts) and arts is not None:
+                    cache.put(articles_key(car_id, car_type, sid), {'origs': origs, 'arts': arts})
+        results = [results_by_id.get(str(i['id']), ([], [])) if i in valid else ([], []) for i in items]
     except CatalogError as e:
         return decoded, None, '; '.join(x for x in [fapi_note, str(e)] if x)
     lines = []
     found = 0
-    for item, arts in zip(items, results):
-        if arts:
+    pick_oem = make_ai_oem_filter(api_key) if AI_ENABLED and api_key else None
+    for item, (origs, arts) in zip(items, results):
+        if origs or arts:
             found += 1
-            lines.append(format_block(item['part'], arts[:8], []) if fapi_note else enrich_line(item['part'], arts, cache))
+            sid = str(item.get('id'))
+            chosen_orig = origs[:2]
+            if pick_oem and len(origs) > 1:
+                rows = [{'n': o, 'mfd': '', 'x': {}} for o in origs[:40]]
+                try:
+                    chosen_orig = [r['n'] for r in pick_oem(item['part'], nodes.get(sid, ''), rows, decoded)]
+                except Exception as e:
+                    print(f'AI oem filter failed: {e}')
+                    chosen_orig = origs[:2]
+            analogs = one_per_brand([a for a in arts if a not in chosen_orig], 6)
+            if chosen_orig:
+                lines.append(format_block(item['part'], chosen_orig, analogs))
+            else:
+                lines.append(format_block(item['part'], analogs[:2], analogs[2:]))
         else:
             lines.append(f"{item['part']} — в каталоге не найдено, нужна проверка")
     if not found:

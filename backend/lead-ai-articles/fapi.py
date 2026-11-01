@@ -105,8 +105,9 @@ def analogs_for(number: str, cache=None, mfi=None) -> dict:
         if link.get('oe'):
             continue
         label = f"{link.get('ds', '')} {link.get('n', '')}".strip()
-        if label and label not in seen:
-            seen.add(label)
+        brand = str(link.get('ds', '')).strip().upper()
+        if label and brand not in seen:
+            seen.add(brand)
             analogs.append(label)
         if len(analogs) >= MAX_ANALOGS:
             break
@@ -138,6 +139,30 @@ def applicability_for(mfi, number: str, cache=None) -> list:
     return items
 
 
+MULTI_WORD_BRANDS = ('FEBI BILSTEIN', 'HENGST FILTER', 'VICTOR REINZ', '1A FIRST AUTOMOTIVE', 'MANN FILTER', 'KAWE SPORT', 'BLUE PRINT', 'JAPAN CARS', 'SWAG AUTOMOTIVE', 'TRICLO PARTS')
+
+
+def brand_of(label: str) -> str:
+    up = label.strip().upper()
+    for b in MULTI_WORD_BRANDS:
+        if up.startswith(b + ' '):
+            return b
+    return up.split(' ', 1)[0]
+
+
+def one_per_brand(items: list, limit: int = 0) -> list:
+    seen, out = set(), []
+    for it in items:
+        b = brand_of(it)
+        if b in seen:
+            continue
+        seen.add(b)
+        out.append(it)
+        if limit and len(out) >= limit:
+            break
+    return out
+
+
 def format_block(part: str, originals: list, analogs: list, models=None) -> str:
     rows = [part]
     rows.extend(originals)
@@ -162,7 +187,7 @@ def enrich_line(part: str, arts: list, cache=None) -> str:
                 analogs.append(a)
         if os.environ.get('FAPI_APPLICABILITY') == '1' and info.get('mfi') and not models:
             models = applicability_for(info['mfi'], number, cache)
-    return format_block(part, arts[:8], analogs[:MAX_ANALOGS], models)
+    return format_block(part, arts[:8], one_per_brand(analogs, MAX_ANALOGS), models)
 
 
 def clean_brand(name: str) -> str:
@@ -336,7 +361,7 @@ def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache, pick_fn=None, 
             for a in analogs_by_num.get(o['n'], []):
                 if a not in analogs:
                     analogs.append(a)
-        lines.append(format_block(line, originals, analogs[:MAX_ANALOGS]))
+        lines.append(format_block(line, originals, one_per_brand(analogs, MAX_ANALOGS)))
     if not found:
         return decoded, None, 'FAPI: подходящих запчастей не найдено'
     return decoded, '\n\n'.join(lines), None
