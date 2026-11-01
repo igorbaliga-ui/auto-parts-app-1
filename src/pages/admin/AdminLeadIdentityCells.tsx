@@ -111,7 +111,9 @@ const AdminLeadIdentityCells = ({
               required
               onSave={(v) => saveLeadField(l.id, 'phone', v)}
               inputClassName="w-32"
-              renderValue={(v) => (
+              renderValue={(v) => !/\d{5,}/.test(v) ? (
+                <span className="text-muted-foreground whitespace-nowrap">{v}</span>
+              ) : (
                 <a
                   href={`tel:${v}`}
                   onClick={(e) => e.stopPropagation()}

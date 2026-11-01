@@ -144,7 +144,9 @@ const AdminLeadCard = ({
             displayLabel="Телефон"
             required
             onSave={(v) => saveLeadField(l.id, "phone", v)}
-            renderValue={(v) => (
+            renderValue={(v) => !/\d{5,}/.test(v) ? (
+              <span className="text-muted-foreground whitespace-nowrap">{v}</span>
+            ) : (
               <a
                 href={`tel:${v}`}
                 onClick={(e) => e.stopPropagation()}
