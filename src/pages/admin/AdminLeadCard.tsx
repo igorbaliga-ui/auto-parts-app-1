@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import Icon from "@/components/ui/icon";
 import InlineEditableCell from "./InlineEditableCell";
-import AiArticlesCell from "./AiArticlesCell";
+import AiArticlesWidget from "./AiArticlesWidget";
 import ImageLightbox from "@/components/shared/ImageLightbox";
 import { Lead, messengerLabel, statusLabel, formatDate, formatBonus } from "./adminTypes";
 
@@ -271,8 +271,8 @@ const AdminLeadCard = ({
           className="text-left whitespace-pre-wrap break-words line-clamp-5 max-w-full"
         />
       </Row>
-      <Row label="Артикулы">
-        <AiArticlesCell
+      <Row label="Подбор ИИ">
+        <AiArticlesWidget
           leadId={l.id}
           value={l.ai_articles}
               vinDecoded={l.vin_decoded}
