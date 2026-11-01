@@ -6,7 +6,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 import urllib.request
 import psycopg2
-from fapi import enrich_line
+from fapi import enrich_line, fapi_catalog, fapi_enabled, FapiError
 from rate_limit import get_client_ip, check_rate_limit
 
 SYSTEM_PROMPT = (
@@ -354,6 +354,21 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache):
     """Возвращает (расшифровка VIN, текст артикулов, причина почему каталог не помог)."""
     if not vin:
         return None, None, 'в заявке нет VIN, каталог не использовался'
+    fapi_note = None
+    if fapi_enabled():
+        lines_in = [p.strip() for p in re.split(r'[\n;,]+', parts) if p.strip()][:10]
+        try:
+            f_decoded, f_answer, f_note = fapi_catalog(vin.strip(), lines_in, shortlist, cache)
+            if f_answer:
+                return f_decoded, f_answer, None
+            fapi_note = f_note
+        except FapiError as e:
+            fapi_note = str(e)
+        except Exception as e:
+            print(f'fapi flow failed: {e}')
+            fapi_note = 'FAPI: внутренняя ошибка'
+        if not os.environ.get('PARTSAPI_KEY'):
+            return None, None, fapi_note
     if not os.environ.get('PARTSAPI_KEY'):
         return None, None, 'ключ каталога не задан'
     decoded = None
@@ -395,17 +410,17 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache):
                     cache.put(articles_key(car_id, car_type, sid), {'items': merged})
         results = [results_by_id.get(str(i['id']), []) if i in valid else [] for i in items]
     except CatalogError as e:
-        return decoded, None, str(e)
+        return decoded, None, '; '.join(x for x in [fapi_note, str(e)] if x)
     lines = []
     found = 0
     for item, arts in zip(items, results):
         if arts:
             found += 1
-            lines.append(enrich_line(item['part'], arts, cache))
+            lines.append(f"{item['part']} — {', '.join(arts[:8])}" if fapi_note else enrich_line(item['part'], arts, cache))
         else:
             lines.append(f"{item['part']} — в каталоге не найдено, нужна проверка")
     if not found:
-        return decoded, None, 'поиск артикулов: каталог не нашёл подходящих запчастей'
+        return decoded, None, '; '.join(x for x in [fapi_note, 'поиск артикулов: каталог не нашёл подходящих запчастей'] if x)
     return decoded, '\n'.join(lines), None
 
 

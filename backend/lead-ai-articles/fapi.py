@@ -1,5 +1,7 @@
+import gzip
 import json
 import os
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -14,16 +16,43 @@ def fapi_enabled() -> bool:
     return bool(os.environ.get('FAPI_KEY'))
 
 
-def fapi_get(path: str, params: dict, timeout: int = 6):
+class FapiError(Exception):
+    pass
+
+
+def fapi_reason(code: int) -> str:
+    if code == 402:
+        return 'не хватает кредитов или баланса, нужна оплата'
+    if code in (401, 403):
+        return 'ключ не принят или нет доступа к методу'
+    if code == 429:
+        return 'исчерпан лимит запросов'
+    if code == 503:
+        return 'сервис временно недоступен'
+    return f'ошибка {code}'
+
+
+def fapi_get(path: str, params: dict, timeout: int = 6, step: str = '', strict: bool = False):
     url = f'{FAPI_URL}{path}?{urllib.parse.urlencode(params)}'
-    req = urllib.request.Request(url, headers={'Authorization': f"Bearer {os.environ['FAPI_KEY']}", 'Accept': 'application/json'})
+    req = urllib.request.Request(url, headers={
+        'Authorization': f"Bearer {os.environ['FAPI_KEY']}",
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip',
+    })
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode('utf-8'))
+            raw = resp.read()
+            if resp.headers.get('Content-Encoding') == 'gzip':
+                raw = gzip.decompress(raw)
+            return json.loads(raw.decode('utf-8')) if raw else None
     except urllib.error.HTTPError as e:
         print(f'FAPI {path} {e.code}: {e.read().decode("utf-8", "ignore")[:200]}')
+        if strict:
+            raise FapiError(f'{step or path}: {fapi_reason(e.code)}')
     except Exception as e:
         print(f'FAPI {path} failed: {e}')
+        if strict:
+            raise FapiError(f'{step or path}: нет ответа')
     return None
 
 
@@ -33,8 +62,11 @@ def pick_candidate(candidates: list):
     return pool[0] if pool else None
 
 
-def part_card(number: str):
-    card = fapi_get('/part', {'n': number, 'limit': 50})
+def part_card(number: str, mfi=None):
+    params = {'n': number, 'limit': 50}
+    if mfi:
+        params['mfi'] = mfi
+    card = fapi_get('/part', params)
     if not card:
         return None
     if not card.get('part') and card.get('candidates'):
@@ -47,13 +79,13 @@ def part_card(number: str):
     return card
 
 
-def analogs_for(number: str, cache=None) -> dict:
+def analogs_for(number: str, cache=None, mfi=None) -> dict:
     """Кроссы по номеру: {'mfi': ..., 'analogs': ['BRAND NUMBER', ...]}."""
     key = f'fapi:cross:{number}'
     hit = cache.get(key) if cache else None
     if hit is not None:
         return hit
-    card = part_card(number)
+    card = part_card(number, mfi)
     if not card:
         return {}
     seen = set()
@@ -115,3 +147,128 @@ def enrich_line(part: str, arts: list, cache=None) -> str:
     if models:
         base += f"; подходит: {', '.join(models)}"
     return base
+
+
+def clean_brand(name: str) -> str:
+    return (name or '').strip()
+
+
+def decode_text(v: dict) -> str:
+    parts = [' '.join(x for x in [v.get('brand_name') or v.get('manufacturer'), v.get('model_name'), v.get('modification_name')] if x)]
+    if v.get('engine_code'):
+        parts.append(f"двигатель {v['engine_code']}")
+    if v.get('model_year'):
+        parts.append(f"{v['model_year']} г.")
+    if v.get('country'):
+        parts.append(v['country'])
+    return ', '.join(p for p in parts if p)
+
+
+def fapi_vin(vin: str, cache):
+    key = f'fapi:vin:{vin}'
+    hit = cache.get(key)
+    if hit and hit.get('type_id'):
+        return hit['type_id'], hit.get('text', '')
+    data = fapi_get('/vin', {'vin': vin, 'lang': 'ru'}, timeout=8, step='расшифровка VIN (FAPI)', strict=True)
+    if not isinstance(data, dict) or not data.get('dt_type_id'):
+        raise FapiError('расшифровка VIN (FAPI): авто не найдено в каталоге')
+    text = decode_text(data)
+    cache.put(key, {'type_id': data['dt_type_id'], 'text': text})
+    return data['dt_type_id'], text
+
+
+def fapi_tree(type_id, cache) -> dict:
+    key = f'fapi:tree:{type_id}'
+    hit = cache.get(key)
+    if hit and hit.get('nodes'):
+        return hit['nodes']
+    rows = fapi_get('/catalogList/dt/treeList', {'mi': type_id}, timeout=8, step='дерево групп (FAPI)', strict=True)
+    rows = [r for r in (rows or []) if isinstance(r, dict) and r.get('i')]
+    by_id = {r['i']: r for r in rows}
+    parents = {r.get('pi') for r in rows}
+    nodes = {}
+    for r in rows:
+        if r['i'] in parents:
+            continue
+        names, cur, guard = [], r, 0
+        while cur and guard < 8:
+            names.append(str(cur.get('d', '')))
+            cur = by_id.get(cur.get('pi'))
+            guard += 1
+        nodes[str(r['i'])] = ' > '.join(reversed(names))
+    if not nodes:
+        raise FapiError('дерево групп (FAPI): для этого авто нет данных')
+    cache.put(key, {'nodes': nodes})
+    return nodes
+
+
+def fetch_oem(type_id, node_id):
+    rows = fapi_get('/catalogList/dt/productListOEM', {'modi': type_id, 'nodei': node_id}, timeout=10, step='оригинальные номера (FAPI)', strict=True)
+    rows = [r for r in (rows or []) if isinstance(r, dict) and r.get('n')]
+    direct = [r for r in rows if not r.get('fit')]
+    return [{'mfi': r.get('mfi'), 'mfd': r.get('mfd', ''), 'n': r['n']} for r in (direct or rows)[:MAX_OE_PER_PART + 1]]
+
+
+def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache):
+    """Полный подбор через FAPI: (расшифровка VIN, текст, причина)."""
+    from concurrent.futures import ThreadPoolExecutor
+    type_id, decoded = fapi_vin(vin, cache)
+    nodes = fapi_tree(type_id, cache)
+    chosen = []
+    for line in part_lines:
+        found = shortlist_fn(nodes, [line], per_part=1)
+        chosen.append((line, next(iter(found), None)))
+    need = sorted({nid for _, nid in chosen if nid})
+    oem_by_node = {}
+    missing = []
+    for nid in need:
+        hit = cache.get(f'fapi:oem:{type_id}:{nid}')
+        if hit is not None and 'items' in hit:
+            oem_by_node[nid] = hit['items']
+        else:
+            missing.append(nid)
+    if missing:
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            fetched = list(pool.map(lambda n: fetch_oem(type_id, n), missing))
+        for nid, items in zip(missing, fetched):
+            oem_by_node[nid] = items
+            cache.put(f'fapi:oem:{type_id}:{nid}', {'items': items})
+    analog_jobs = []
+    for _, nid in chosen:
+        for o in (oem_by_node.get(nid) or [])[:MAX_OE_PER_PART]:
+            analog_jobs.append(o)
+    analogs_by_num = {}
+    todo = []
+    for o in analog_jobs:
+        hit = cache.get(f"fapi:cross:{o['n']}")
+        if hit is not None:
+            analogs_by_num[o['n']] = hit.get('analogs', [])
+        elif o['n'] not in todo:
+            todo.append(o['n'])
+    mfi_of = {o['n']: o.get('mfi') for o in analog_jobs}
+    if todo:
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            res = list(pool.map(lambda n: analogs_for(n, None, mfi_of.get(n)), todo))
+        for n, info in zip(todo, res):
+            analogs_by_num[n] = info.get('analogs', [])
+            cache.put(f'fapi:cross:{n}', {'analogs': analogs_by_num[n]})
+    lines = []
+    found = 0
+    for line, nid in chosen:
+        oems = (oem_by_node.get(nid) or [])[:MAX_OE_PER_PART] if nid else []
+        if not oems:
+            lines.append(f'{line} — в каталоге не найдено, нужна проверка')
+            continue
+        found += 1
+        text = f"{line} — " + ', '.join(f"{clean_brand(o['mfd'])} {o['n']}".strip() for o in oems)
+        analogs = []
+        for o in oems:
+            for a in analogs_by_num.get(o['n'], []):
+                if a not in analogs:
+                    analogs.append(a)
+        if analogs:
+            text += f"; аналоги: {', '.join(analogs[:MAX_ANALOGS])}"
+        lines.append(text)
+    if not found:
+        return decoded, None, 'FAPI: подходящих запчастей не найдено'
+    return decoded, '\n'.join(lines), None
