@@ -110,6 +110,7 @@ const Hero = () => {
                   cx="100"
                   cy="100"
                   r="76"
+                  pathLength="460"
                   fill="none"
                   stroke="hsl(var(--primary))"
                   strokeWidth="5"
