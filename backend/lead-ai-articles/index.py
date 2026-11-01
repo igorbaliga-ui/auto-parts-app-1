@@ -6,7 +6,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 import urllib.request
 import psycopg2
-from fapi import enrich_line, fapi_catalog, fapi_enabled, FapiError
+from fapi import enrich_line, fapi_catalog, fapi_enabled, FapiError, fapi_usage
 from rate_limit import get_client_ip, check_rate_limit
 
 SYSTEM_PROMPT = (
@@ -460,6 +460,8 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный пароль'})}
 
     body = json.loads(event.get('body') or '{}')
+    if body.get('action') == 'fapi_check':
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps(fapi_usage())}
     lead_id = body.get('id')
     if not isinstance(lead_id, int):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный id заявки'})}

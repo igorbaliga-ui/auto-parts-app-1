@@ -46,7 +46,13 @@ def fapi_get(path: str, params: dict, timeout: int = 6, step: str = '', strict: 
                 raw = gzip.decompress(raw)
             return json.loads(raw.decode('utf-8')) if raw else None
     except urllib.error.HTTPError as e:
-        print(f'FAPI {path} {e.code}: {e.read().decode("utf-8", "ignore")[:200]}')
+        err = e.read()
+        if e.headers.get('Content-Encoding') == 'gzip':
+            try:
+                err = gzip.decompress(err)
+            except Exception:
+                pass
+        print(f'FAPI {path} {e.code}: {err.decode("utf-8", "ignore")[:300]}')
         if strict:
             raise FapiError(f'{step or path}: {fapi_reason(e.code)}')
     except Exception as e:
@@ -272,3 +278,39 @@ def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache):
     if not found:
         return decoded, None, 'FAPI: подходящих запчастей не найдено'
     return decoded, '\n'.join(lines), None
+
+
+def fapi_usage() -> dict:
+    """Проверка ключа FAPI: принят ли, доступ к VIN, остатки."""
+    if not os.environ.get('FAPI_KEY'):
+        return {'key': 'missing'}
+    req = urllib.request.Request(f'{FAPI_URL}/usage', headers={
+        'Authorization': f"Bearer {os.environ['FAPI_KEY']}",
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip',
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            raw = resp.read()
+            if resp.headers.get('Content-Encoding') == 'gzip':
+                raw = gzip.decompress(raw)
+            data = json.loads(raw.decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        print(f'FAPI /usage {e.code}')
+        return {'key': 'rejected', 'code': e.code}
+    except Exception as e:
+        print(f'FAPI /usage failed: {e}')
+        return {'key': 'unavailable'}
+    acc = data.get('account') or {}
+    vin = data.get('vin') or {}
+    return {
+        'key': 'ok',
+        'status': acc.get('st'),
+        'status_text': acc.get('d'),
+        'plan': acc.get('pl'),
+        'credits_left': acc.get('rem'),
+        'credits_total': acc.get('inc'),
+        'balance_rub': (acc.get('bp') or 0) / 100 if acc.get('bp') is not None else None,
+        'vin_access': vin.get('st'),
+        'vin_balance_rub': vin['balance_kopecks'] / 100 if vin.get('balance_kopecks') is not None else None,
+    }

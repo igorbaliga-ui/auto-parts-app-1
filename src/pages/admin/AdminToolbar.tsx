@@ -10,6 +10,7 @@ import {
 import Icon from '@/components/ui/icon';
 import { Lead, ColumnKey, columns } from './adminTypes';
 import { exportLeadsToExcel } from './exportLeads';
+import FapiCheckButton from './FapiCheckButton';
 
 type AdminToolbarProps = {
   leads: Lead[];
@@ -63,6 +64,7 @@ const AdminToolbar = ({
               <span className="hidden sm:inline">Сбросить фильтры</span>
             </Button>
           )}
+          <FapiCheckButton />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="secondary" className="hidden md:flex font-head uppercase tracking-wide">
