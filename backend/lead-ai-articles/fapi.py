@@ -8,6 +8,7 @@ import urllib.request
 
 FAPI_URL = 'https://fapi.iisis.ru/fapi/v2'
 MAX_OE_PER_PART = 2
+MAX_OE_CANDIDATES = 25
 MAX_ANALOGS = 4
 MAX_MODELS = 5
 
@@ -223,8 +224,13 @@ def fapi_tree(type_id, cache) -> dict:
 def fetch_oem(type_id, node_id):
     rows = fapi_get('/catalogList/dt/productListOEM', {'modi': type_id, 'nodei': node_id}, timeout=10, step='оригинальные номера (FAPI)', strict=True)
     rows = [r for r in (rows or []) if isinstance(r, dict) and r.get('n')]
+    print(f'FAPI OEM rows node {node_id} total {len(rows)}: {json.dumps(rows[:20], ensure_ascii=False)[:2500]}')
     direct = [r for r in rows if not r.get('fit')]
-    return [{'mfi': r.get('mfi'), 'mfd': r.get('mfd', ''), 'n': r['n']} for r in (direct or rows)[:MAX_OE_PER_PART + 1]]
+    out = []
+    for r in (direct or rows)[:MAX_OE_CANDIDATES]:
+        extra = {k: v for k, v in r.items() if k not in ('n', 'mfi', 'mfd', 'fit') and v not in (None, '', [], {})}
+        out.append({'mfi': r.get('mfi'), 'mfd': r.get('mfd', ''), 'n': r['n'], 'x': extra})
+    return out
 
 
 def fapi_options(vin: str, part_lines: list, shortlist_fn, cache) -> list:
@@ -237,7 +243,7 @@ def fapi_options(vin: str, part_lines: list, shortlist_fn, cache) -> list:
     return out
 
 
-def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache, pick_fn=None, overrides=None):
+def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache, pick_fn=None, overrides=None, filter_fn=None):
     """Полный подбор через FAPI: (расшифровка VIN, текст, причина)."""
     from concurrent.futures import ThreadPoolExecutor
     type_id, decoded = fapi_vin(vin, cache)
@@ -269,7 +275,7 @@ def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache, pick_fn=None, 
     oem_by_node = {}
     missing = []
     for nid in need:
-        hit = cache.get(f'fapi:oem:{type_id}:{nid}')
+        hit = cache.get(f'fapi:oem2:{type_id}:{nid}')
         if hit is not None and 'items' in hit:
             oem_by_node[nid] = hit['items']
         else:
@@ -279,11 +285,23 @@ def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache, pick_fn=None, 
             fetched = list(pool.map(lambda n: fetch_oem(type_id, n), missing))
         for nid, items in zip(missing, fetched):
             oem_by_node[nid] = items
-            cache.put(f'fapi:oem:{type_id}:{nid}', {'items': items})
+            cache.put(f'fapi:oem2:{type_id}:{nid}', {'items': items})
+    oems_of = {}
+    for line, nid in chosen:
+        rows = oem_by_node.get(nid) or [] if nid else []
+        sel = None
+        if filter_fn and len(rows) > 1:
+            try:
+                sel = filter_fn(line, nodes.get(nid, ''), rows, decoded)
+            except Exception as e:
+                print(f'AI oem filter failed: {e}')
+        if sel is None:
+            sel = rows[:MAX_OE_PER_PART]
+        print(f'FAPI OEM for "{line}": {[o["n"] for o in sel]} из {len(rows)}')
+        oems_of[line] = sel
     analog_jobs = []
-    for _, nid in chosen:
-        for o in (oem_by_node.get(nid) or [])[:MAX_OE_PER_PART]:
-            analog_jobs.append(o)
+    for line, _ in chosen:
+        analog_jobs.extend(oems_of.get(line) or [])
     analogs_by_num = {}
     todo = []
     for o in analog_jobs:
@@ -302,7 +320,7 @@ def fapi_catalog(vin: str, part_lines: list, shortlist_fn, cache, pick_fn=None, 
     lines = []
     found = 0
     for line, nid in chosen:
-        oems = (oem_by_node.get(nid) or [])[:MAX_OE_PER_PART] if nid else []
+        oems = oems_of.get(line) or []
         if not oems:
             lines.append(f'{line} — в каталоге не найдено, нужна проверка')
             continue

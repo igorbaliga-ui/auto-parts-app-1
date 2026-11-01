@@ -328,6 +328,27 @@ def make_ai_pick(api_key: str):
     return pick
 
 
+OEM_FILTER_PROMPT = (
+    "Ты эксперт по автозапчастям. Дана запчасть из заявки, авто, группа каталога и список оригинальных номеров "
+    "из этой группы с данными каталога. Выбери только те номера, которые являются именно этой запчастью для этого авто. "
+    "Исключи облицовки, накладки, панели обшивки, кнопки, уплотнители, крепёж и детали другой модели или другого кузова. "
+    "Если по данным нельзя понять, что номер подходит, не выбирай его. Выбирай не больше 2 номеров, лучше один точный. "
+    'Верни JSON: {"numbers": ["номер как в списке"]}'
+)
+
+
+def make_ai_oem_filter(api_key: str):
+    def pick(line: str, group: str, rows: list, car_text: str):
+        listing = '\n'.join(f"{o['n']} | {o.get('mfd', '')} | {json.dumps(o.get('x') or {}, ensure_ascii=False)[:200]}" for o in rows)
+        user = f"Запчасть: {line}\nАвто: {car_text or 'не указано'}\nГруппа: {group}\n\nНомера (номер | бренд | данные каталога):\n{listing}"
+        res = deepseek(api_key, OEM_FILTER_PROMPT, user, timeout=12)
+        wanted = [str(x).strip() for x in (res.get('numbers') or [])]
+        by_n = {o['n']: o for o in rows}
+        sel = [by_n[n] for n in wanted if n in by_n][:2]
+        return sel
+    return pick
+
+
 CACHE_DAYS = 30
 
 
@@ -412,7 +433,7 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None, overr
     if fapi_enabled():
         lines_in = [p.strip() for p in re.split(r'[\n;,]+', parts) if p.strip()][:10]
         try:
-            f_decoded, f_answer, f_note = fapi_catalog(vin.strip(), lines_in, shortlist, cache, make_ai_pick(api_key) if AI_ENABLED and api_key else None, overrides)
+            f_decoded, f_answer, f_note = fapi_catalog(vin.strip(), lines_in, shortlist, cache, make_ai_pick(api_key) if AI_ENABLED and api_key else None, overrides, make_ai_oem_filter(api_key) if AI_ENABLED and api_key else None)
             if f_answer:
                 if info is not None:
                     info['via'] = 'fapi'
