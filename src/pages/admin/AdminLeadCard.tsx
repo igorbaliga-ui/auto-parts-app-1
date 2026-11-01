@@ -277,6 +277,7 @@ const AdminLeadCard = ({
           value={l.ai_articles}
               vinDecoded={l.vin_decoded}
               catalogNote={l.catalog_note}
+              aiSource={l.ai_source}
           hasParts={!!l.parts}
           saveLeadField={saveLeadField}
         />

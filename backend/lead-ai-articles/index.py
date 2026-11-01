@@ -350,7 +350,7 @@ def articles_key(car_id, car_type, str_id) -> str:
     return f'art:{car_id}:{car_type}:{str_id}'
 
 
-def catalog_articles(api_key: str, vin: str, parts: str, cache):
+def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None):
     """Возвращает (расшифровка VIN, текст артикулов, причина почему каталог не помог)."""
     if not vin:
         return None, None, 'в заявке нет VIN, каталог не использовался'
@@ -360,6 +360,8 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache):
         try:
             f_decoded, f_answer, f_note = fapi_catalog(vin.strip(), lines_in, shortlist, cache)
             if f_answer:
+                if info is not None:
+                    info['via'] = 'fapi'
                 return f_decoded, f_answer, None
             fapi_note = f_note
         except FapiError as e:
@@ -482,8 +484,9 @@ def handler(event: dict, context) -> dict:
             return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'В заявке нет списка запчастей'})}
 
         decoded, answer, note = None, None, None
+        info = {}
         try:
-            decoded, answer, note = catalog_articles(api_key, vin, parts, CatalogCache(conn, schema))
+            decoded, answer, note = catalog_articles(api_key, vin, parts, CatalogCache(conn, schema), info)
         except Exception as e:
             print(f'catalog flow failed: {e}')
             note = 'каталог недоступен (внутренняя ошибка)'
@@ -504,12 +507,12 @@ def handler(event: dict, context) -> dict:
             decoded = decoded or str(parsed.get('decoded') or '').strip()
 
         cur.execute(
-            f"UPDATE {schema}.leads SET ai_articles = %s, vin_decoded = %s, catalog_note = %s WHERE id = %s",
-            (answer, decoded or None, note, lead_id),
+            f"UPDATE {schema}.leads SET ai_articles = %s, vin_decoded = %s, catalog_note = %s, ai_source = %s WHERE id = %s",
+            (answer, decoded or None, note, info.get('via') or source, lead_id),
         )
         conn.commit()
         cur.close()
     finally:
         conn.close()
 
-    return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'ai_articles': answer, 'vin_decoded': decoded or '', 'source': source, 'catalog_note': note or ''})}
+    return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'ai_articles': answer, 'vin_decoded': decoded or '', 'source': source, 'via': info.get('via', ''), 'catalog_note': note or ''})}

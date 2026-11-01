@@ -12,14 +12,18 @@ type Props = {
   value: string | null;
   vinDecoded?: string | null;
   catalogNote?: string | null;
+  aiSource?: string | null;
   hasParts: boolean;
   saveLeadField: (id: number, field: string, value: string) => Promise<void>;
 };
 
-const AiArticlesCell = ({ leadId, value, vinDecoded, catalogNote, hasParts, saveLeadField }: Props) => {
+const AiArticlesCell = ({ leadId, value, vinDecoded, catalogNote, aiSource, hasParts, saveLeadField }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fromCatalog, setFromCatalog] = useState(false);
+  const [viaFapi, setViaFapi] = useState<boolean | null>(null);
+
+  const isFapi = viaFapi ?? aiSource === "fapi";
 
   const generate = async () => {
     setLoading(true);
@@ -36,6 +40,7 @@ const AiArticlesCell = ({ leadId, value, vinDecoded, catalogNote, hasParts, save
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "error");
       setFromCatalog(data.source === "catalog");
+      setViaFapi(data.via === "fapi");
       await saveLeadField(leadId, "catalog_note", data.catalog_note || "");
       await saveLeadField(leadId, "vin_decoded", data.vin_decoded || "");
       await saveLeadField(leadId, "ai_articles", data.ai_articles);
@@ -64,8 +69,12 @@ const AiArticlesCell = ({ leadId, value, vinDecoded, catalogNote, hasParts, save
       )}
       {value && (
         <>
-          <span className={`text-[11px] ${fromCatalog ? "text-emerald-500" : "text-amber-500"}`}>
-            {fromCatalog ? "Из каталога TecDoc — сверьте с VIN" : "Предложено ИИ — проверьте"}
+          <span className={`text-[11px] ${fromCatalog || isFapi ? "text-emerald-500" : "text-amber-500"}`}>
+            {isFapi
+              ? "Подобрано через FAPI — номера даны по модификации авто, сверьте по VIN"
+              : fromCatalog
+                ? "Из каталога TecDoc — сверьте с VIN"
+                : "Предложено ИИ — проверьте"}
           </span>
           <InlineEditableCell
             value={value}
