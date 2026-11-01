@@ -65,8 +65,43 @@ def method_key(method: str) -> str:
 
 
 def partsapi(method: str, **params):
+    keys = []
+    for k in (method_key(method), os.environ.get('PARTSAPI_KEY', '').strip()):
+        if k and k not in keys:
+            keys.append(k)
+    last = None
+    for k in keys or ['']:
+        try:
+            return partsapi_call(method, k, **params)
+        except CatalogError as e:
+            last = e
+            if 'ключ не принят' not in str(e):
+                raise
+            print(f'PartsAPI {method}: ключ не принят, пробую следующий')
+    raise last
+
+
+def partsapi_check():
+    out = {}
+    for name in ('PARTSAPI_KEY', 'PARTSAPI_KEY_VIN', 'PARTSAPI_KEY_TREE', 'PARTSAPI_KEY_ARTICLES'):
+        k = os.environ.get(name, '').strip()
+        if not k:
+            out[name] = 'не задан'
+            continue
+        res = {}
+        for method, extra in (('getSearchTree', {'lang': LANG_ID, 'carId': 106459, 'carType': 'PC'}), ('getArticles', {'lang': LANG_ID, 'strId': 100259, 'carId': 106459, 'carType': 'PC'})):
+            try:
+                partsapi_call(method, k, **extra)
+                res[method] = 'принят'
+            except CatalogError as e:
+                res[method] = str(e).split(': ', 1)[-1]
+        out[name] = res
+    return out
+
+
+def partsapi_call(method: str, key: str, **params):
     step = STEP_NAMES.get(method, method)
-    query = urllib.parse.urlencode({'method': method, 'key': method_key(method), **params})
+    query = urllib.parse.urlencode({'method': method, 'key': key, **params})
     try:
         with urllib.request.urlopen(f'{PARTSAPI_URL}?{query}', timeout=8) as resp:
             raw = resp.read().decode('utf-8')
@@ -462,6 +497,8 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный пароль'})}
 
     body = json.loads(event.get('body') or '{}')
+    if body.get('action') == 'partsapi_check':
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps(partsapi_check())}
     if body.get('action') == 'fapi_check':
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps(fapi_usage())}
     lead_id = body.get('id')

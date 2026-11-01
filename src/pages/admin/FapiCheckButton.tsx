@@ -25,7 +25,29 @@ const Row = ({ ok, text }: { ok: boolean; text: string }) => (
   </div>
 );
 
+type PaResult = Record<string, string | Record<string, string>>;
+
 const FapiCheckButton = () => {
+  const [pa, setPa] = useState<PaResult | null>(null);
+  const [paLoading, setPaLoading] = useState(false);
+
+  const checkPa = async () => {
+    setPaLoading(true);
+    try {
+      const res = await fetch(URL_, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Admin-Password": safeGetSession("admin_password") || "" },
+        body: JSON.stringify({ action: "partsapi_check" }),
+      });
+      if (!res.ok) throw new Error();
+      setPa(await res.json());
+    } catch {
+      setPa({ error: "Не удалось проверить" });
+    } finally {
+      setPaLoading(false);
+    }
+  };
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [r, setR] = useState<Result | null>(null);
@@ -53,11 +75,34 @@ const FapiCheckButton = () => {
   const vinOk = r?.vin_access === "ok";
 
   return (
-    <div className="relative">
+    <div className="relative flex gap-2">
+      <Button variant="secondary" onClick={checkPa} disabled={paLoading} className="font-head uppercase tracking-wide">
+        <Icon name={paLoading ? "Loader" : "KeyRound"} size={16} className={`mr-2 ${paLoading ? "animate-spin" : ""}`} />
+        <span className="hidden sm:inline">Ключи PartsAPI</span>
+      </Button>
       <Button variant="secondary" onClick={check} disabled={loading} className="font-head uppercase tracking-wide">
         <Icon name={loading ? "Loader" : "KeyRound"} size={16} className={`mr-2 ${loading ? "animate-spin" : ""}`} />
         <span className="hidden sm:inline">Ключ FAPI</span>
       </Button>
+      {pa && (
+        <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-md border bg-background p-3 text-sm shadow-lg flex flex-col gap-1.5">
+          <button onClick={() => setPa(null)} className="absolute right-2 top-2 text-muted-foreground">
+            <Icon name="X" size={14} />
+          </button>
+          {Object.entries(pa).map(([name, v]) =>
+            typeof v === "string" ? (
+              <Row key={name} ok={false} text={`${name}: ${v}`} />
+            ) : (
+              <div key={name} className="flex flex-col gap-0.5">
+                <span className="font-medium">{name}</span>
+                {Object.entries(v).map(([m, st]) => (
+                  <Row key={m} ok={st === "принят"} text={`${m}: ${st}`} />
+                ))}
+              </div>
+            )
+          )}
+        </div>
+      )}
       {(r || error) && (
         <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-md border bg-background p-3 text-sm shadow-lg flex flex-col gap-1.5">
           <button onClick={() => { setR(null); setError(""); }} className="absolute right-2 top-2 text-muted-foreground">
