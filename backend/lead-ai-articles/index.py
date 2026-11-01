@@ -618,6 +618,42 @@ def handler(event: dict, context) -> dict:
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps(partsapi_check(check_vin))}
     if body.get('action') == 'fapi_check':
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps(fapi_usage())}
+    if body.get('action') == 'free_search':
+        f_vin = str(body.get('vin') or '').strip()[:32]
+        f_car = str(body.get('car_name') or '').strip()[:200]
+        f_parts = str(body.get('parts') or '').strip()[:1000]
+        if not f_parts:
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите запчасти'})}
+        if not f_vin and not f_car:
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Укажите VIN или название авто'})}
+        f_key = os.environ.get('DEEPSEEK_API_KEY') or ''
+        if AI_ENABLED and not f_key:
+            return {'statusCode': 500, 'headers': headers, 'body': json.dumps({'error': 'Не задан ключ ИИ'})}
+        f_conn = psycopg2.connect(dsn)
+        try:
+            f_decoded, f_answer, f_note, f_info = None, None, None, {}
+            if f_vin:
+                try:
+                    f_decoded, f_answer, f_note = catalog_articles(f_key, f_vin, f_parts, CatalogCache(f_conn, schema), f_info, None)
+                except Exception as e:
+                    print(f'free catalog flow failed: {e}')
+                    f_note = 'каталог недоступен (внутренняя ошибка)'
+            f_source = 'catalog' if f_answer else 'ai'
+            if not f_answer:
+                if not AI_ENABLED:
+                    f_answer = '\n'.join(f'{p.strip()} — в каталоге не найдено, нужна проверка' for p in re.split(r'[\n;,]+', f_parts) if p.strip())
+                    f_source = 'catalog'
+                else:
+                    try:
+                        parsed = deepseek(f_key, SYSTEM_PROMPT, f"VIN: {f_vin or 'не указан'}\nАвто: {f_car or 'не указано'}\nЗапчасти: {f_parts}")
+                    except urllib.error.HTTPError as e:
+                        print(f'AI error {e.code}')
+                        return {'statusCode': 502, 'headers': headers, 'body': json.dumps({'error': f'ИИ отклонил запрос ({e.code})'})}
+                    f_answer = str(parsed.get('articles') or '').strip()
+                    f_decoded = f_decoded or str(parsed.get('decoded') or '').strip()
+        finally:
+            f_conn.close()
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'ai_articles': f_answer, 'vin_decoded': f_decoded or '', 'source': f_source, 'via': f_info.get('via', ''), 'catalog_note': f_note or ''})}
     lead_id = body.get('id')
     if not isinstance(lead_id, int):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный id заявки'})}

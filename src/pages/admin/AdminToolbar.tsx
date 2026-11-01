@@ -11,6 +11,7 @@ import Icon from '@/components/ui/icon';
 import { Lead, ColumnKey, columns } from './adminTypes';
 import { exportLeadsToExcel } from './exportLeads';
 import FapiCheckButton from './FapiCheckButton';
+import FreeAiSearchButton from './FreeAiSearchButton';
 
 type AdminToolbarProps = {
   leads: Lead[];
@@ -65,6 +66,7 @@ const AdminToolbar = ({
             </Button>
           )}
           <FapiCheckButton />
+          <FreeAiSearchButton />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="secondary" className="hidden md:flex font-head uppercase tracking-wide">
