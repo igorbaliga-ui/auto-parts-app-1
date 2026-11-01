@@ -6,6 +6,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 import urllib.request
 import psycopg2
+from fapi import enrich_line
 from rate_limit import get_client_ip, check_rate_limit
 
 SYSTEM_PROMPT = (
@@ -400,7 +401,7 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache):
     for item, arts in zip(items, results):
         if arts:
             found += 1
-            lines.append(f"{item['part']} — {', '.join(arts[:8])}")
+            lines.append(enrich_line(item['part'], arts, cache))
         else:
             lines.append(f"{item['part']} — в каталоге не найдено, нужна проверка")
     if not found:
