@@ -371,14 +371,28 @@ OEM_FILTER_PROMPT = (
 )
 
 
+def norm_num(s: str) -> str:
+    return re.sub(r'[^A-Z0-9]', '', str(s).upper())
+
+
 def make_ai_oem_filter(api_key: str):
     def pick(line: str, group: str, rows: list, car_text: str):
         listing = '\n'.join(f"{o['n']} | {o.get('mfd', '')} | {json.dumps(o.get('x') or {}, ensure_ascii=False)[:200]}" for o in rows)
         user = f"Запчасть: {line}\nАвто: {car_text or 'не указано'}\nГруппа: {group}\n\nНомера (номер | бренд | данные каталога):\n{listing}"
         res = deepseek(api_key, OEM_FILTER_PROMPT, user, timeout=12)
         wanted = [str(x).strip() for x in (res.get('numbers') or [])]
-        by_n = {o['n']: o for o in rows}
-        sel = [by_n[n] for n in wanted if n in by_n][:2]
+        by_norm = {}
+        for o in rows:
+            by_norm.setdefault(norm_num(o['n']), o)
+            tail = o['n'].split(' ', 1)[-1] if ' ' in o['n'] else o['n']
+            by_norm.setdefault(norm_num(tail), o)
+        sel = []
+        for w in wanted:
+            o = by_norm.get(norm_num(w))
+            if o and o not in sel:
+                sel.append(o)
+        sel = sel[:2]
+        print(f'AI OEM pick for "{line}": ИИ вернул {wanted} из {len(rows)}, сопоставлено {[o["n"] for o in sel]}')
         return sel
     return pick
 
@@ -539,6 +553,10 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None, overr
                 except Exception as e:
                     print(f'AI oem filter failed: {e}')
                     chosen_orig = origs[:2]
+            if origs and not chosen_orig:
+                chosen_orig = origs[:2]
+                print(f'AI не выбрал оригиналы для "{item["part"]}", взяты первые два из списка')
+            print(f'OEM итог для "{item["part"]}": {chosen_orig} (всего оригиналов {len(origs)}, аналогов в каталоге {len(arts)})')
             analogs = one_per_brand([a for a in arts if a not in chosen_orig], 6)
             if chosen_orig:
                 lines.append(format_block(item['part'], chosen_orig, analogs))
