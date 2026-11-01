@@ -87,7 +87,7 @@ def partsapi_check(vin: str = ''):
         ('Расшифровка VIN', 'VINdecode', {'vin': vin, 'lang': 'ru'}),
         ('Дерево групп', 'getSearchTree', {'lang': LANG_ID, 'carId': 106459, 'carType': 'PC'}),
         ('Список артикулов', 'getArticles', {'lang': LANG_ID, 'strId': 100259, 'carId': 106459, 'carType': 'PC'}),
-        ('Оригинальные номера по VIN', 'getPartsbyVIN', {'vin': vin, 'cat': 100259}),
+        ('Оригинальные номера по VIN', 'getPartsbyVIN', {'vin': vin, 'cat': 7}),
     ]
     if not vin:
         checks = checks[1:3]
@@ -250,8 +250,16 @@ def brand_rank(item: str) -> int:
     return len(PREFERRED_BRANDS)
 
 
-def fetch_articles(car_id, car_type, str_id):
+def fetch_articles(car_id, car_type, str_id, pt_out=None):
     rows = [r for r in as_list(partsapi('getArticles', lang=LANG_ID, strId=str_id, carId=car_id, carType=car_type)) if isinstance(r, dict)]
+    if pt_out is not None:
+        counts = {}
+        for r in rows:
+            pt = r.get('PT_ID')
+            if pt is not None:
+                counts[pt] = counts.get(pt, 0) + 1
+        if counts:
+            pt_out.append(max(counts, key=counts.get))
     seen, out = set(), []
     for r in rows:
         brand = first_of(r, 'ART_SUP_BRAND', 'SUP_BRAND', 'BRAND', 'brand')
@@ -262,9 +270,9 @@ def fetch_articles(car_id, car_type, str_id):
     return sorted(out, key=brand_rank)
 
 
-def safe_articles(car_id, car_type, str_id):
+def safe_articles(car_id, car_type, str_id, pt_out=None):
     try:
-        return fetch_articles(car_id, car_type, str_id)
+        return fetch_articles(car_id, car_type, str_id, pt_out)
     except CatalogError as e:
         print(f'articles skipped: {e}')
         return None
@@ -432,19 +440,21 @@ def cached_tree(cache, car_id):
     return car_type, nodes
 
 
-def orig_cached(cache, vin: str, sid):
-    key = f'orig:{vin.upper()}:{sid}'
+def orig_cached(cache, vin: str, sid, pt_id=None):
+    if not pt_id:
+        return []
+    key = f'orig2:{vin.upper()}:{pt_id}'
     hit = cache.get(key)
     if hit and hit.get('items'):
         return hit['items']
-    items = safe_originals(vin, sid)
+    items = safe_originals(vin, pt_id)
     if items:
         cache.put(key, {'items': items})
     return items
 
 
 def articles_key(car_id, car_type, str_id) -> str:
-    return f'art:{car_id}:{car_type}:{str_id}'
+    return f'art2:{car_id}:{car_type}:{str_id}'
 
 
 def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None, overrides=None):
@@ -500,8 +510,9 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None, overr
                 missing.append(sid)
         if missing:
             with ThreadPoolExecutor(max_workers=6) as pool:
-                fetched = list(pool.map(lambda sid: safe_articles(car_id, car_type, sid), missing))
-                originals = list(pool.map(lambda sid: orig_cached(cache, vin.strip(), sid), missing))
+                pt_by_sid = {sid: [] for sid in missing}
+                fetched = list(pool.map(lambda sid: safe_articles(car_id, car_type, sid, pt_by_sid[sid]), missing))
+                originals = list(pool.map(lambda sid: orig_cached(cache, vin.strip(), sid, pt_by_sid[sid][0] if pt_by_sid[sid] else None), missing))
             for sid, arts, origs in zip(missing, fetched, originals):
                 merged = origs + [a for a in (arts or []) if a not in origs]
                 results_by_id[sid] = merged
