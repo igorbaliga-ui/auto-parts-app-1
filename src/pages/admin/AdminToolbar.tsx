@@ -66,7 +66,7 @@ const AdminToolbar = ({
             </Button>
           )}
           <FapiCheckButton />
-          <FreeAiSearchButton />
+          <FreeAiSearchButton onCreated={onRefresh} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="secondary" className="hidden md:flex font-head uppercase tracking-wide">

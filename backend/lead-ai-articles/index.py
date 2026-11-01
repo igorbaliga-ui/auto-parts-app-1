@@ -654,6 +654,32 @@ def handler(event: dict, context) -> dict:
         finally:
             f_conn.close()
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'ai_articles': f_answer, 'vin_decoded': f_decoded or '', 'source': f_source, 'via': f_info.get('via', ''), 'catalog_note': f_note or ''})}
+    if body.get('action') == 'create_lead':
+        c_parts = str(body.get('parts') or '').strip()[:1000]
+        c_articles = str(body.get('ai_articles') or '').strip()
+        if not c_parts or not c_articles:
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Нет запчастей или результата подбора'})}
+        c_vin = str(body.get('vin') or '').strip()[:32] or None
+        c_car = str(body.get('car_name') or '').strip()[:200] or None
+        c_decoded = str(body.get('vin_decoded') or '').strip() or None
+        c_note = str(body.get('catalog_note') or '').strip() or None
+        c_src = str(body.get('via') or body.get('source') or '').strip()[:20] or None
+        if not c_car and c_decoded:
+            c_car = c_decoded.split(',')[0][:200]
+        c_conn = psycopg2.connect(dsn)
+        try:
+            c_cur = c_conn.cursor()
+            c_cur.execute(
+                f"INSERT INTO {schema}.leads (vin, name, phone, parts, car_name, ai_articles, vin_decoded, catalog_note, ai_source, internal_note) "
+                f"VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+                (c_vin, 'Создано из подбора ИИ', '—', c_parts, c_car, c_articles, c_decoded, c_note, c_src, 'Заявка создана менеджером из подбора ИИ, клиент не указан'),
+            )
+            new_id = c_cur.fetchone()[0]
+            c_conn.commit()
+            c_cur.close()
+        finally:
+            c_conn.close()
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'id': new_id})}
     lead_id = body.get('id')
     if not isinstance(lead_id, int):
         return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Некорректный id заявки'})}

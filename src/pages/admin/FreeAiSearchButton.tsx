@@ -17,7 +17,9 @@ type Result = {
   catalog_note: string;
 };
 
-const FreeAiSearchButton = () => {
+type Props = { onCreated?: () => void };
+
+const FreeAiSearchButton = ({ onCreated }: Props) => {
   const [open, setOpen] = useState(false);
   const [vin, setVin] = useState("");
   const [carName, setCarName] = useState("");
@@ -26,11 +28,14 @@ const FreeAiSearchButton = () => {
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createdId, setCreatedId] = useState<number | null>(null);
 
   const search = async () => {
     setLoading(true);
     setError("");
     setResult(null);
+    setCreatedId(null);
     try {
       const res = await fetch(LEAD_AI_ARTICLES_URL, {
         method: "POST",
@@ -47,6 +52,30 @@ const FreeAiSearchButton = () => {
       setError(e instanceof Error && e.message !== "error" ? e.message : "Не удалось подобрать. Попробуйте ещё раз.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createLead = async () => {
+    if (!result) return;
+    setCreating(true);
+    setError("");
+    try {
+      const res = await fetch(LEAD_AI_ARTICLES_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Password": safeGetSession("admin_password") || "",
+        },
+        body: JSON.stringify({ action: "create_lead", vin, car_name: carName, parts, ...result }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "error");
+      setCreatedId(data.id);
+      onCreated?.();
+    } catch (e) {
+      setError(e instanceof Error && e.message !== "error" ? e.message : "Не удалось создать заявку. Попробуйте ещё раз.");
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -113,6 +142,14 @@ const FreeAiSearchButton = () => {
                   <Icon name={copied ? "Check" : "Copy"} size={14} className="mr-1.5" />
                   {copied ? "Скопировано" : "Копировать"}
                 </Button>
+                {createdId ? (
+                  <span className="text-sm text-emerald-500">Заявка №{createdId} создана, она в списке «Новые»</span>
+                ) : (
+                  <Button type="button" size="sm" disabled={creating} onClick={createLead} className="self-start">
+                    <Icon name={creating ? "Loader" : "FilePlus"} size={14} className="mr-1.5" />
+                    {creating ? "Создаю..." : "Создать заявку из подбора"}
+                  </Button>
+                )}
               </div>
             )}
           </div>
