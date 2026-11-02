@@ -49,7 +49,7 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
     byBrand[b].push(i);
   }
   return (
-    <div className="bg-card border border-steel rounded-sm overflow-x-auto">
+    <div className="bg-card border border-steel rounded-sm overflow-x-auto text-[13px] leading-tight [&_td]:px-2 [&_td]:py-1 [&_th]:h-8 [&_th]:px-2 [&_th]:text-xs">
       <Table>
         <TableHeader>
           <TableRow>
@@ -74,7 +74,7 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
                     className="bg-primary/15 hover:bg-primary/20 border-t-2 border-primary/50 cursor-pointer select-none"
                     onClick={() => setCollapsed({ ...collapsed, [b]: !collapsed[b] })}
                   >
-                    <TableCell colSpan={8} className="py-2 font-head uppercase tracking-wide text-xs text-foreground border-l-4 border-primary">
+                    <TableCell colSpan={8} className="py-1 font-head uppercase tracking-wide text-xs text-foreground border-l-4 border-primary">
                       <span className="inline-flex items-center gap-2">
                         <Icon name={collapsed[b] ? 'ChevronRight' : 'ChevronDown'} size={14} />
                         {b} <span className="text-muted-foreground">({list.length})</span>
@@ -91,7 +91,7 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
                       {!same && <div className="font-head tracking-[0.1em]">{i.article}</div>}
                       {!same && <div className="text-xs text-muted-foreground">{i.brand}</div>}
                     </TableCell>
-                    <TableCell className="max-w-[260px] text-muted-foreground">{same ? '' : i.name}</TableCell>
+                    <TableCell className="max-w-[260px] truncate text-muted-foreground">{same ? '' : i.name}</TableCell>
                     <TableCell>
                       <div>{i.supplier_name}</div>
                       <Warehouse name={i.warehouse || ''} />
@@ -107,9 +107,9 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
                           min={1}
                           value={qty[i.id] ?? '1'}
                           onChange={(e) => setQty({ ...qty, [i.id]: e.target.value })}
-                          className="w-16 h-8"
+                          className="w-14 h-7 px-2"
                         />
-                        <Button size="sm" onClick={() => onAdd(i, Math.max(1, Number(qty[i.id] || 1)))}>
+                        <Button size="sm" className="h-7 px-2" onClick={() => onAdd(i, Math.max(1, Number(qty[i.id] || 1)))}>
                           <Icon name="ShoppingCart" size={14} />
                         </Button>
                       </div>
@@ -119,7 +119,7 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
                 })}
                 {!collapsed[b] && list.length > PAGE && (
                   <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={8} className={`text-center py-2 ${brands.length > 1 ? "border-l-4 border-primary/40" : ""}`}>
+                    <TableCell colSpan={8} className={`text-center py-0.5 ${brands.length > 1 ? "border-l-4 border-primary/40" : ""}`}>
                       {list.length > limit && (
                         <Button variant="ghost" size="sm" onClick={() => setShown({ ...shown, [b]: limit + PAGE })}>
                           Показать ещё ({Math.min(PAGE, list.length - limit)} из {list.length - limit})
