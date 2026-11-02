@@ -88,7 +88,12 @@ const Cabinet = () => {
     );
   }
 
-  const go = (t: Tab) => setTab(t);
+  const [visited, setVisited] = useState<Tab[]>([]);
+  const go = (t: Tab) => {
+    setTab(t);
+    setVisited((v) => (v.includes(t) ? v : [...v, t]));
+  };
+  const keep = (k: Tab) => (visited.includes(k) || tab === k ? (tab === k ? '' : 'hidden') : null);
 
   return (
     <PageBackground>
@@ -156,7 +161,11 @@ const Cabinet = () => {
               )}
             </div>
           )}
-          {tab === 'search' && <SearchTab key={`${repeat}|${leadArticles.join(',')}`} url={url} onCartChange={refresh} initialQuery={repeat} articles={leadArticles} clientName={orderFor?.full_name} />}
+          {keep('search') !== null && (
+            <div className={keep('search') || undefined}>
+              <SearchTab key={`${repeat}|${leadArticles.join(',')}`} url={url} onCartChange={refresh} initialQuery={repeat} articles={leadArticles} clientName={orderFor?.full_name} />
+            </div>
+          )}
           {tab === 'cart' && <CartTab url={url} onChanged={refresh} onOrdered={() => go('orders')} presetClient={orderFor} presetCar={orderCar} onPresetUsed={() => { setOrderFor(null); setOrderCar(''); }} />}
           {tab === 'orders' && <OrdersTab url={url} />}
           {tab === 'clients' && <ClientsTab
@@ -187,21 +196,25 @@ const Cabinet = () => {
               }}
             />
           )}
-          {tab === 'oem' && (
-            <OemTab
-              onSearch={(q) => {
-                setRepeat(q);
-                go('search');
-              }}
-            />
+          {keep('oem') !== null && (
+            <div className={keep('oem') || undefined}>
+              <OemTab
+                onSearch={(q) => {
+                  setRepeat(q);
+                  go('search');
+                }}
+              />
+            </div>
           )}
-          {tab === 'catalog' && (
-            <CatalogTab
-              onSearch={(q) => {
-                setRepeat(q);
-                go('search');
-              }}
-            />
+          {keep('catalog') !== null && (
+            <div className={keep('catalog') || undefined}>
+              <CatalogTab
+                onSearch={(q) => {
+                  setRepeat(q);
+                  go('search');
+                }}
+              />
+            </div>
           )}
           {tab === 'settings' && <SettingsTab />}
           {tab === 'bulk' && <BulkTab url={url} />}
