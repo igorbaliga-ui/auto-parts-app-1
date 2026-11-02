@@ -48,15 +48,15 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
             return (
               <Fragment key={b}>
                 {brands.length > 1 && (
-                  <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableCell colSpan={8} className="py-2 font-head uppercase tracking-wide text-xs">
+                  <TableRow className="bg-primary/15 hover:bg-primary/15 border-t-2 border-primary/50">
+                    <TableCell colSpan={8} className="py-2 font-head uppercase tracking-wide text-xs text-foreground border-l-4 border-primary">
                       {b} <span className="text-muted-foreground">({list.length})</span>
                     </TableCell>
                   </TableRow>
                 )}
                 {list.slice(0, limit).map((i) => (
                   <TableRow key={i.id}>
-                    <TableCell className="whitespace-nowrap">
+                    <TableCell className={`whitespace-nowrap ${brands.length > 1 ? "border-l-4 border-primary/40" : ""}`}>
                       <div className="font-head tracking-[0.1em]">{i.article}</div>
                       <div className="text-xs text-muted-foreground">{i.brand}</div>
                     </TableCell>
@@ -87,7 +87,7 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
                 ))}
                 {list.length > limit && (
                   <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={8} className="text-center py-2">
+                    <TableCell colSpan={8} className={`text-center py-2 ${brands.length > 1 ? "border-l-4 border-primary/40" : ""}`}>
                       <Button variant="ghost" size="sm" onClick={() => setShown({ ...shown, [b]: limit + PAGE })}>
                         Показать ещё ({Math.min(PAGE, list.length - limit)} из {list.length - limit})
                       </Button>
