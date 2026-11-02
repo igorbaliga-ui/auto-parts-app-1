@@ -1,11 +1,17 @@
-import { Fragment, useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { safeGetItem, safeSetItem } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import { cabApi, money, fmtDate } from './api';
 
+type StatusTab = 'new' | 'in_progress' | 'done' | 'all' | 'archived';
+const TAB_KEY = 'cabinet_leads_tab';
+const TABS: StatusTab[] = ['new', 'in_progress', 'done', 'all', 'archived'];
+
 type Lead = {
   id: number;
+  archived: boolean;
   name: string;
   phone: string;
   vin: string | null;
@@ -33,15 +39,15 @@ const statusCls: Record<string, string> = {
 const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => void }) => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [query, setQuery] = useState('');
-  const [archived, setArchived] = useState(false);
+  const [tab, setTabState] = useState<StatusTab>('new');
   const [open, setOpen] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(
-    async (q = '', arch = false) => {
+    async (q = '') => {
       setLoading(true);
       try {
-        const d = await cabApi<{ leads: Lead[] }>(url, 'leads_list', { query: q, archived: arch });
+        const d = await cabApi<{ leads: Lead[] }>(url, 'leads_list', { query: q });
         setLeads(d.leads);
       } finally {
         setLoading(false);
@@ -51,8 +57,32 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
   );
 
   useEffect(() => {
-    load('', archived);
-  }, [load, archived]);
+    const saved = safeGetItem(TAB_KEY) as StatusTab | null;
+    if (saved && TABS.includes(saved)) setTabState(saved);
+    load('');
+  }, [load]);
+
+  const setTab = (t: StatusTab) => {
+    setTabState(t);
+    safeSetItem(TAB_KEY, t);
+  };
+
+  const counts = useMemo(() => {
+    const active = leads.filter((l) => !l.archived);
+    return {
+      new: active.filter((l) => l.status === 'new').length,
+      in_progress: active.filter((l) => l.status === 'in_progress').length,
+      done: active.filter((l) => l.status === 'done').length,
+      all: active.length,
+      archived: leads.length - active.length,
+    };
+  }, [leads]);
+
+  const shown = useMemo(() => {
+    if (tab === 'archived') return leads.filter((l) => l.archived);
+    const active = leads.filter((l) => !l.archived);
+    return tab === 'all' ? active : active.filter((l) => l.status === tab);
+  }, [leads, tab]);
 
   const articles = (l: Lead) =>
     Array.from(new Set((l.ai_articles?.match(/[A-Za-z0-9][A-Za-z0-9\-./]{4,}/g) || []).filter((a) => /\d/.test(a)))).slice(0, 12);
@@ -67,7 +97,7 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            load(query, archived);
+            load(query);
           }}
           className="flex gap-2 max-w-xl flex-1"
         >
@@ -76,16 +106,32 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
             <Icon name="Search" size={14} />
           </Button>
         </form>
-        <Button size="sm" variant={archived ? 'default' : 'outline'} onClick={() => setArchived((v) => !v)}>
-          Архив
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => load(query, archived)}>
+        <Button size="sm" variant="outline" onClick={() => load(query)}>
           <Icon name="RefreshCw" size={14} />
         </Button>
       </div>
+      <div className="flex gap-2 overflow-x-auto">
+        {([
+          ['new', 'Новые'],
+          ['in_progress', 'В работе'],
+          ['done', 'Выполненные'],
+          ['all', 'Все'],
+          ['archived', 'Архив'],
+        ] as [StatusTab, string][]).map(([k, label]) => (
+          <button
+            key={k}
+            onClick={() => setTab(k)}
+            className={`shrink-0 h-10 px-4 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors whitespace-nowrap ${
+              tab === k ? 'border-primary bg-primary/10 text-foreground' : 'border-steel text-muted-foreground hover:border-primary/60'
+            }`}
+          >
+            {label} ({counts[k]})
+          </button>
+        ))}
+      </div>
       {loading ? (
         <p className="text-muted-foreground">Загрузка...</p>
-      ) : leads.length === 0 ? (
+      ) : shown.length === 0 ? (
         <p className="text-muted-foreground">Заявок нет.</p>
       ) : (
         <div className="overflow-x-auto border border-border rounded-sm">
@@ -102,7 +148,7 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
               </tr>
             </thead>
             <tbody>
-              {leads.map((l) => (
+              {shown.map((l) => (
                 <Fragment key={l.id}>
                   <tr onClick={() => setOpen(open === l.id ? null : l.id)} className="border-t border-border cursor-pointer hover:bg-muted/30">
                     <td className="p-2 font-medium">{l.id}</td>

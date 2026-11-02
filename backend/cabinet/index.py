@@ -381,12 +381,11 @@ def handler(event: dict, context) -> dict:
         if action == 'leads_list':
             q = str(body.get('query') or '').strip()
             like = f"%{q}%"
-            arch = bool(body.get('archived'))
             return ok({'leads': rows(
-                f"SELECT id, name, phone, vin, car_name, parts, city, messenger, status, order_amount, prepayment, remaining, handled_by, internal_note, ai_articles, created_at "
-                f"FROM {s}.leads WHERE archived = %s AND (%s = '' OR id::text = %s OR name ILIKE %s OR phone ILIKE %s OR vin ILIKE %s OR car_name ILIKE %s OR parts ILIKE %s OR city ILIKE %s) "
+                f"SELECT id, archived, name, phone, vin, car_name, parts, city, messenger, status, order_amount, prepayment, remaining, handled_by, internal_note, ai_articles, created_at "
+                f"FROM {s}.leads WHERE (%s = '' OR id::text = %s OR name ILIKE %s OR phone ILIKE %s OR vin ILIKE %s OR car_name ILIKE %s OR parts ILIKE %s OR city ILIKE %s) "
                 f"ORDER BY created_at DESC LIMIT 500",
-                (arch, q, q, like, like, like, like, like, like),
+                (q, q, like, like, like, like, like, like),
             )})
 
         if action == 'clients_list':
