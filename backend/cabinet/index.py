@@ -47,6 +47,7 @@ def berg_search(article: str, with_analogs: bool):
             return [], f'Берг: ошибка {e.code}'
     except Exception as e:
         return [], f'Берг не ответил ({type(e).__name__}), показаны только прайсы'
+    print('BERG', article, json.dumps(data, ensure_ascii=False)[:600])
     if isinstance(data, dict) and data.get('errors'):
         code = str((data['errors'][0] or {}).get('code') or '')
         text = str((data['errors'][0] or {}).get('text') or '')
@@ -243,6 +244,7 @@ def handler(event: dict, context) -> dict:
                 r['sale'] = sale_price(r['price'], mk)
             warning = None
             berg = one(f"SELECT id, name FROM {s}.cab_suppliers WHERE active = true AND kind = 'api' AND position('берг' in lower(name)) > 0 ORDER BY id LIMIT 1")
+            print('BERG supplier', berg)
             if berg:
                 offers, warning = berg_search(q, bool(body.get('with_partial')))
                 nid = -1
