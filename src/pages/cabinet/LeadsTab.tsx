@@ -3,7 +3,9 @@ import { safeGetItem, safeSetItem } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
+import { safeGetSession } from '@/lib/storage';
 import { cabApi, money, fmtDate } from './api';
+import funcs from '../../../backend/func2url.json';
 
 type StatusTab = 'new' | 'in_progress' | 'done' | 'all' | 'archived';
 const TAB_KEY = 'cabinet_leads_tab';
@@ -42,6 +44,7 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
   const [tab, setTabState] = useState<StatusTab>('new');
   const [open, setOpen] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const load = useCallback(
     async (q = '') => {
@@ -61,6 +64,22 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
     if (saved && TABS.includes(saved)) setTabState(saved);
     load('');
   }, [load]);
+
+  const updateLead = async (id: number, patch: { status?: string; archived?: boolean }) => {
+    setError('');
+    try {
+      const res = await fetch(funcs['leads-update'], {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': safeGetSession('admin_password') || '' },
+        body: JSON.stringify({ id, admin_name: safeGetSession('admin_name') || 'Менеджер', ...patch }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Не удалось сохранить');
+      setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Ошибка');
+    }
+  };
 
   const setTab = (t: StatusTab) => {
     setTabState(t);
@@ -129,6 +148,7 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
           </button>
         ))}
       </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
       {loading ? (
         <p className="text-muted-foreground">Загрузка...</p>
       ) : shown.length === 0 ? (
@@ -145,6 +165,7 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
                 <th className="text-left p-2">Запчасти</th>
                 <th className="text-right p-2">Сумма</th>
                 <th className="text-left p-2">Статус</th>
+                <th className="p-2"></th>
               </tr>
             </thead>
             <tbody>
@@ -164,12 +185,36 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
                     <td className="p-2 max-w-[260px] truncate">{l.parts || '—'}</td>
                     <td className="p-2 text-right whitespace-nowrap">{l.order_amount != null ? money(l.order_amount) : '—'}</td>
                     <td className="p-2">
-                      <span className={`text-xs border rounded-sm px-2 py-0.5 whitespace-nowrap ${statusCls[l.status] || ''}`}>{statusText[l.status] || l.status}</span>
+                      <select
+                        value={l.status}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => updateLead(l.id, { status: e.target.value })}
+                        className={`h-8 text-xs border rounded-sm px-2 bg-background ${statusCls[l.status] || ''}`}
+                      >
+                        {Object.entries(statusText).map(([k, v]) => (
+                          <option key={k} value={k}>
+                            {v}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="p-2 text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        title={l.archived ? 'Вернуть из архива' : 'В архив'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateLead(l.id, { archived: !l.archived });
+                        }}
+                      >
+                        <Icon name={l.archived ? 'ArchiveRestore' : 'Archive'} size={14} />
+                      </Button>
                     </td>
                   </tr>
                   {open === l.id && (
                     <tr key={`${l.id}-d`} className="border-t border-border bg-muted/20">
-                      <td colSpan={7} className="p-3 text-sm flex flex-col gap-2">
+                      <td colSpan={8} className="p-3 text-sm flex flex-col gap-2">
                         {l.parts && <div>Запчасти: {l.parts}</div>}
                         {[l.city, l.messenger, l.handled_by].some(Boolean) && (
                           <div className="text-muted-foreground">{[l.city, l.messenger, l.handled_by && `менеджер: ${l.handled_by}`].filter(Boolean).join(' · ')}</div>
