@@ -77,19 +77,64 @@ def berg_search(article: str, with_analogs: bool):
     return out, None
 
 
+def berg_addresses():
+    key = os.environ.get('BERG_API_KEY')
+    if not key:
+        return [], 'Ключ Берг не задан'
+    url = 'https://api.berg.ru/references/shipment_address/active.json?' + urllib.parse.urlencode({'key': key})
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={'Accept': 'application/json'}), timeout=4) as r:
+            data = json.loads(r.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        try:
+            data = json.loads(e.read().decode('utf-8'))
+        except Exception:
+            return [], f'Берг: ошибка {e.code}'
+    except Exception as e:
+        return [], f'Берг не ответил ({type(e).__name__})'
+    print('BERG ADDRESSES', json.dumps(data, ensure_ascii=False)[:800])
+    if isinstance(data, dict) and data.get('errors'):
+        e0 = data['errors'][0] or {}
+        return [], f"Берг: {e0.get('text') or e0.get('code')}"
+
+    def find_list(x):
+        if isinstance(x, list) and x and all(isinstance(i, dict) for i in x):
+            return x
+        if isinstance(x, dict):
+            for v in x.values():
+                r = find_list(v)
+                if r:
+                    return r
+        return []
+
+    out = []
+    for a in find_list(data):
+        aid = a.get('id')
+        if aid is None:
+            continue
+        parts = [str(v) for k, v in a.items() if k not in ('id', 'state') and isinstance(v, (str, int)) and str(v).strip()]
+        out.append({'id': str(aid), 'text': ', '.join(parts)})
+    return out, None
+
+
 def berg_order(items: list, settings: dict):
     key = os.environ.get('BERG_API_KEY')
     if not key:
         return None, 'Ключ Берг не задан'
-    params = {'key': key}
-    for field, name in (('payment_type', 'payment_type'), ('delivery_type', 'delivery_type'), ('dispatch_type', 'dispatch_type'), ('shipment_address', 'shipment_address'), ('comment', 'comment')):
-        v = str((settings or {}).get(field) or '').strip()
-        if v:
-            params[name] = v[:200]
+    st = settings or {}
+    params = {}
+    dispatch = str(st.get('dispatch_type') or '').strip()
+    for field, name in (('payment_type', 'payment_type'), ('delivery_type', 'delivery_type'), ('dispatch_type', 'dispatch_type'), ('shipment_address', 'shipment_address_id'), ('comment', 'comment')):
+        v = str(st.get(field) or '').strip()
+        if not v:
+            continue
+        if field == 'shipment_address' and dispatch == '2':
+            continue
+        params[f'order[{name}]'] = v[:200]
     for n, i in enumerate(items):
-        params[f'items[{n}][resource_id]'] = i['berg_resource_id']
-        params[f'items[{n}][warehouse_id]'] = i['berg_warehouse_id']
-        params[f'items[{n}][quantity]'] = str(i['qty'])
+        params[f'order[items][{n}][resource_id]'] = i['berg_resource_id']
+        params[f'order[items][{n}][warehouse_id]'] = i['berg_warehouse_id']
+        params[f'order[items][{n}][quantity]'] = str(i['qty'])
     req = urllib.request.Request('https://api.berg.ru/ordering/place_order.json?' + urllib.parse.urlencode({'key': key}), data=urllib.parse.urlencode(params).encode(), method='POST', headers={'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'})
     try:
         with urllib.request.urlopen(req, timeout=4) as r:
@@ -168,6 +213,12 @@ def handler(event: dict, context) -> dict:
 
         def markups():
             return rows(f"SELECT price_from, percent, rounding FROM {s}.cab_markups ORDER BY price_from")
+
+        if action == 'berg_addresses':
+            addrs, e = berg_addresses()
+            if e:
+                return err(e)
+            return ok({'addresses': addrs})
 
         if action == 'suppliers_list':
             return ok({'suppliers': rows(f"SELECT * FROM {s}.cab_suppliers ORDER BY id")})

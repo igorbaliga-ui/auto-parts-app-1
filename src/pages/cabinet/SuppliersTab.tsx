@@ -50,6 +50,8 @@ const SuppliersTab = ({ url }: { url: string }) => {
   const [orderFor, setOrderFor] = useState<Supplier | null>(null);
   const [orderVals, setOrderVals] = useState<Record<string, string>>({});
   const [orderMsg, setOrderMsg] = useState('');
+  const [addresses, setAddresses] = useState<{ id: string; text: string }[]>([]);
+  const [addrMsg, setAddrMsg] = useState('');
   const [parsed, setParsed] = useState<Parsed | null>(null);
   const [map, setMap] = useState<Record<string, number>>({});
   const [replace, setReplace] = useState(true);
@@ -142,6 +144,18 @@ const SuppliersTab = ({ url }: { url: string }) => {
     }
   };
 
+  const loadAddresses = async () => {
+    setAddrMsg('Загружаю...');
+    try {
+      const d = await cabApi<{ addresses: { id: string; text: string }[] }>(url, 'berg_addresses');
+      setAddresses(d.addresses);
+      setAddrMsg(d.addresses.length ? '' : 'Берг не вернул адресов доставки');
+    } catch (err) {
+      setAddresses([]);
+      setAddrMsg(err instanceof Error ? err.message : 'Ошибка');
+    }
+  };
+
   const saveOrderSettings = async () => {
     if (!orderFor) return;
     await cabApi(url, 'supplier_save', { id: orderFor.id, name: orderFor.name, kind: orderFor.kind, order_settings: orderVals });
@@ -223,6 +237,31 @@ const SuppliersTab = ({ url }: { url: string }) => {
               </label>
             ))}
           </div>
+          {orderFor.name.toLowerCase().includes('берг') && (
+            <div className="flex flex-col gap-2 max-w-3xl">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={loadAddresses}>
+                  <Icon name="MapPin" size={14} className="mr-1.5" />
+                  Показать мои адреса из Берга
+                </Button>
+                {addrMsg && <span className="text-sm text-muted-foreground">{addrMsg}</span>}
+              </div>
+              {addresses.length > 0 && (
+                <div className="border border-border rounded-sm divide-y divide-border text-sm">
+                  {addresses.map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => { setOrderVals({ ...orderVals, shipment_address: a.id }); setOrderMsg(''); }}
+                      className={`w-full text-left p-2 hover:bg-muted/40 ${orderVals.shipment_address === a.id ? 'bg-primary/15' : ''}`}
+                    >
+                      <span className="font-medium">{a.id}</span> — {a.text}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <Button onClick={saveOrderSettings}>Сохранить</Button>
             <Button variant="outline" onClick={() => setOrderFor(null)}>Закрыть</Button>
