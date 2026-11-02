@@ -16,7 +16,7 @@ const CartTab = ({ url, onChanged, onOrdered, presetClient, presetCar, onPresetU
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [car, setCar] = useState('');
-  const [cars, setCars] = useState<string[]>([]);
+  const [cars, setCars] = useState<{ car: string; vin: string }[]>([]);
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -36,17 +36,29 @@ const CartTab = ({ url, onChanged, onOrdered, presetClient, presetCar, onPresetU
     load();
   }, [load]);
 
+  const pickCar = (name: string) => {
+    setCar(name);
+    const found = cars.find((c) => c.car === name);
+    setComment((cur) => {
+      const rest = cur.split('\n').filter((l) => !l.startsWith('VIN:')).join('\n').trim();
+      return found?.vin ? [rest, `VIN: ${found.vin}`].filter(Boolean).join('\n') : rest;
+    });
+  };
+
   useEffect(() => {
     if (!clientId) {
       setCars([]);
       return;
     }
     let alive = true;
-    cabApi<{ cars: string[] }>(url, 'client_cars', { id: Number(clientId) })
+    cabApi<{ cars: { car: string; vin: string }[] }>(url, 'client_cars', { id: Number(clientId) })
       .then((d) => {
         if (!alive) return;
         setCars(d.cars);
-        setCar((cur) => cur || d.cars[0] || '');
+        if (d.cars[0]) {
+          setCar((cur) => cur || d.cars[0].car);
+          setComment((cur) => (/^VIN:/m.test(cur) || !d.cars[0].vin ? cur : [cur, `VIN: ${d.cars[0].vin}`].filter(Boolean).join('\n')));
+        }
       })
       .catch(() => alive && setCars([]));
     return () => {
@@ -182,18 +194,15 @@ const CartTab = ({ url, onChanged, onOrdered, presetClient, presetCar, onPresetU
               )}
               <Input value={car} onChange={(e) => setCar(e.target.value)} placeholder="Авто (необязательно)" />
               {cars.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
+                <select value={cars.some((c) => c.car === car) ? car : ''} onChange={(e) => e.target.value && pickCar(e.target.value)} className="h-10 rounded-sm border border-input bg-background px-3 text-sm">
+                  <option value="">Машины клиента из заявок</option>
                   {cars.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setCar(c)}
-                      className={`text-xs px-2 py-1 rounded-sm border ${car === c ? 'border-primary bg-primary/15' : 'border-border text-muted-foreground hover:bg-muted/40'}`}
-                    >
-                      {c}
-                    </button>
+                    <option key={c.car} value={c.car}>
+                      {c.car}
+                      {c.vin ? ` · ${c.vin}` : ''}
+                    </option>
                   ))}
-                </div>
+                </select>
               )}
             </div>
             <div className="flex flex-col gap-2">

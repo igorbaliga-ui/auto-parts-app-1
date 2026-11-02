@@ -528,21 +528,24 @@ def handler(event: dict, context) -> dict:
             last10 = re.sub(r'\D', '', cl['phone'] or '')[-10:]
             if last10:
                 for r in rows(
-                    f"SELECT car_name, MAX(created_at) AS last FROM {s}.leads "
+                    f"SELECT car_name, vin, created_at FROM {s}.leads "
                     f"WHERE right(regexp_replace(coalesce(phone, ''), '\\D', '', 'g'), 10) = %s AND coalesce(trim(car_name), '') <> '' "
-                    f"GROUP BY car_name ORDER BY last DESC LIMIT 20",
+                    f"ORDER BY created_at DESC LIMIT 100",
                     (last10,),
                 ):
-                    cars.append(r['car_name'].strip())
+                    cars.append({'car': r['car_name'].strip(), 'vin': (r['vin'] or '').strip()})
             if cl['car']:
-                cars.append(cl['car'].strip())
-            for r in rows(f"SELECT model FROM {s}.cab_garage WHERE client_id = %s AND coalesce(trim(model), '') <> ''", (body.get('id'),)):
-                cars.append(r['model'].strip())
-            seen, out = set(), []
+                cars.append({'car': cl['car'].strip(), 'vin': ''})
+            for r in rows(f"SELECT model, vin FROM {s}.cab_garage WHERE client_id = %s AND coalesce(trim(model), '') <> ''", (body.get('id'),)):
+                cars.append({'car': r['model'].strip(), 'vin': (r['vin'] or '').strip()})
+            out, idx = [], {}
             for c in cars:
-                if c.lower() not in seen:
-                    seen.add(c.lower())
+                k = c['car'].lower()
+                if k not in idx:
+                    idx[k] = len(out)
                     out.append(c)
+                elif not out[idx[k]]['vin'] and c['vin']:
+                    out[idx[k]]['vin'] = c['vin']
             return ok({'cars': out})
 
         if action == 'lead_client':
