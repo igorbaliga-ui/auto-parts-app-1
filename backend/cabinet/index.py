@@ -2,6 +2,7 @@ import json
 import os
 import re
 import urllib.error
+from datetime import datetime, timedelta
 import urllib.parse
 import urllib.request
 import psycopg2
@@ -131,6 +132,8 @@ def berg_order(items: list, settings: dict):
         if field == 'shipment_address' and dispatch == '2':
             continue
         params[f'order[{name}]'] = v[:200]
+    days = max([int(i.get('delivery_days') or 0) for i in items] + [0])
+    params['order[dispatch_at]'] = (datetime.utcnow() + timedelta(hours=3, days=days)).strftime('%Y-%m-%d')
     for n, i in enumerate(items):
         params[f'order[items][{n}][resource_id]'] = i['berg_resource_id']
         params[f'order[items][{n}][warehouse_id]'] = i['berg_warehouse_id']
@@ -148,8 +151,8 @@ def berg_order(items: list, settings: dict):
         return None, f'Берг не ответил ({type(e).__name__})'
     print('BERG ORDER', json.dumps(data, ensure_ascii=False)[:800])
     if isinstance(data, dict) and data.get('errors'):
-        e0 = data['errors'][0] or {}
-        return None, f"Берг: {e0.get('text') or e0.get('code')}"
+        msgs = [str((e or {}).get('text') or (e or {}).get('code') or '') for e in data['errors']]
+        return None, 'Берг: ' + '; '.join(m for m in msgs if m)
     order = (data.get('order') if isinstance(data, dict) else None) or {}
     oid = order.get('id') or (data.get('order_id') if isinstance(data, dict) else None)
     return str(oid or 'ok'), None
