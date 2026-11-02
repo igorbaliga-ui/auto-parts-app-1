@@ -55,6 +55,12 @@ const Cabinet = () => {
   const [orderFor, setOrderFor] = useState<Client | null>(null);
   const [orderCar, setOrderCar] = useState('');
   const [leadArticles, setLeadArticles] = useState<string[]>([]);
+  const [visited, setVisited] = useState<Tab[]>([]);
+  const go = (t: Tab) => {
+    setTab(t);
+    setVisited((v) => (v.includes(t) ? v : [...v, t]));
+  };
+  const keep = (k: Tab) => (visited.includes(k) || tab === k ? (tab === k ? '' : 'hidden') : null);
 
   const refresh = useCallback(async () => {
     try {
@@ -87,13 +93,6 @@ const Cabinet = () => {
       </PageBackground>
     );
   }
-
-  const [visited, setVisited] = useState<Tab[]>([]);
-  const go = (t: Tab) => {
-    setTab(t);
-    setVisited((v) => (v.includes(t) ? v : [...v, t]));
-  };
-  const keep = (k: Tab) => (visited.includes(k) || tab === k ? (tab === k ? '' : 'hidden') : null);
 
   return (
     <PageBackground>
