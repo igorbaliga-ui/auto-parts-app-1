@@ -11,6 +11,15 @@ type Props = { url: string; onCartChange: () => void; initialQuery?: string; art
 
 const PAGE = 5;
 
+const perBrand = (list: Item[], size: number) => {
+  const cnt: Record<string, number> = {};
+  return list.filter((i) => {
+    const b = i.brand || '—';
+    cnt[b] = (cnt[b] || 0) + 1;
+    return cnt[b] <= size;
+  });
+};
+
 type Group = { article: string; items: Item[]; partial: Item[] };
 
 const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: number) => void }) => {
@@ -148,7 +157,7 @@ const SearchTab = ({ url, onCartChange, initialQuery, articles, clientName }: Pr
       const out: Group[] = [];
       for (const a of list) {
         const d = await cabApi<{ items: Item[]; partial: Item[] }>(url, 'search', { query: a, with_partial: an });
-        out.push({ article: a, items: d.items.filter(keep).slice(0, size), partial: d.partial.filter(keep).slice(0, size) });
+        out.push({ article: a, items: perBrand(d.items.filter(keep), size), partial: perBrand(d.partial.filter(keep), size) });
       }
       setGroups(out);
     } catch (err) {
@@ -166,8 +175,8 @@ const SearchTab = ({ url, onCartChange, initialQuery, articles, clientName }: Pr
       const d = await cabApi<{ items: Item[]; partial: Item[]; warning?: string | null }>(url, 'search', { query: q ?? query, with_partial: an ?? analogs });
       setWarning(d.warning || '');
       const keep = (i: Item) => !hideEmpty || i.qty > 0;
-      setItems(d.items.filter(keep).slice(0, pageSize));
-      setPartial(d.partial.filter(keep).slice(0, pageSize));
+      setItems(perBrand(d.items.filter(keep), pageSize));
+      setPartial(perBrand(d.partial.filter(keep), pageSize));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка');
     } finally {
