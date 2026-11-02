@@ -58,7 +58,7 @@ def berg_search(article: str, with_analogs: bool):
     out = []
     if not (data.get('resources') if isinstance(data, dict) else None):
         return [], 'Берг: по этому артикулу ничего не найдено'
-    for res in data.get('resources') or []:
+    for res_idx, res in enumerate(data.get('resources') or []):
         brand = (res.get('brand') or {}).get('name') or ''
         for o in res.get('offers') or []:
             try:
@@ -74,6 +74,7 @@ def berg_search(article: str, with_analogs: bool):
                 'warehouse': (o.get('warehouse') or {}).get('name') or '',
                 'berg_resource_id': str(res.get('id') or ''), 'berg_warehouse_id': str((o.get('warehouse') or {}).get('id') or ''),
                 'exact': norm(res.get('article')) == norm(article),
+                'order': res_idx,
             })
     return out, None
 
@@ -337,6 +338,7 @@ def handler(event: dict, context) -> dict:
                 r['price'] = float(r['price'])
                 r['sale'] = sale_price(r['price'], mk)
             warning = None
+            berg_rank = {}
             berg = next((r for r in rows(f"SELECT id, name FROM {s}.cab_suppliers WHERE active = true AND kind = 'api' ORDER BY id") if 'берг' in str(r['name']).lower() or 'berg' in str(r['name']).lower()), None)
             if berg:
                 offers, warning = berg_search(q, bool(body.get('with_partial')))
@@ -348,9 +350,10 @@ def handler(event: dict, context) -> dict:
                         'sale': sale_price(o['price'], mk), 'qty': o['qty'], 'delivery_days': o['delivery_days'], 'warehouse': o['warehouse'],
                         'berg_resource_id': o['berg_resource_id'], 'berg_warehouse_id': o['berg_warehouse_id'],
                     }
+                    berg_rank.setdefault((o['brand'] or '').upper(), o['order'])
                     nid -= 1
                     (found if o['exact'] else analogs).append(row)
-            key = lambda r: (prio.get((r['brand'] or '').upper(), 10**6), r['price'])
+            key = lambda r: (berg_rank.get((r['brand'] or '').upper(), 10**4 + prio.get((r['brand'] or '').upper(), 10**6)), (r['brand'] or '').upper(), r['price'], r['delivery_days'] if r['delivery_days'] is not None else 10**6)
             found.sort(key=key)
             analogs.sort(key=key)
             cur.execute(f"INSERT INTO {s}.cab_search_history (query, results_count) VALUES (%s,%s)", (q[:100], len(found)))
