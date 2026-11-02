@@ -1,0 +1,1 @@
+ALTER TABLE cab_suppliers ADD COLUMN IF NOT EXISTS order_settings jsonb NOT NULL DEFAULT '{}'::jsonb;

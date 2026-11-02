@@ -77,17 +77,19 @@ def berg_search(article: str, with_analogs: bool):
     return out, None
 
 
-def berg_order(items: list, comment: str):
+def berg_order(items: list, settings: dict):
     key = os.environ.get('BERG_API_KEY')
     if not key:
         return None, 'Ключ Берг не задан'
     params = {'key': key}
+    for field, name in (('payment_type', 'payment_type'), ('delivery_type', 'delivery_type'), ('dispatch_type', 'dispatch_type'), ('shipment_address', 'shipment_address'), ('comment', 'comment')):
+        v = str((settings or {}).get(field) or '').strip()
+        if v:
+            params[name] = v[:200]
     for n, i in enumerate(items):
         params[f'items[{n}][resource_id]'] = i['berg_resource_id']
         params[f'items[{n}][warehouse_id]'] = i['berg_warehouse_id']
         params[f'items[{n}][quantity]'] = str(i['qty'])
-        if comment:
-            params[f'items[{n}][comment]'] = comment[:200]
     req = urllib.request.Request('https://api.berg.ru/ordering/place_order.json?' + urllib.parse.urlencode({'key': key}), data=urllib.parse.urlencode(params).encode(), method='POST', headers={'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'})
     try:
         with urllib.request.urlopen(req, timeout=4) as r:
@@ -176,6 +178,12 @@ def handler(event: dict, context) -> dict:
                 return err('Укажите название поставщика')
             kind = body.get('kind') if body.get('kind') in ('file', 'api', 'email') else 'file'
             sid = body.get('id')
+            if sid and isinstance(body.get('order_settings'), dict):
+                allowed = ('payment_type', 'delivery_type', 'dispatch_type', 'shipment_address', 'comment')
+                clean = {k: str(body['order_settings'].get(k) or '').strip()[:200] for k in allowed}
+                cur.execute(f"UPDATE {s}.cab_suppliers SET order_settings = %s::jsonb WHERE id = %s", (json.dumps(clean), sid))
+                conn.commit()
+                return ok({'ok': True})
             if sid:
                 cur.execute(
                     f"UPDATE {s}.cab_suppliers SET name=%s, kind=%s, api_url=%s, api_login=%s, note=%s WHERE id=%s",
@@ -424,7 +432,7 @@ def handler(event: dict, context) -> dict:
             if not items:
                 return err('Корзина пуста')
             client = one(f"SELECT * FROM {s}.cab_clients WHERE id = %s", (body.get('client_id'),)) if body.get('client_id') else None
-            berg_sup = next((r for r in rows(f"SELECT id, name FROM {s}.cab_suppliers WHERE kind = 'api' ORDER BY id") if 'берг' in str(r['name']).lower() or 'berg' in str(r['name']).lower()), None)
+            berg_sup = next((r for r in rows(f"SELECT id, name, order_settings FROM {s}.cab_suppliers WHERE kind = 'api' ORDER BY id") if 'берг' in str(r['name']).lower() or 'berg' in str(r['name']).lower()), None)
             if berg_sup:
                 for i in items:
                     is_berg = i.get('supplier_id') == berg_sup['id'] or '(онлайн)' in str(i.get('supplier_name') or '')
@@ -440,7 +448,7 @@ def handler(event: dict, context) -> dict:
             berg_items = [i for i in items if i.get('berg_resource_id') and i.get('berg_warehouse_id')]
             berg_id = None
             if berg_items:
-                berg_id, berg_err = berg_order(berg_items, str(body.get('comment') or ''))
+                berg_id, berg_err = berg_order(berg_items, (berg_sup or {}).get('order_settings') or {})
                 if berg_err:
                     return err('Заказ не создан. ' + berg_err)
             total_sale = sum(float(i['price_sale']) * i['qty'] for i in items)

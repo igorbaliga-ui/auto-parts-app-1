@@ -7,7 +7,7 @@ import Icon from '@/components/ui/icon';
 import { cabApi, fmtDate } from './api';
 
 type Upload = { id: number; rows_count: number; created_at: string; supplier_name: string };
-type Supplier = { id: number; name: string; kind: string; api_url: string | null; note: string | null; active: boolean; items_count: number; price_updated_at: string | null };
+type Supplier = { id: number; name: string; kind: string; api_url: string | null; note: string | null; order_settings?: Record<string, string>; active: boolean; items_count: number; price_updated_at: string | null };
 
 const kindLabel: Record<string, string> = { file: 'Прайс-лист', api: 'API', email: 'Почта' };
 const FIELDS: [string, string][] = [
@@ -30,6 +30,14 @@ const GUESS: Record<string, RegExp> = {
 };
 const CHUNK = 3000;
 
+const orderFields: [string, string, string][] = [
+  ['payment_type', 'Способ оплаты', '1 — наличный, 2 — безналичный'],
+  ['delivery_type', 'Тип доставки', '1 — обычная, 2 — авиадоставка'],
+  ['dispatch_type', 'Способ доставки', '2 — самовывоз, 3 — доставка, 60580 — срочная'],
+  ['shipment_address', 'Адрес доставки', 'Код адреса из личного кабинета Берг'],
+  ['comment', 'Комментарий к заказу', 'Например, название вашей компании'],
+];
+
 type Parsed = { head: string[]; rows: string[][] };
 
 const SuppliersTab = ({ url }: { url: string }) => {
@@ -39,6 +47,9 @@ const SuppliersTab = ({ url }: { url: string }) => {
   const [apiUrl, setApiUrl] = useState('');
   const [error, setError] = useState('');
   const [uploadFor, setUploadFor] = useState<Supplier | null>(null);
+  const [orderFor, setOrderFor] = useState<Supplier | null>(null);
+  const [orderVals, setOrderVals] = useState<Record<string, string>>({});
+  const [orderMsg, setOrderMsg] = useState('');
   const [parsed, setParsed] = useState<Parsed | null>(null);
   const [map, setMap] = useState<Record<string, number>>({});
   const [replace, setReplace] = useState(true);
@@ -131,6 +142,13 @@ const SuppliersTab = ({ url }: { url: string }) => {
     }
   };
 
+  const saveOrderSettings = async () => {
+    if (!orderFor) return;
+    await cabApi(url, 'supplier_save', { id: orderFor.id, name: orderFor.name, kind: orderFor.kind, order_settings: orderVals });
+    setOrderMsg('Сохранено');
+    load();
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <h2 className="font-head uppercase tracking-wide text-xl">Поставщики и прайсы</h2>
@@ -161,6 +179,12 @@ const SuppliersTab = ({ url }: { url: string }) => {
                 </div>
               </div>
               <span className={`text-xs ${s.active ? 'text-emerald-500' : 'text-muted-foreground'}`}>{s.active ? 'Участвует в поиске' : 'Выключен'}</span>
+              {s.kind === 'api' && (
+                <Button size="sm" variant="outline" onClick={() => { setOrderFor(s); setOrderVals(s.order_settings || {}); setOrderMsg(''); }}>
+                  <Icon name="Settings" size={14} className="mr-1.5" />
+                  Настройки заказа
+                </Button>
+              )}
               <Button size="sm" variant="outline" onClick={() => { setUploadFor(s); setParsed(null); setProgress(''); }}>
                 <Icon name="Upload" size={14} className="mr-1.5" />
                 Загрузить прайс
@@ -186,6 +210,25 @@ const SuppliersTab = ({ url }: { url: string }) => {
             ))}
           </div>
         </section>
+      )}
+      {orderFor && (
+        <div className="border border-border rounded-sm p-4 flex flex-col gap-3">
+          <h3 className="font-head uppercase tracking-wide">Настройки заказа: {orderFor.name}</h3>
+          <div className="grid gap-3 sm:grid-cols-2 max-w-3xl">
+            {orderFields.map(([key, label, hint]) => (
+              <label key={key} className="text-xs text-muted-foreground flex flex-col gap-1">
+                {label}
+                <Input value={orderVals[key] || ''} onChange={(e) => { setOrderVals({ ...orderVals, [key]: e.target.value }); setOrderMsg(''); }} />
+                <span>{hint}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button onClick={saveOrderSettings}>Сохранить</Button>
+            <Button variant="outline" onClick={() => setOrderFor(null)}>Закрыть</Button>
+            {orderMsg && <span className="text-sm text-emerald-500">{orderMsg}</span>}
+          </div>
+        </div>
       )}
       {uploadFor && (
         <div className="border border-border rounded-sm p-4 flex flex-col gap-3">
