@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -155,6 +155,36 @@ const SearchTab = ({ url, onCartChange, initialQuery, articles, clientName }: Pr
 
   const [pageSize, setPageSize] = useState(50);
   const [hideEmpty, setHideEmpty] = useState(false);
+  const [width, setWidth] = useState<number | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const saved = Number(localStorage.getItem('cab_search_width'));
+    if (saved >= 600) setWidth(saved);
+  }, []);
+
+  const startResize = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = boxRef.current?.getBoundingClientRect().width || 1100;
+    let last = startW;
+    const move = (ev: PointerEvent) => {
+      last = Math.min(Math.max(startW + ev.clientX - startX, 600), window.innerWidth);
+      setWidth(last);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      localStorage.setItem('cab_search_width', String(Math.round(last)));
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  const resetWidth = () => {
+    setWidth(null);
+    localStorage.removeItem('cab_search_width');
+  };
 
   useEffect(() => {
     const s = loadSettings();
@@ -212,7 +242,15 @@ const SearchTab = ({ url, onCartChange, initialQuery, articles, clientName }: Pr
   };
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-[1100px]">
+    <div ref={boxRef} className="relative flex flex-col gap-4 w-full max-w-full pr-3" style={{ width: width ?? 1100 }}>
+      <div
+        onPointerDown={startResize}
+        onDoubleClick={resetWidth}
+        title="Потяните, чтобы изменить ширину. Двойной клик: сбросить"
+        className="absolute top-0 right-0 h-full w-3 cursor-col-resize flex items-center justify-center group touch-none"
+      >
+        <div className="w-1 h-16 rounded-full bg-border group-hover:bg-primary transition-colors" />
+      </div>
       <h2 className="font-head uppercase tracking-wide text-xl">Поиск запчастей</h2>
       <form onSubmit={search} className="flex flex-wrap items-center gap-3">
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Артикул, например SC16HR11" className="max-w-xs" />
