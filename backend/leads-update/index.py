@@ -232,6 +232,13 @@ def handler(event: dict, context) -> dict:
             params,
         )
         row = cur.fetchone()
+        if 'name' in body and row and text_values.get('name'):
+            cur.execute(
+                f"UPDATE {schema}.leads SET name = %s "
+                f"WHERE id <> %s AND name IS DISTINCT FROM %s "
+                f"AND RIGHT(regexp_replace(phone, '\\D', '', 'g'), 10) = %s",
+                (text_values['name'], lead_id, text_values['name'], re.sub(r'\D', '', row[3] or '')[-10:]),
+            )
         cashback = float(row[0]) if row and row[0] is not None else None
         remaining = float(row[1]) if row and row[1] is not None else None
         completed_at = row[2].isoformat() if row and row[2] else None
