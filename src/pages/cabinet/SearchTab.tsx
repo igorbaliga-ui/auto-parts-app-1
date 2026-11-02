@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -8,10 +8,23 @@ import { loadSettings } from './SettingsTab';
 
 type Props = { url: string; onCartChange: () => void; initialQuery?: string; articles?: string[]; clientName?: string };
 
+const PAGE = 5;
+
 type Group = { article: string; items: Item[]; partial: Item[] };
 
 const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: number) => void }) => {
   const [qty, setQty] = useState<Record<number, string>>({});
+  const [shown, setShown] = useState<Record<string, number>>({});
+  const brands: string[] = [];
+  const byBrand: Record<string, Item[]> = {};
+  for (const i of items) {
+    const b = i.brand || '—';
+    if (!byBrand[b]) {
+      byBrand[b] = [];
+      brands.push(b);
+    }
+    byBrand[b].push(i);
+  }
   return (
     <div className="overflow-x-auto border border-border rounded-sm">
       <table className="w-full text-sm">
@@ -28,7 +41,17 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
           </tr>
         </thead>
         <tbody>
-          {items.map((i) => (
+          {brands.map((b) => {
+            const list = byBrand[b];
+            const limit = shown[b] ?? PAGE;
+            return (
+              <Fragment key={b}>
+                {brands.length > 1 && (
+                  <tr className="border-t border-border bg-muted/20">
+                    <td colSpan={8} className="p-2 text-xs font-medium uppercase">{b} <span className="text-muted-foreground">({list.length})</span></td>
+                  </tr>
+                )}
+                {list.slice(0, limit).map((i) => (
             <tr key={i.id} className="border-t border-border">
               <td className="p-2 whitespace-nowrap">
                 <div className="font-medium">{i.article}</div>
@@ -58,7 +81,19 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
                 </div>
               </td>
             </tr>
-          ))}
+                ))}
+                {list.length > limit && (
+                  <tr className="border-t border-border">
+                    <td colSpan={8} className="p-2 text-center">
+                      <Button variant="ghost" size="sm" onClick={() => setShown({ ...shown, [b]: limit + PAGE })}>
+                        Показать ещё ({Math.min(PAGE, list.length - limit)} из {list.length - limit})
+                      </Button>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>
