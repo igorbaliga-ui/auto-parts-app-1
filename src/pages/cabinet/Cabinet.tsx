@@ -1,0 +1,147 @@
+import { useCallback, useEffect, useState } from 'react';
+import PageBackground from '@/components/site/PageBackground';
+import Icon from '@/components/ui/icon';
+import { safeGetSession } from '@/lib/storage';
+import { cabApi, money } from './api';
+import SearchTab from './SearchTab';
+import CartTab from './CartTab';
+import OrdersTab from './OrdersTab';
+import ClientsTab from './ClientsTab';
+import GarageTab from './GarageTab';
+import SuppliersTab from './SuppliersTab';
+import MarkupsTab from './MarkupsTab';
+import HistoryTab from './HistoryTab';
+import funcs from '../../../backend/func2url.json';
+
+type Tab = 'home' | 'search' | 'cart' | 'orders' | 'clients' | 'garage' | 'suppliers' | 'markups' | 'history';
+
+const MENU: { key: Tab; label: string; icon: string }[] = [
+  { key: 'home', label: 'Кабинет', icon: 'LayoutDashboard' },
+  { key: 'search', label: 'Поиск', icon: 'Search' },
+  { key: 'cart', label: 'Корзина', icon: 'ShoppingCart' },
+  { key: 'orders', label: 'Заказы', icon: 'ClipboardList' },
+  { key: 'clients', label: 'Клиенты', icon: 'Users' },
+  { key: 'garage', label: 'Гараж', icon: 'Car' },
+  { key: 'suppliers', label: 'Поставщики', icon: 'Truck' },
+  { key: 'markups', label: 'Наценки', icon: 'Percent' },
+  { key: 'history', label: 'История поиска', icon: 'History' },
+];
+
+type Stats = { searches: number; suppliers: number; orders: number; orders_sum: string; cart: number };
+
+const url = (funcs as Record<string, string>)['cabinet'] || '';
+
+const Cabinet = () => {
+  const [authed, setAuthed] = useState<boolean | null>(null);
+  const [tab, setTab] = useState<Tab>('home');
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [repeat, setRepeat] = useState('');
+
+  const refresh = useCallback(async () => {
+    try {
+      const d = await cabApi<{ stats: Stats }>(url, 'stats');
+      setStats(d.stats);
+    } catch {
+      setStats(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    const has = !!safeGetSession('admin_password');
+    setAuthed(has);
+    if (has) refresh();
+  }, [refresh]);
+
+  if (authed === null) return null;
+
+  if (!authed) {
+    return (
+      <PageBackground>
+        <div className="min-h-screen flex items-center justify-center px-5">
+          <div className="max-w-sm bg-card border border-steel rounded-sm p-8 text-center flex flex-col gap-3">
+            <p>Сначала войдите в админку заявок, потом вернитесь сюда.</p>
+            <a href="/admin" className="text-primary underline">
+              Перейти в админку
+            </a>
+          </div>
+        </div>
+      </PageBackground>
+    );
+  }
+
+  const go = (t: Tab) => setTab(t);
+
+  return (
+    <PageBackground>
+      <div className="flex flex-col md:flex-row min-h-screen">
+        <nav className="md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-steel p-3 flex md:flex-col gap-1 overflow-x-auto">
+          {MENU.map((m) => (
+            <button
+              key={m.key}
+              onClick={() => go(m.key)}
+              className={`h-10 px-3 rounded-sm border text-sm font-head uppercase tracking-wide transition-colors flex items-center gap-2 whitespace-nowrap ${
+                tab === m.key ? 'border-primary bg-primary/10 text-foreground' : 'border-transparent text-muted-foreground hover:border-primary/60'
+              }`}
+            >
+              <Icon name={m.icon} size={15} />
+              {m.label}
+              {m.key === 'cart' && stats && stats.cart > 0 && <span className="ml-auto text-xs text-primary">{stats.cart}</span>}
+            </button>
+          ))}
+          <a href="/admin" className="h-10 px-3 mt-auto rounded-sm text-sm font-head uppercase tracking-wide text-muted-foreground hover:text-foreground flex items-center gap-2 whitespace-nowrap">
+            <Icon name="ArrowLeft" size={15} />
+            К заявкам
+          </a>
+        </nav>
+        <main className="flex-1 p-5 sm:p-8 min-w-0">
+          {tab === 'home' && (
+            <div className="flex flex-col gap-4">
+              <h1 className="font-head uppercase tracking-wide text-2xl">Кабинет</h1>
+              <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                {[
+                  ['Поисков', stats?.searches ?? 0],
+                  ['Поставщиков', stats?.suppliers ?? 0],
+                  ['Заказов', stats?.orders ?? 0],
+                  ['Сумма заказов', money(stats?.orders_sum)],
+                ].map(([l, v]) => (
+                  <div key={String(l)} className="border border-border rounded-sm p-4">
+                    <div className="text-xs uppercase text-muted-foreground">{l}</div>
+                    <div className="text-xl font-medium mt-1">{v}</div>
+                  </div>
+                ))}
+              </div>
+              {stats && stats.cart > 0 && (
+                <button onClick={() => go('cart')} className="self-start h-10 px-4 rounded-sm bg-primary text-primary-foreground text-sm font-head uppercase tracking-wide">
+                  В корзине {stats.cart} поз. — оформить заказ
+                </button>
+              )}
+              {stats && stats.suppliers === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Начните с раздела «Поставщики»: добавьте поставщика и загрузите его прайс, затем настройте наценки.
+                </p>
+              )}
+            </div>
+          )}
+          {tab === 'search' && <SearchTab key={repeat} url={url} onCartChange={refresh} initialQuery={repeat} />}
+          {tab === 'cart' && <CartTab url={url} onChanged={refresh} onOrdered={() => go('orders')} />}
+          {tab === 'orders' && <OrdersTab url={url} />}
+          {tab === 'clients' && <ClientsTab url={url} />}
+          {tab === 'garage' && <GarageTab url={url} />}
+          {tab === 'suppliers' && <SuppliersTab url={url} />}
+          {tab === 'markups' && <MarkupsTab url={url} />}
+          {tab === 'history' && (
+            <HistoryTab
+              url={url}
+              onRepeat={(q) => {
+                setRepeat(q);
+                go('search');
+              }}
+            />
+          )}
+        </main>
+      </div>
+    </PageBackground>
+  );
+};
+
+export default Cabinet;

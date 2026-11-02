@@ -1,0 +1,6 @@
+{
+  "tests": [
+    {"name": "OPTIONS preflight", "method": "OPTIONS", "path": "/", "expectedStatus": 200},
+    {"name": "No password rejected", "method": "POST", "path": "/", "body": {"action": "orders_list"}, "expectedStatus": 401}
+  ]
+}

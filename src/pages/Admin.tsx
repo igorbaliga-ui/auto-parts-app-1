@@ -87,6 +87,13 @@ const Admin = () => {
           <Icon name="MonitorX" size={15} />
           Падения
         </button>
+        <a
+          href="/cabinet"
+          className="h-10 px-4 rounded-sm border border-steel text-sm font-head uppercase tracking-wide text-muted-foreground hover:border-primary/60 transition-colors flex items-center gap-2"
+        >
+          <Icon name="Store" size={15} />
+          Кабинет продаж
+        </a>
         <button
           onClick={a.logout}
           title="Выйти из админки"
