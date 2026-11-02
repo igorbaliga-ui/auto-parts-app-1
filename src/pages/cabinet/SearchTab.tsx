@@ -172,6 +172,7 @@ const SearchTab = ({ url, onCartChange, initialQuery, articles, clientName }: Pr
     await cabApi(url, 'cart_add', {
       article: i.article, brand: i.brand, name: i.name, supplier_id: i.supplier_id, supplier_name: i.supplier_name,
       delivery_days: i.delivery_days, price_buy: i.price, price_sale: i.sale, qty,
+      berg_resource_id: i.berg_resource_id, berg_warehouse_id: i.berg_warehouse_id,
     });
     setAdded(`${i.article} добавлен в корзину`);
     setTimeout(() => setAdded(''), 2000);

@@ -71,9 +71,41 @@ def berg_search(article: str, with_analogs: bool):
                 'price': price, 'qty': qty,
                 'delivery_days': int(days) if str(days or '').isdigit() else None,
                 'warehouse': (o.get('warehouse') or {}).get('name') or '',
+                'berg_resource_id': str(res.get('id') or ''), 'berg_warehouse_id': str((o.get('warehouse') or {}).get('id') or ''),
                 'exact': norm(res.get('article')) == norm(article),
             })
     return out, None
+
+
+def berg_order(items: list, comment: str):
+    key = os.environ.get('BERG_API_KEY')
+    if not key:
+        return None, 'Ключ Берг не задан'
+    params = {'key': key}
+    for n, i in enumerate(items):
+        params[f'items[{n}][resource_id]'] = i['berg_resource_id']
+        params[f'items[{n}][warehouse_id]'] = i['berg_warehouse_id']
+        params[f'items[{n}][quantity]'] = str(i['qty'])
+        if comment:
+            params[f'items[{n}][comment]'] = comment[:200]
+    req = urllib.request.Request('https://api.berg.ru/ordering/place_order.json', data=urllib.parse.urlencode(params).encode(), method='POST')
+    try:
+        with urllib.request.urlopen(req, timeout=4) as r:
+            data = json.loads(r.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        try:
+            data = json.loads(e.read().decode('utf-8'))
+        except Exception:
+            return None, f'Берг: ошибка {e.code}'
+    except Exception as e:
+        return None, f'Берг не ответил ({type(e).__name__})'
+    print('BERG ORDER', json.dumps(data, ensure_ascii=False)[:800])
+    if isinstance(data, dict) and data.get('errors'):
+        e0 = data['errors'][0] or {}
+        return None, f"Берг: {e0.get('text') or e0.get('code')}"
+    order = (data.get('order') if isinstance(data, dict) else None) or {}
+    oid = order.get('id') or (data.get('order_id') if isinstance(data, dict) else None)
+    return str(oid or 'ok'), None
 
 
 def sale_price(price: float, markups: list) -> float:
@@ -252,6 +284,7 @@ def handler(event: dict, context) -> dict:
                         'id': nid, 'supplier_id': berg['id'], 'supplier_name': berg['name'] + ' (онлайн)',
                         'article': o['article'], 'brand': o['brand'], 'name': o['name'], 'price': o['price'],
                         'sale': sale_price(o['price'], mk), 'qty': o['qty'], 'delivery_days': o['delivery_days'], 'warehouse': o['warehouse'],
+                        'berg_resource_id': o['berg_resource_id'], 'berg_warehouse_id': o['berg_warehouse_id'],
                     }
                     nid -= 1
                     (found if o['exact'] else analogs).append(row)
@@ -360,11 +393,12 @@ def handler(event: dict, context) -> dict:
         if action == 'cart_add':
             qty = max(1, int(num(body.get('qty'), 1)))
             cur.execute(
-                f"INSERT INTO {s}.cab_cart (article, brand, name, supplier_id, supplier_name, delivery_days, price_buy, price_sale, qty) "
-                f"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                f"INSERT INTO {s}.cab_cart (article, brand, name, supplier_id, supplier_name, delivery_days, price_buy, price_sale, qty, berg_resource_id, berg_warehouse_id) "
+                f"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (str(body.get('article') or '')[:80], str(body.get('brand') or '')[:80], str(body.get('name') or '')[:300],
                  body.get('supplier_id'), str(body.get('supplier_name') or '')[:120], body.get('delivery_days'),
-                 num(body.get('price_buy')), num(body.get('price_sale')), qty),
+                 num(body.get('price_buy')), num(body.get('price_sale')), qty,
+                 str(body.get('berg_resource_id') or '') or None, str(body.get('berg_warehouse_id') or '') or None),
             )
             conn.commit()
             return ok({'ok': True})
@@ -390,23 +424,29 @@ def handler(event: dict, context) -> dict:
             if not items:
                 return err('Корзина пуста')
             client = one(f"SELECT * FROM {s}.cab_clients WHERE id = %s", (body.get('client_id'),)) if body.get('client_id') else None
+            berg_items = [i for i in items if i.get('berg_resource_id') and i.get('berg_warehouse_id')]
+            berg_id = None
+            if berg_items:
+                berg_id, berg_err = berg_order(berg_items, str(body.get('comment') or ''))
+                if berg_err:
+                    return err('Заказ не создан. ' + berg_err)
             total_sale = sum(float(i['price_sale']) * i['qty'] for i in items)
             total_buy = sum(float(i['price_buy']) * i['qty'] for i in items)
             cur.execute(
-                f"INSERT INTO {s}.cab_orders (client_id, client_name, client_phone, car, comment, total_sale, total_buy) "
-                f"VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+                f"INSERT INTO {s}.cab_orders (client_id, client_name, client_phone, car, comment, total_sale, total_buy, berg_order_id) "
+                f"VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
                 (client['id'] if client else None,
                  (client['full_name'] if client else str(body.get('client_name') or '')[:200]) or None,
                  (client['phone'] if client else str(body.get('client_phone') or '')[:50]) or None,
                  (str(body.get('car') or '')[:200] or (client['car'] if client else None)),
-                 str(body.get('comment') or '')[:1000] or None, total_sale, total_buy),
+                 str(body.get('comment') or '')[:1000] or None, total_sale, total_buy, berg_id),
             )
             oid = cur.fetchone()['id']
             for i in items:
                 cur.execute(
-                    f"INSERT INTO {s}.cab_order_items (order_id, article, brand, name, supplier_name, delivery_days, price_buy, price_sale, qty) "
-                    f"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                    (oid, i['article'], i['brand'], i['name'], i['supplier_name'], i['delivery_days'], i['price_buy'], i['price_sale'], i['qty']),
+                    f"INSERT INTO {s}.cab_order_items (order_id, article, brand, name, supplier_name, delivery_days, price_buy, price_sale, qty, berg_resource_id, berg_warehouse_id) "
+                    f"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    (oid, i['article'], i['brand'], i['name'], i['supplier_name'], i['delivery_days'], i['price_buy'], i['price_sale'], i['qty'], i.get('berg_resource_id'), i.get('berg_warehouse_id')),
                 )
             cur.execute(f"DELETE FROM {s}.cab_cart WHERE id = ANY(%s)", ([i['id'] for i in items],))
             conn.commit()

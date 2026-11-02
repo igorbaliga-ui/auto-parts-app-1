@@ -32,6 +32,8 @@ export type Item = {
   qty: number;
   delivery_days: number | null;
   warehouse: string;
+  berg_resource_id?: string;
+  berg_warehouse_id?: string;
 };
 
 export type CartItem = {
