@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import urllib.error
 import urllib.parse
 import urllib.request
 import psycopg2
@@ -39,9 +40,22 @@ def berg_search(article: str, with_analogs: bool):
     try:
         with urllib.request.urlopen(urllib.request.Request(url, headers={'Accept': 'application/json'}), timeout=3.5) as r:
             data = json.loads(r.read().decode('utf-8'))
-    except Exception:
-        return [], 'Берг не ответил, показаны только прайсы'
+    except urllib.error.HTTPError as e:
+        try:
+            data = json.loads(e.read().decode('utf-8'))
+        except Exception:
+            return [], f'Берг: ошибка {e.code}'
+    except Exception as e:
+        return [], f'Берг не ответил ({type(e).__name__}), показаны только прайсы'
+    if isinstance(data, dict) and data.get('errors'):
+        code = str((data['errors'][0] or {}).get('code') or '')
+        text = str((data['errors'][0] or {}).get('text') or '')
+        if code == 'ERR_API_KEY_INVALID':
+            return [], 'Берг: ключ API не подошёл. Проверьте ключ в секрете BERG_API_KEY'
+        return [], f'Берг: {text or code}'
     out = []
+    if not (data.get('resources') if isinstance(data, dict) else None):
+        return [], 'Берг: по этому артикулу ничего не найдено'
     for res in data.get('resources') or []:
         brand = (res.get('brand') or {}).get('name') or ''
         for o in res.get('offers') or []:
