@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/ui/icon";
 import { safeGetSession } from "@/lib/storage";
+import CatalogModeSwitch from "./CatalogModeSwitch";
 
 const URL_ = "https://functions.poehali.dev/daa66c4d-a3f5-4678-bfb6-c2a074c343d8";
 
@@ -83,6 +84,7 @@ const FapiCheckButton = () => {
 
   return (
     <div className="relative flex gap-2">
+      <CatalogModeSwitch />
       <Button variant="secondary" onClick={checkPa} disabled={paLoading} className="font-head uppercase tracking-wide">
         <Icon name={paLoading ? "Loader" : "KeyRound"} size={16} className={`mr-2 ${paLoading ? "animate-spin" : ""}`} />
         <span className="hidden sm:inline">Ключи PartsAPI</span>

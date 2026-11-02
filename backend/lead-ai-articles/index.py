@@ -475,12 +475,30 @@ def articles_key(car_id, car_type, str_id) -> str:
     return f'art3:{car_id}:{car_type}:{str_id}'
 
 
+CATALOG_MODES = ('auto', 'fapi', 'partsapi')
+
+
+def get_catalog_mode(conn, schema: str) -> str:
+    """Ручной выбор каталога из настроек: auto (FAPI, затем PartsAPI), fapi или partsapi."""
+    try:
+        cur = conn.cursor()
+        cur.execute(f"SELECT value FROM {schema}.app_settings WHERE key = 'catalog_mode'")
+        row = cur.fetchone()
+        cur.close()
+        return row[0] if row and row[0] in CATALOG_MODES else 'auto'
+    except Exception as e:
+        print(f'catalog mode read failed: {e}')
+        conn.rollback()
+        return 'auto'
+
+
 def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None, overrides=None):
     """Возвращает (расшифровка VIN, текст артикулов, причина почему каталог не помог)."""
     if not vin:
         return None, None, 'в заявке нет VIN, каталог не использовался'
+    mode = get_catalog_mode(cache.conn, cache.table.split('.')[0])
     fapi_note = None
-    if fapi_enabled():
+    if mode != 'partsapi' and fapi_enabled():
         lines_in = [p.strip() for p in re.split(r'[\n;,]+', parts) if p.strip()][:10]
         try:
             f_decoded, f_answer, f_note = fapi_catalog(vin.strip(), lines_in, shortlist, cache, make_ai_pick(api_key) if AI_ENABLED and api_key else None, overrides, make_ai_oem_filter(api_key) if AI_ENABLED and api_key else None)
@@ -494,8 +512,10 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None, overr
         except Exception as e:
             print(f'fapi flow failed: {e}')
             fapi_note = 'FAPI: внутренняя ошибка'
-        if not os.environ.get('PARTSAPI_KEY'):
+        if mode == 'fapi' or not os.environ.get('PARTSAPI_KEY'):
             return None, None, fapi_note
+    if mode == 'fapi':
+        return None, None, 'FAPI: ключ не задан'
     if not os.environ.get('PARTSAPI_KEY'):
         return None, None, 'ключ каталога не задан'
     decoded = None
@@ -616,6 +636,24 @@ def handler(event: dict, context) -> dict:
         finally:
             c.close()
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps(partsapi_check(check_vin))}
+    if body.get('action') in ('catalog_mode_get', 'catalog_mode_set'):
+        m_conn = psycopg2.connect(dsn)
+        try:
+            if body.get('action') == 'catalog_mode_set':
+                new_mode = body.get('mode')
+                if new_mode not in CATALOG_MODES:
+                    return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Неверный режим'})}
+                m_cur = m_conn.cursor()
+                m_cur.execute(
+                    f"INSERT INTO {schema}.app_settings (key, value, updated_at) VALUES ('catalog_mode', %s, now()) "
+                    f"ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()",
+                    (new_mode,),
+                )
+                m_conn.commit()
+            mode_now = get_catalog_mode(m_conn, schema)
+        finally:
+            m_conn.close()
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'mode': mode_now})}
     if body.get('action') == 'fapi_check':
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps(fapi_usage())}
     if body.get('action') == 'free_search':
@@ -700,7 +738,7 @@ def handler(event: dict, context) -> dict:
             return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'В заявке нет списка запчастей'})}
 
         if body.get('action') == 'group_options':
-            if not vin or not fapi_enabled():
+            if not vin or not fapi_enabled() or get_catalog_mode(conn, schema) == 'partsapi':
                 return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'parts': [], 'error': 'Выбор группы доступен только для заявок с VIN через FAPI'})}
             lines_in = [p.strip() for p in re.split(r'[\n;,]+', parts) if p.strip()][:10]
             try:
