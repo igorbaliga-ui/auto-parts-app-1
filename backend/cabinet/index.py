@@ -88,7 +88,7 @@ def berg_order(items: list, comment: str):
         params[f'items[{n}][quantity]'] = str(i['qty'])
         if comment:
             params[f'items[{n}][comment]'] = comment[:200]
-    req = urllib.request.Request('https://api.berg.ru/ordering/place_order.json', data=urllib.parse.urlencode(params).encode(), method='POST')
+    req = urllib.request.Request('https://api.berg.ru/ordering/place_order.json?' + urllib.parse.urlencode({'key': key}), data=urllib.parse.urlencode(params).encode(), method='POST', headers={'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'})
     try:
         with urllib.request.urlopen(req, timeout=4) as r:
             data = json.loads(r.read().decode('utf-8'))
