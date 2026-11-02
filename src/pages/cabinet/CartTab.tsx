@@ -19,16 +19,17 @@ const CartTab = ({ url, onChanged, onOrdered }: Props) => {
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [draft, setDraft] = useState(false);
 
   const load = useCallback(async () => {
     const [c, cl] = await Promise.all([
-      cabApi<{ items: CartItem[] }>(url, 'cart_list'),
+      cabApi<{ items: CartItem[] }>(url, 'cart_list', { draft }),
       cabApi<{ clients: Client[] }>(url, 'clients_list'),
     ]);
     setItems(c.items);
     setClients(cl.clients);
     setSel((p) => p.filter((id) => c.items.some((i) => i.id === id)));
-  }, [url]);
+  }, [url, draft]);
 
   useEffect(() => {
     load();
@@ -42,6 +43,13 @@ const CartTab = ({ url, onChanged, onOrdered }: Props) => {
 
   const remove = async () => {
     await cabApi(url, 'cart_delete', { ids: sel });
+    setSel([]);
+    await load();
+    onChanged();
+  };
+
+  const moveDraft = async () => {
+    await cabApi(url, 'cart_draft', { ids: sel, draft: !draft });
     setSel([]);
     await load();
     onChanged();
@@ -71,8 +79,16 @@ const CartTab = ({ url, onChanged, onOrdered }: Props) => {
   return (
     <div className="flex flex-col gap-4">
       <h2 className="font-head uppercase tracking-wide text-xl">Корзина</h2>
+      <div className="flex gap-1">
+        <Button size="sm" variant={!draft ? 'default' : 'outline'} onClick={() => { setDraft(false); setSel([]); }}>
+          Активная корзина
+        </Button>
+        <Button size="sm" variant={draft ? 'default' : 'outline'} onClick={() => { setDraft(true); setSel([]); }}>
+          Мои черновики
+        </Button>
+      </div>
       {items.length === 0 ? (
-        <p className="text-muted-foreground">Корзина пуста. Найдите запчасти в разделе «Поиск».</p>
+        <p className="text-muted-foreground">{draft ? 'Черновиков нет.' : 'Корзина пуста. Найдите запчасти в разделе «Поиск».'}</p>
       ) : (
         <>
           <div className="overflow-x-auto border border-border rounded-sm">
@@ -151,6 +167,9 @@ const CartTab = ({ url, onChanged, onOrdered }: Props) => {
                 <Button disabled={!sel.length || busy} onClick={order}>
                   <Icon name="Send" size={14} className="mr-1.5" />
                   Оформить заказ ({sel.length})
+                </Button>
+                <Button variant="outline" disabled={!sel.length} onClick={moveDraft}>
+                  {draft ? 'Вернуть в корзину' : 'Сохранить как черновик'}
                 </Button>
                 <Button variant="outline" disabled={!sel.length} onClick={remove}>
                   <Icon name="Trash2" size={14} className="mr-1.5" />

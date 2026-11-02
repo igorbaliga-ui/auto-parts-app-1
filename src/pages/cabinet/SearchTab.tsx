@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import Icon from '@/components/ui/icon';
 import { cabApi, money, Item } from './api';
+import { loadSettings } from './SettingsTab';
 
 type Props = { url: string; onCartChange: () => void; initialQuery?: string };
 
@@ -71,14 +72,26 @@ const SearchTab = ({ url, onCartChange, initialQuery }: Props) => {
   const [error, setError] = useState('');
   const [added, setAdded] = useState('');
 
-  const search = async (e?: React.FormEvent) => {
+  const [pageSize, setPageSize] = useState(50);
+  const [hideEmpty, setHideEmpty] = useState(false);
+
+  useEffect(() => {
+    const s = loadSettings();
+    setPageSize(Number(s.pageSize) || 50);
+    setHideEmpty(s.hideEmpty);
+    setAnalogs(s.analogs);
+    if (initialQuery && initialQuery.length >= 3) search(undefined, initialQuery, s.analogs);
+  }, []);
+
+  const search = async (e?: React.FormEvent, q?: string, an?: boolean) => {
     e?.preventDefault();
     setLoading(true);
     setError('');
     try {
-      const d = await cabApi<{ items: Item[]; partial: Item[] }>(url, 'search', { query, with_partial: analogs });
-      setItems(d.items);
-      setPartial(d.partial);
+      const d = await cabApi<{ items: Item[]; partial: Item[] }>(url, 'search', { query: q ?? query, with_partial: an ?? analogs });
+      const keep = (i: Item) => !hideEmpty || i.qty > 0;
+      setItems(d.items.filter(keep).slice(0, pageSize));
+      setPartial(d.partial.filter(keep).slice(0, pageSize));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка');
     } finally {

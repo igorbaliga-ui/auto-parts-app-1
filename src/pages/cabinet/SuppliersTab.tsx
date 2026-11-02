@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import Icon from '@/components/ui/icon';
 import { cabApi, fmtDate } from './api';
 
+type Upload = { id: number; rows_count: number; created_at: string; supplier_name: string };
 type Supplier = { id: number; name: string; kind: string; api_url: string | null; note: string | null; active: boolean; items_count: number; price_updated_at: string | null };
 
 const kindLabel: Record<string, string> = { file: 'Прайс-лист', api: 'API', email: 'Почта' };
@@ -42,11 +43,14 @@ const SuppliersTab = ({ url }: { url: string }) => {
   const [map, setMap] = useState<Record<string, number>>({});
   const [replace, setReplace] = useState(true);
   const [progress, setProgress] = useState('');
+  const [uploads, setUploads] = useState<Upload[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     const d = await cabApi<{ suppliers: Supplier[] }>(url, 'suppliers_list');
     setList(d.suppliers);
+    const u = await cabApi<{ uploads: Upload[] }>(url, 'uploads_list');
+    setUploads(u.uploads);
   }, [url]);
 
   useEffect(() => {
@@ -167,6 +171,21 @@ const SuppliersTab = ({ url }: { url: string }) => {
             </div>
           ))}
         </div>
+      )}
+      {uploads.length > 0 && (
+        <section>
+          <h3 className="font-head uppercase text-sm mb-2">История загрузок прайсов</h3>
+          <div className="border border-border rounded-sm divide-y divide-border">
+            {uploads.map((u) => (
+              <div key={u.id} className="flex justify-between gap-3 p-2.5 text-sm">
+                <span>{u.supplier_name}</span>
+                <span className="text-muted-foreground">
+                  {fmtDate(u.created_at)} · {u.rows_count} поз.
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
       {uploadFor && (
         <div className="border border-border rounded-sm p-4 flex flex-col gap-3">

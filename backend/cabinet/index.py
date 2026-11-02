@@ -147,12 +147,19 @@ def handler(event: dict, context) -> dict:
                     batch,
                     page_size=1000,
                 )
+            cur.execute(f"INSERT INTO {s}.cab_price_uploads (supplier_id, rows_count) VALUES (%s,%s)", (sid, len(batch)))
             cur.execute(
                 f"UPDATE {s}.cab_suppliers SET items_count = (SELECT COUNT(*) FROM {s}.cab_price_items WHERE supplier_id = %s), price_updated_at = now() WHERE id = %s",
                 (sid, sid),
             )
             conn.commit()
             return ok({'added': len(batch)})
+
+        if action == 'uploads_list':
+            return ok({'uploads': rows(
+                f"SELECT u.id, u.rows_count, u.created_at, sp.name AS supplier_name FROM {s}.cab_price_uploads u "
+                f"JOIN {s}.cab_suppliers sp ON sp.id = u.supplier_id ORDER BY u.id DESC LIMIT 50"
+            )})
 
         if action == 'markups_get':
             return ok({'markups': markups()})
@@ -172,27 +179,101 @@ def handler(event: dict, context) -> dict:
             qn = norm(q)
             if len(qn) < 3:
                 return err('Введите артикул (минимум 3 символа)')
-            found = rows(
-                f"SELECT p.id, p.supplier_id, sp.name AS supplier_name, p.article, p.brand, p.name, p.price, p.qty, p.delivery_days, p.warehouse "
-                f"FROM {s}.cab_price_items p JOIN {s}.cab_suppliers sp ON sp.id = p.supplier_id "
-                f"WHERE sp.active = true AND p.article_norm = %s ORDER BY p.price LIMIT 200",
-                (qn,),
-            )
+            cols = "p.id, p.supplier_id, sp.name AS supplier_name, p.article, p.brand, p.name, p.price, p.qty, p.delivery_days, p.warehouse"
+            base = f"SELECT {cols} FROM {s}.cab_price_items p JOIN {s}.cab_suppliers sp ON sp.id = p.supplier_id WHERE sp.active = true AND "
+            found = rows(base + "p.article_norm = %s ORDER BY p.price LIMIT 200", (qn,))
             analogs = []
             if body.get('with_partial'):
                 analogs = rows(
-                    f"SELECT p.id, p.supplier_id, sp.name AS supplier_name, p.article, p.brand, p.name, p.price, p.qty, p.delivery_days, p.warehouse "
-                    f"FROM {s}.cab_price_items p JOIN {s}.cab_suppliers sp ON sp.id = p.supplier_id "
-                    f"WHERE sp.active = true AND p.article_norm LIKE %s AND p.article_norm <> %s ORDER BY p.price LIMIT 100",
-                    (qn + '%', qn),
+                    base + f"(p.article_norm LIKE %s OR p.article_norm IN (SELECT cross_norm FROM {s}.cab_crosses WHERE article_norm = %s "
+                    f"UNION SELECT article_norm FROM {s}.cab_crosses WHERE cross_norm = %s)) AND p.article_norm <> %s ORDER BY p.price LIMIT 150",
+                    (qn + '%', qn, qn, qn),
                 )
             mk = markups()
+            prio = {r['brand'].upper(): r['pos'] for r in rows(f"SELECT brand, pos FROM {s}.cab_priority_brands")}
             for r in found + analogs:
                 r['price'] = float(r['price'])
                 r['sale'] = sale_price(r['price'], mk)
+            key = lambda r: (prio.get((r['brand'] or '').upper(), 10**6), r['price'])
+            found.sort(key=key)
+            analogs.sort(key=key)
             cur.execute(f"INSERT INTO {s}.cab_search_history (query, results_count) VALUES (%s,%s)", (q[:100], len(found)))
             conn.commit()
             return ok({'items': found, 'partial': analogs})
+
+        if action == 'bulk_check':
+            mk = markups()
+            out = []
+            for r in (body.get('rows') or [])[:300]:
+                art = str(r.get('article') or '').strip()
+                an = norm(art)
+                brand = str(r.get('brand') or '').strip().upper()
+                if len(an) < 3:
+                    out.append({'article': art, 'brand': brand, 'qty': r.get('qty'), 'offers': 0})
+                    continue
+                offers = rows(
+                    f"SELECT sp.name AS supplier_name, p.brand, p.name, p.price, p.qty, p.delivery_days FROM {s}.cab_price_items p "
+                    f"JOIN {s}.cab_suppliers sp ON sp.id = p.supplier_id WHERE sp.active = true AND p.article_norm = %s "
+                    f"AND (%s = '' OR upper(p.brand) = %s) ORDER BY p.price LIMIT 20",
+                    (an, brand, brand),
+                )
+                best = offers[0] if offers else None
+                out.append({
+                    'article': art, 'brand': brand, 'qty': r.get('qty'), 'offers': len(offers),
+                    'name': best['name'] if best else '',
+                    'supplier_name': best['supplier_name'] if best else '',
+                    'price': float(best['price']) if best else None,
+                    'sale': sale_price(float(best['price']), mk) if best else None,
+                    'stock': best['qty'] if best else None,
+                    'days': best['delivery_days'] if best else None,
+                    'max_price': float(offers[-1]['price']) if offers else None,
+                })
+            return ok({'rows': out})
+
+        if action == 'brands_list':
+            q = str(body.get('query') or '').strip()
+            return ok({'brands': [r['brand'] for r in rows(
+                f"SELECT DISTINCT brand FROM {s}.cab_price_items WHERE brand <> '' AND (%s = '' OR brand ILIKE %s) ORDER BY brand LIMIT 100",
+                (q, f"%{q}%"),
+            )]})
+
+        if action == 'priority_get':
+            return ok({'brands': [r['brand'] for r in rows(f"SELECT brand FROM {s}.cab_priority_brands ORDER BY pos")]})
+
+        if action == 'priority_save':
+            cur.execute(f"DELETE FROM {s}.cab_priority_brands")
+            seen = set()
+            for pos, b in enumerate(body.get('brands') or []):
+                b = str(b).strip().upper()[:80]
+                if b and b not in seen:
+                    seen.add(b)
+                    cur.execute(f"INSERT INTO {s}.cab_priority_brands (brand, pos) VALUES (%s,%s)", (b, pos))
+            conn.commit()
+            return ok({'ok': True})
+
+        if action == 'crosses_list':
+            q = norm(body.get('query'))
+            return ok({'crosses': rows(
+                f"SELECT id, article, cross_article, cross_brand FROM {s}.cab_crosses "
+                f"WHERE %s = '' OR article_norm LIKE %s OR cross_norm LIKE %s ORDER BY id DESC LIMIT 300",
+                (q, q + '%', q + '%'),
+            )})
+
+        if action == 'cross_add':
+            a, c = str(body.get('article') or '').strip(), str(body.get('cross_article') or '').strip()
+            if len(norm(a)) < 3 or len(norm(c)) < 3 or norm(a) == norm(c):
+                return err('Укажите два разных артикула')
+            cur.execute(
+                f"INSERT INTO {s}.cab_crosses (article_norm, article, cross_norm, cross_article, cross_brand) VALUES (%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+                (norm(a), a[:80], norm(c), c[:80], str(body.get('cross_brand') or '')[:80]),
+            )
+            conn.commit()
+            return ok({'ok': True})
+
+        if action == 'cross_delete':
+            cur.execute(f"DELETE FROM {s}.cab_crosses WHERE id = %s", (body.get('id'),))
+            conn.commit()
+            return ok({'ok': True})
 
         if action == 'history_list':
             return ok({'history': rows(f"SELECT id, query, results_count, created_at FROM {s}.cab_search_history ORDER BY id DESC LIMIT 200")})
@@ -206,7 +287,14 @@ def handler(event: dict, context) -> dict:
             return ok({'ok': True})
 
         if action == 'cart_list':
-            return ok({'items': rows(f"SELECT * FROM {s}.cab_cart ORDER BY id")})
+            return ok({'items': rows(f"SELECT * FROM {s}.cab_cart WHERE draft = %s ORDER BY id", (bool(body.get('draft')),))})
+
+        if action == 'cart_draft':
+            ids = [int(i) for i in (body.get('ids') or [])]
+            if ids:
+                cur.execute(f"UPDATE {s}.cab_cart SET draft = %s WHERE id = ANY(%s)", (bool(body.get('draft')), ids))
+                conn.commit()
+            return ok({'ok': True})
 
         if action == 'cart_add':
             qty = max(1, int(num(body.get('qty'), 1)))
@@ -339,13 +427,40 @@ def handler(event: dict, context) -> dict:
             conn.commit()
             return ok({'ok': True})
 
+        if action == 'analytics':
+            days = min(365, max(1, int(num(body.get('days'), 30))))
+            period = f"now() - INTERVAL '{days} days'"
+            summary = one(
+                f"SELECT COUNT(*) AS orders, COALESCE(SUM(total_sale),0) AS sale, COALESCE(SUM(total_buy),0) AS buy "
+                f"FROM {s}.cab_orders WHERE status <> 'cancelled' AND created_at >= {period}"
+            )
+            by_supplier = rows(
+                f"SELECT i.supplier_name, COUNT(*) AS positions, SUM(i.qty) AS qty, SUM(i.price_buy * i.qty) AS buy, SUM(i.price_sale * i.qty) AS sale, "
+                f"AVG(i.delivery_days) AS avg_days FROM {s}.cab_order_items i JOIN {s}.cab_orders o ON o.id = i.order_id "
+                f"WHERE o.status <> 'cancelled' AND o.created_at >= {period} GROUP BY i.supplier_name ORDER BY buy DESC"
+            )
+            top_search = rows(
+                f"SELECT query, COUNT(*) AS cnt, MAX(results_count) AS found FROM {s}.cab_search_history WHERE created_at >= {period} "
+                f"GROUP BY query ORDER BY cnt DESC, query LIMIT 15"
+            )
+            not_found = rows(
+                f"SELECT query, COUNT(*) AS cnt FROM {s}.cab_search_history WHERE created_at >= {period} "
+                f"GROUP BY query HAVING MAX(results_count) = 0 ORDER BY cnt DESC LIMIT 15"
+            )
+            top_items = rows(
+                f"SELECT i.article, i.brand, SUM(i.qty) AS qty, SUM(i.price_sale * i.qty) AS sale FROM {s}.cab_order_items i "
+                f"JOIN {s}.cab_orders o ON o.id = i.order_id WHERE o.status <> 'cancelled' AND o.created_at >= {period} "
+                f"GROUP BY i.article, i.brand ORDER BY sale DESC LIMIT 10"
+            )
+            return ok({'summary': summary, 'by_supplier': by_supplier, 'top_search': top_search, 'not_found': not_found, 'top_items': top_items})
+
         if action == 'stats':
             return ok({'stats': one(
                 f"SELECT (SELECT COUNT(*) FROM {s}.cab_search_history) AS searches, "
                 f"(SELECT COUNT(*) FROM {s}.cab_suppliers WHERE active) AS suppliers, "
                 f"(SELECT COUNT(*) FROM {s}.cab_orders) AS orders, "
                 f"(SELECT COALESCE(SUM(total_sale),0) FROM {s}.cab_orders WHERE status <> 'cancelled') AS orders_sum, "
-                f"(SELECT COUNT(*) FROM {s}.cab_cart) AS cart"
+                f"(SELECT COUNT(*) FROM {s}.cab_cart WHERE draft = false) AS cart"
             )})
 
         return err('Неизвестное действие')
