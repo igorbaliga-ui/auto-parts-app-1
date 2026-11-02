@@ -424,6 +424,19 @@ def handler(event: dict, context) -> dict:
             if not items:
                 return err('Корзина пуста')
             client = one(f"SELECT * FROM {s}.cab_clients WHERE id = %s", (body.get('client_id'),)) if body.get('client_id') else None
+            berg_sup = next((r for r in rows(f"SELECT id, name FROM {s}.cab_suppliers WHERE kind = 'api' ORDER BY id") if 'берг' in str(r['name']).lower() or 'berg' in str(r['name']).lower()), None)
+            if berg_sup:
+                for i in items:
+                    is_berg = i.get('supplier_id') == berg_sup['id'] or '(онлайн)' in str(i.get('supplier_name') or '')
+                    if is_berg and not (i.get('berg_resource_id') and i.get('berg_warehouse_id')):
+                        offers, _w = berg_search(i['article'], False)
+                        cands = [o for o in offers if o['exact'] and norm(o['brand']) == norm(i['brand'])] or [o for o in offers if o['exact']]
+                        price = float(i['price_buy'])
+                        cands.sort(key=lambda o: (abs(o['price'] - price) > 0.01, o['delivery_days'] != i.get('delivery_days'), abs(o['price'] - price)))
+                        if not cands or not cands[0]['berg_resource_id'] or not cands[0]['berg_warehouse_id']:
+                            return err(f"Заказ не создан. Берг: не удалось найти позицию {i['article']}. Удалите её из корзины и добавьте заново из поиска")
+                        i['berg_resource_id'] = cands[0]['berg_resource_id']
+                        i['berg_warehouse_id'] = cands[0]['berg_warehouse_id']
             berg_items = [i for i in items if i.get('berg_resource_id') and i.get('berg_warehouse_id')]
             berg_id = None
             if berg_items:
