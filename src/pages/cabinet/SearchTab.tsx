@@ -16,6 +16,7 @@ type Group = { article: string; items: Item[]; partial: Item[] };
 const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: number) => void }) => {
   const [qty, setQty] = useState<Record<number, string>>({});
   const [shown, setShown] = useState<Record<string, number>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const brands: string[] = [];
   const byBrand: Record<string, Item[]> = {};
   for (const i of items) {
@@ -44,13 +45,19 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
         <TableBody>
           {brands.map((b) => {
             const list = byBrand[b];
-            const limit = shown[b] ?? PAGE;
+            const limit = collapsed[b] ? 0 : shown[b] ?? PAGE;
             return (
               <Fragment key={b}>
                 {brands.length > 1 && (
-                  <TableRow className="bg-primary/15 hover:bg-primary/15 border-t-2 border-primary/50">
+                  <TableRow
+                    className="bg-primary/15 hover:bg-primary/20 border-t-2 border-primary/50 cursor-pointer select-none"
+                    onClick={() => setCollapsed({ ...collapsed, [b]: !collapsed[b] })}
+                  >
                     <TableCell colSpan={8} className="py-2 font-head uppercase tracking-wide text-xs text-foreground border-l-4 border-primary">
-                      {b} <span className="text-muted-foreground">({list.length})</span>
+                      <span className="inline-flex items-center gap-2">
+                        <Icon name={collapsed[b] ? 'ChevronRight' : 'ChevronDown'} size={14} />
+                        {b} <span className="text-muted-foreground">({list.length})</span>
+                      </span>
                     </TableCell>
                   </TableRow>
                 )}
@@ -85,7 +92,7 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
                     </TableCell>
                   </TableRow>
                 ))}
-                {list.length > limit && (
+                {!collapsed[b] && list.length > limit && (
                   <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={8} className={`text-center py-2 ${brands.length > 1 ? "border-l-4 border-primary/40" : ""}`}>
                       <Button variant="ghost" size="sm" onClick={() => setShown({ ...shown, [b]: limit + PAGE })}>
