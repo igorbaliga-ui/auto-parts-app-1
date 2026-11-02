@@ -92,12 +92,19 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
                     </TableCell>
                   </TableRow>
                 ))}
-                {!collapsed[b] && list.length > limit && (
+                {!collapsed[b] && list.length > PAGE && (
                   <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={8} className={`text-center py-2 ${brands.length > 1 ? "border-l-4 border-primary/40" : ""}`}>
-                      <Button variant="ghost" size="sm" onClick={() => setShown({ ...shown, [b]: limit + PAGE })}>
-                        Показать ещё ({Math.min(PAGE, list.length - limit)} из {list.length - limit})
-                      </Button>
+                      {list.length > limit && (
+                        <Button variant="ghost" size="sm" onClick={() => setShown({ ...shown, [b]: limit + PAGE })}>
+                          Показать ещё ({Math.min(PAGE, list.length - limit)} из {list.length - limit})
+                        </Button>
+                      )}
+                      {limit > PAGE && (
+                        <Button variant="ghost" size="sm" onClick={() => setShown({ ...shown, [b]: PAGE })}>
+                          Свернуть
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 )}
