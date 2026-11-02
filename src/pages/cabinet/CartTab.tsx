@@ -88,6 +88,13 @@ const CartTab = ({ url, onChanged, onOrdered, presetClient, presetCar, onPresetU
     onChanged();
   };
 
+  const removeOne = async (id: number) => {
+    await cabApi(url, 'cart_delete', { ids: [id] });
+    setSel((p) => p.filter((x) => x !== id));
+    await load();
+    onChanged();
+  };
+
   const moveDraft = async () => {
     await cabApi(url, 'cart_draft', { ids: sel, draft: !draft });
     setSel([]);
@@ -147,6 +154,7 @@ const CartTab = ({ url, onChanged, onOrdered, presetClient, presetCar, onPresetU
                   <th className="text-right p-2">Кол-во</th>
                   <th className="text-right p-2">Сумма</th>
                   <th className="text-left p-2">Примечание</th>
+                  <th className="p-2 w-10" />
                 </tr>
               </thead>
               <tbody>
@@ -172,6 +180,11 @@ const CartTab = ({ url, onChanged, onOrdered, presetClient, presetCar, onPresetU
                     <td className="p-2 text-right whitespace-nowrap font-medium">{money(Number(i.price_sale) * i.qty)}</td>
                     <td className="p-2">
                       <Input value={i.note || ''} onChange={(e) => patch(i.id, { note: e.target.value })} onBlur={() => save(i)} className="w-36 h-8" />
+                    </td>
+                    <td className="p-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" title="Удалить позицию" onClick={() => removeOne(i.id)}>
+                        <Icon name="Trash2" size={14} />
+                      </Button>
                     </td>
                   </tr>
                 ))}
