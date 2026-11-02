@@ -401,6 +401,25 @@ def handler(event: dict, context) -> dict:
             conn.commit()
             return ok({'clients': rows(f"SELECT * FROM {s}.cab_clients ORDER BY full_name")})
 
+        if action == 'client_history':
+            c = one(f"SELECT id, phone FROM {s}.cab_clients WHERE id = %s", (body.get('id'),))
+            if not c:
+                return err('Клиент не найден', 404)
+            last10 = re.sub(r'\D', '', c['phone'] or '')[-10:]
+            orders = rows(
+                f"SELECT id, status, total_sale, created_at FROM {s}.cab_orders "
+                f"WHERE client_id = %s OR (%s <> '' AND right(regexp_replace(coalesce(client_phone, ''), '\\D', '', 'g'), 10) = %s) "
+                f"ORDER BY id DESC LIMIT 100",
+                (c['id'], last10, last10),
+            )
+            leads = rows(
+                f"SELECT id, status, order_amount, parts, created_at FROM {s}.leads "
+                f"WHERE %s <> '' AND right(regexp_replace(coalesce(phone, ''), '\\D', '', 'g'), 10) = %s "
+                f"ORDER BY created_at DESC LIMIT 100",
+                (last10, last10),
+            ) if last10 else []
+            return ok({'orders': orders, 'leads': leads})
+
         if action == 'client_save':
             name = str(body.get('full_name') or '').strip()
             if not name:
