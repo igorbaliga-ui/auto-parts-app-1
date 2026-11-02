@@ -16,10 +16,11 @@ import CrossesTab from './CrossesTab';
 import PriorityTab from './PriorityTab';
 import AnalyticsTab from './AnalyticsTab';
 import OemTab from './OemTab';
+import LeadsTab from './LeadsTab';
 import SettingsTab from './SettingsTab';
 import funcs from '../../../backend/func2url.json';
 
-type Tab = 'home' | 'oem' | 'settings' | 'bulk' | 'crosses' | 'priority' | 'analytics' | 'search' | 'cart' | 'orders' | 'clients' | 'garage' | 'suppliers' | 'markups' | 'history';
+type Tab = 'home' | 'leads' | 'oem' | 'settings' | 'bulk' | 'crosses' | 'priority' | 'analytics' | 'search' | 'cart' | 'orders' | 'clients' | 'garage' | 'suppliers' | 'markups' | 'history';
 
 const MENU: { key: Tab; label: string; icon: string; group?: string }[] = [
   { key: 'home', label: 'Кабинет', icon: 'LayoutDashboard' },
@@ -29,7 +30,8 @@ const MENU: { key: Tab; label: string; icon: string; group?: string }[] = [
   { key: 'history', label: 'История поиска', icon: 'History' },
   { key: 'crosses', label: 'Кроссы', icon: 'ArrowLeftRight' },
   { key: 'priority', label: 'Приоритетные бренды', icon: 'Star' },
-  { key: 'cart', label: 'Корзина', icon: 'ShoppingCart', group: 'Продажи' },
+  { key: 'leads', label: 'Заявки', icon: 'Inbox', group: 'Продажи' },
+  { key: 'cart', label: 'Корзина', icon: 'ShoppingCart' },
   { key: 'orders', label: 'Заказы', icon: 'ClipboardList' },
   { key: 'clients', label: 'Клиенты', icon: 'Users' },
   { key: 'garage', label: 'Гараж', icon: 'Car' },
@@ -156,6 +158,15 @@ const Cabinet = () => {
           {tab === 'garage' && <GarageTab url={url} />}
           {tab === 'suppliers' && <SuppliersTab url={url} />}
           {tab === 'markups' && <MarkupsTab url={url} />}
+          {tab === 'leads' && (
+            <LeadsTab
+              url={url}
+              onSearch={(q) => {
+                setRepeat(q);
+                go('search');
+              }}
+            />
+          )}
           {tab === 'oem' && (
             <OemTab
               onSearch={(q) => {

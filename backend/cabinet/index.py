@@ -378,7 +378,27 @@ def handler(event: dict, context) -> dict:
             conn.commit()
             return ok({'ok': True})
 
+        if action == 'leads_list':
+            q = str(body.get('query') or '').strip()
+            like = f"%{q}%"
+            arch = bool(body.get('archived'))
+            return ok({'leads': rows(
+                f"SELECT id, name, phone, vin, car_name, parts, city, messenger, status, order_amount, prepayment, remaining, handled_by, internal_note, ai_articles, created_at "
+                f"FROM {s}.leads WHERE archived = %s AND (%s = '' OR id::text = %s OR name ILIKE %s OR phone ILIKE %s OR vin ILIKE %s OR car_name ILIKE %s OR parts ILIKE %s OR city ILIKE %s) "
+                f"ORDER BY created_at DESC LIMIT 500",
+                (arch, q, q, like, like, like, like, like, like),
+            )})
+
         if action == 'clients_list':
+            cur.execute(
+                f"INSERT INTO {s}.cab_clients (full_name, phone, car, notes) "
+                f"SELECT l.name, l.phone, l.car_name, 'Из заявки с сайта' FROM ("
+                f"SELECT DISTINCT ON (right(regexp_replace(phone, '\\D', '', 'g'), 10)) name, phone, car_name "
+                f"FROM {s}.leads WHERE length(regexp_replace(coalesce(phone, ''), '\\D', '', 'g')) >= 10 AND coalesce(name, '') <> '' "
+                f"ORDER BY right(regexp_replace(phone, '\\D', '', 'g'), 10), created_at DESC) l "
+                f"WHERE NOT EXISTS (SELECT 1 FROM {s}.cab_clients c WHERE right(regexp_replace(coalesce(c.phone, ''), '\\D', '', 'g'), 10) = right(regexp_replace(l.phone, '\\D', '', 'g'), 10))"
+            )
+            conn.commit()
             return ok({'clients': rows(f"SELECT * FROM {s}.cab_clients ORDER BY full_name")})
 
         if action == 'client_save':
