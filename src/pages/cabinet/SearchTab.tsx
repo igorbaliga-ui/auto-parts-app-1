@@ -70,13 +70,16 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
                     </TableCell>
                   </TableRow>
                 )}
-                {list.slice(0, limit).map((i) => (
+                {list.slice(0, limit).map((i, idx, arr) => {
+                  const prev = idx > 0 ? arr[idx - 1] : null;
+                  const same = !!prev && prev.article === i.article && prev.brand === i.brand;
+                  return (
                   <TableRow key={i.id}>
                     <TableCell className={`whitespace-nowrap ${brands.length > 1 ? "border-l-4 border-primary/40" : ""}`}>
-                      <div className="font-head tracking-[0.1em]">{i.article}</div>
-                      <div className="text-xs text-muted-foreground">{i.brand}</div>
+                      {!same && <div className="font-head tracking-[0.1em]">{i.article}</div>}
+                      {!same && <div className="text-xs text-muted-foreground">{i.brand}</div>}
                     </TableCell>
-                    <TableCell className="max-w-[260px] text-muted-foreground">{i.name}</TableCell>
+                    <TableCell className="max-w-[260px] text-muted-foreground">{same ? '' : i.name}</TableCell>
                     <TableCell>
                       <div>{i.supplier_name}</div>
                       <div className="text-xs text-muted-foreground">{i.warehouse}</div>
@@ -100,7 +103,8 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
                 {!collapsed[b] && list.length > PAGE && (
                   <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={8} className={`text-center py-2 ${brands.length > 1 ? "border-l-4 border-primary/40" : ""}`}>
