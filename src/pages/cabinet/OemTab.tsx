@@ -109,13 +109,15 @@ const OemTab = ({ onSearch }: { onSearch: (q: string) => void }) => {
         <Input value={vin} onChange={(e) => setVin(e.target.value)} placeholder="VIN" />
         <Input value={car} onChange={(e) => setCar(e.target.value)} placeholder="Или авто, например BMW 520d 2003" />
       </div>
-      <Textarea value={parts} onChange={(e) => setParts(e.target.value)} rows={3} placeholder="Какие запчасти нужны, например: передние тормозные колодки" />
+      <Textarea value={parts} onChange={(e) => setParts(e.target.value)} rows={3} placeholder="Какие запчасти нужны (обязательно), например: передние тормозные колодки" />
       <div className="flex items-center gap-3">
         <Button onClick={run} disabled={loading || !parts.trim() || (!vin.trim() && !car.trim())}>
           <Icon name="Search" size={14} className="mr-1.5" />
           {loading ? 'Ищу...' : 'Найти номера'}
         </Button>
         {error && <span className="text-sm text-destructive">{error}</span>}
+        {!error && !loading && !parts.trim() && <span className="text-sm text-muted-foreground">Укажите, какие запчасти нужны</span>}
+        {!error && !loading && parts.trim() && !vin.trim() && !car.trim() && <span className="text-sm text-muted-foreground">Укажите VIN или авто</span>}
       </div>
       {res && (
         <div className="border border-border rounded-sm p-4 flex flex-col gap-3">
