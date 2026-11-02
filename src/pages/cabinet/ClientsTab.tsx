@@ -14,7 +14,7 @@ const leadStatus: Record<string, string> = { new: 'Новая', in_progress: 'В
 
 const empty = { id: 0, full_name: '', phone: '', car: '', notes: '' };
 
-const ClientsTab = ({ url }: { url: string }) => {
+const ClientsTab = ({ url, onCreateOrder }: { url: string; onCreateOrder: (c: Client) => void }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [form, setForm] = useState(empty);
   const [search, setSearch] = useState('');
@@ -103,6 +103,10 @@ const ClientsTab = ({ url }: { url: string }) => {
                     {c.notes && <div className="text-xs text-muted-foreground mt-1">{c.notes}</div>}
                   </button>
                   <div className="flex gap-1 shrink-0">
+                    <Button size="sm" onClick={() => onCreateOrder(c)}>
+                      <Icon name="ShoppingCart" size={14} />
+                      <span className="ml-1.5 hidden sm:inline">Создать заказ</span>
+                    </Button>
                     <Button size="sm" variant="outline" onClick={() => setForm({ id: c.id, full_name: c.full_name, phone: c.phone || '', car: c.car || '', notes: c.notes || '' })}>
                       <Icon name="Pencil" size={14} />
                     </Button>

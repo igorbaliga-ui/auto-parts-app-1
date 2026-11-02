@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import PageBackground from '@/components/site/PageBackground';
 import Icon from '@/components/ui/icon';
 import { safeGetSession } from '@/lib/storage';
-import { cabApi, money } from './api';
+import { cabApi, money, Client } from './api';
 import SearchTab from './SearchTab';
 import CartTab from './CartTab';
 import OrdersTab from './OrdersTab';
@@ -50,6 +50,7 @@ const Cabinet = () => {
   const [tab, setTab] = useState<Tab>('home');
   const [stats, setStats] = useState<Stats | null>(null);
   const [repeat, setRepeat] = useState('');
+  const [orderFor, setOrderFor] = useState<Client | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -152,9 +153,15 @@ const Cabinet = () => {
             </div>
           )}
           {tab === 'search' && <SearchTab key={repeat} url={url} onCartChange={refresh} initialQuery={repeat} />}
-          {tab === 'cart' && <CartTab url={url} onChanged={refresh} onOrdered={() => go('orders')} />}
+          {tab === 'cart' && <CartTab url={url} onChanged={refresh} onOrdered={() => go('orders')} presetClient={orderFor} onPresetUsed={() => setOrderFor(null)} />}
           {tab === 'orders' && <OrdersTab url={url} />}
-          {tab === 'clients' && <ClientsTab url={url} />}
+          {tab === 'clients' && <ClientsTab
+              url={url}
+              onCreateOrder={(c) => {
+                setOrderFor(c);
+                go('cart');
+              }}
+            />}
           {tab === 'garage' && <GarageTab url={url} />}
           {tab === 'suppliers' && <SuppliersTab url={url} />}
           {tab === 'markups' && <MarkupsTab url={url} />}
