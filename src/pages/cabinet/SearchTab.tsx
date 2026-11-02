@@ -48,6 +48,17 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
     }
     byBrand[b].push(i);
   }
+  const fastest: Record<string, Item> = {};
+  const cheapest: Record<string, Item> = {};
+  for (const b of brands) {
+    for (const i of byBrand[b]) {
+      if (i.qty <= 0) continue;
+      const f = fastest[b];
+      if (i.delivery_days != null && (!f || i.delivery_days < (f.delivery_days as number) || (i.delivery_days === f.delivery_days && i.price < f.price))) fastest[b] = i;
+      const c = cheapest[b];
+      if (!c || i.price < c.price) cheapest[b] = i;
+    }
+  }
   return (
     <div className="bg-card border border-steel rounded-sm overflow-x-auto text-[13px] leading-tight [&_td]:px-2 [&_td]:py-1 [&_th]:h-8 [&_th]:px-2 [&_th]:text-xs">
       <Table>
@@ -93,7 +104,15 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
                     </TableCell>
                     <TableCell className="max-w-[260px] truncate text-muted-foreground">{same ? '' : i.name}</TableCell>
                     <TableCell>
-                      <div>{i.supplier_name}</div>
+                      <div className="flex items-center gap-1.5">
+                        <span>{i.supplier_name}</span>
+                        {cheapest[b]?.id === i.id && (
+                          <span title="Самая низкая цена по бренду" className="text-emerald-500"><Icon name="Banknote" size={16} /></span>
+                        )}
+                        {fastest[b]?.id === i.id && (
+                          <span title="Самый быстрый срок по бренду" className="text-orange-500"><Icon name="Truck" size={16} /></span>
+                        )}
+                      </div>
                       <Warehouse name={i.warehouse || ''} />
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap text-muted-foreground">{i.delivery_days != null ? `${i.delivery_days} дн.` : '—'}</TableCell>
