@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import Icon from '@/components/ui/icon';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cabApi, money, Item } from './api';
 import { loadSettings } from './SettingsTab';
 
@@ -26,76 +27,78 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
     byBrand[b].push(i);
   }
   return (
-    <div className="overflow-x-auto border border-border rounded-sm">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-          <tr>
-            <th className="text-left p-2">Артикул / бренд</th>
-            <th className="text-left p-2">Наименование</th>
-            <th className="text-left p-2">Поставщик / склад</th>
-            <th className="text-right p-2">Срок</th>
-            <th className="text-right p-2">Наличие</th>
-            <th className="text-right p-2">Закупка</th>
-            <th className="text-right p-2">Продажа</th>
-            <th className="p-2" />
-          </tr>
-        </thead>
-        <tbody>
+    <div className="bg-card border border-steel rounded-sm overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Артикул / бренд</TableHead>
+            <TableHead>Наименование</TableHead>
+            <TableHead>Поставщик / склад</TableHead>
+            <TableHead className="text-right">Срок</TableHead>
+            <TableHead className="text-right">Наличие</TableHead>
+            <TableHead className="text-right">Закупка</TableHead>
+            <TableHead className="text-right">Продажа</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {brands.map((b) => {
             const list = byBrand[b];
             const limit = shown[b] ?? PAGE;
             return (
               <Fragment key={b}>
                 {brands.length > 1 && (
-                  <tr className="border-t border-border bg-muted/20">
-                    <td colSpan={8} className="p-2 text-xs font-medium uppercase">{b} <span className="text-muted-foreground">({list.length})</span></td>
-                  </tr>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableCell colSpan={8} className="py-2 font-head uppercase tracking-wide text-xs">
+                      {b} <span className="text-muted-foreground">({list.length})</span>
+                    </TableCell>
+                  </TableRow>
                 )}
                 {list.slice(0, limit).map((i) => (
-            <tr key={i.id} className="border-t border-border">
-              <td className="p-2 whitespace-nowrap">
-                <div className="font-medium">{i.article}</div>
-                <div className="text-xs text-muted-foreground">{i.brand}</div>
-              </td>
-              <td className="p-2 max-w-[260px]">{i.name}</td>
-              <td className="p-2">
-                <div>{i.supplier_name}</div>
-                <div className="text-xs text-muted-foreground">{i.warehouse}</div>
-              </td>
-              <td className="p-2 text-right whitespace-nowrap">{i.delivery_days != null ? `${i.delivery_days} дн.` : '—'}</td>
-              <td className="p-2 text-right">{i.qty} шт.</td>
-              <td className="p-2 text-right whitespace-nowrap text-muted-foreground">{money(i.price)}</td>
-              <td className="p-2 text-right whitespace-nowrap font-medium">{money(i.sale)}</td>
-              <td className="p-2">
-                <div className="flex items-center gap-1 justify-end">
-                  <Input
-                    type="number"
-                    min={1}
-                    value={qty[i.id] ?? '1'}
-                    onChange={(e) => setQty({ ...qty, [i.id]: e.target.value })}
-                    className="w-16 h-8"
-                  />
-                  <Button size="sm" onClick={() => onAdd(i, Math.max(1, Number(qty[i.id] || 1)))}>
-                    <Icon name="ShoppingCart" size={14} />
-                  </Button>
-                </div>
-              </td>
-            </tr>
+                  <TableRow key={i.id}>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="font-head tracking-[0.1em]">{i.article}</div>
+                      <div className="text-xs text-muted-foreground">{i.brand}</div>
+                    </TableCell>
+                    <TableCell className="max-w-[260px] text-muted-foreground">{i.name}</TableCell>
+                    <TableCell>
+                      <div>{i.supplier_name}</div>
+                      <div className="text-xs text-muted-foreground">{i.warehouse}</div>
+                    </TableCell>
+                    <TableCell className="text-right whitespace-nowrap text-muted-foreground">{i.delivery_days != null ? `${i.delivery_days} дн.` : '—'}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{i.qty} шт.</TableCell>
+                    <TableCell className="text-right whitespace-nowrap text-muted-foreground">{money(i.price)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap font-head">{money(i.sale)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 justify-end">
+                        <Input
+                          type="number"
+                          min={1}
+                          value={qty[i.id] ?? '1'}
+                          onChange={(e) => setQty({ ...qty, [i.id]: e.target.value })}
+                          className="w-16 h-8"
+                        />
+                        <Button size="sm" onClick={() => onAdd(i, Math.max(1, Number(qty[i.id] || 1)))}>
+                          <Icon name="ShoppingCart" size={14} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ))}
                 {list.length > limit && (
-                  <tr className="border-t border-border">
-                    <td colSpan={8} className="p-2 text-center">
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={8} className="text-center py-2">
                       <Button variant="ghost" size="sm" onClick={() => setShown({ ...shown, [b]: limit + PAGE })}>
                         Показать ещё ({Math.min(PAGE, list.length - limit)} из {list.length - limit})
                       </Button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
               </Fragment>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 };
