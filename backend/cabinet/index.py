@@ -419,6 +419,27 @@ def handler(event: dict, context) -> dict:
             ) if last10 else []
             return ok({'orders': orders, 'leads': leads})
 
+        if action == 'lead_client':
+            lead = one(f"SELECT name, phone, car_name FROM {s}.leads WHERE id = %s", (body.get('id'),))
+            if not lead:
+                return err('Заявка не найдена', 404)
+            last10 = re.sub(r'\D', '', lead['phone'] or '')[-10:]
+            client = None
+            if last10:
+                client = one(
+                    f"SELECT id, full_name, phone, car, notes FROM {s}.cab_clients "
+                    f"WHERE right(regexp_replace(coalesce(phone, ''), '\\D', '', 'g'), 10) = %s ORDER BY id LIMIT 1",
+                    (last10,),
+                )
+            if not client:
+                cur.execute(
+                    f"INSERT INTO {s}.cab_clients (full_name, phone, car) VALUES (%s,%s,%s) RETURNING id, full_name, phone, car, notes",
+                    (str(lead['name'] or 'Клиент')[:200], str(lead['phone'] or '')[:50] or None, str(lead['car_name'] or '')[:200] or None),
+                )
+                client = dict(cur.fetchone())
+                conn.commit()
+            return ok({'client': client})
+
         if action == 'client_save':
             name = str(body.get('full_name') or '').strip()
             if not name:

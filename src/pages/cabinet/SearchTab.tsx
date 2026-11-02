@@ -6,7 +6,9 @@ import Icon from '@/components/ui/icon';
 import { cabApi, money, Item } from './api';
 import { loadSettings } from './SettingsTab';
 
-type Props = { url: string; onCartChange: () => void; initialQuery?: string };
+type Props = { url: string; onCartChange: () => void; initialQuery?: string; articles?: string[]; clientName?: string };
+
+type Group = { article: string; items: Item[]; partial: Item[] };
 
 const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: number) => void }) => {
   const [qty, setQty] = useState<Record<number, string>>({});
@@ -63,7 +65,7 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
   );
 };
 
-const SearchTab = ({ url, onCartChange, initialQuery }: Props) => {
+const SearchTab = ({ url, onCartChange, initialQuery, articles, clientName }: Props) => {
   const [query, setQuery] = useState(initialQuery || '');
   const [analogs, setAnalogs] = useState(true);
   const [items, setItems] = useState<Item[] | null>(null);
@@ -71,6 +73,7 @@ const SearchTab = ({ url, onCartChange, initialQuery }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [added, setAdded] = useState('');
+  const [groups, setGroups] = useState<Group[]>([]);
 
   const [pageSize, setPageSize] = useState(50);
   const [hideEmpty, setHideEmpty] = useState(false);
@@ -81,7 +84,26 @@ const SearchTab = ({ url, onCartChange, initialQuery }: Props) => {
     setHideEmpty(s.hideEmpty);
     setAnalogs(s.analogs);
     if (initialQuery && initialQuery.length >= 3) search(undefined, initialQuery, s.analogs);
+    if (articles && articles.length > 0) searchMany(articles, s.analogs, s.hideEmpty, Number(s.pageSize) || 50);
   }, []);
+
+  const searchMany = async (list: string[], an: boolean, hide: boolean, size: number) => {
+    setLoading(true);
+    setError('');
+    try {
+      const keep = (i: Item) => !hide || i.qty > 0;
+      const out: Group[] = [];
+      for (const a of list) {
+        const d = await cabApi<{ items: Item[]; partial: Item[] }>(url, 'search', { query: a, with_partial: an });
+        out.push({ article: a, items: d.items.filter(keep).slice(0, size), partial: d.partial.filter(keep).slice(0, size) });
+      }
+      setGroups(out);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const search = async (e?: React.FormEvent, q?: string, an?: boolean) => {
     e?.preventDefault();
@@ -124,7 +146,21 @@ const SearchTab = ({ url, onCartChange, initialQuery }: Props) => {
         </label>
         {added && <span className="text-sm text-emerald-500">{added}</span>}
       </form>
+      {clientName && <p className="text-sm text-muted-foreground">Заказ для клиента: {clientName}. Добавьте позиции в корзину и оформите заказ.</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
+      {loading && groups.length === 0 && articles && articles.length > 0 && <p className="text-sm text-muted-foreground">Ищу артикулы из заявки...</p>}
+      {groups.map((g) => (
+        <div key={g.article} className="flex flex-col gap-2">
+          <h3 className="font-head uppercase tracking-wide">{g.article}</h3>
+          {g.items.length ? <ResultTable items={g.items} onAdd={add} /> : <p className="text-sm text-muted-foreground">Точных совпадений нет.</p>}
+          {g.partial.length > 0 && (
+            <>
+              <h4 className="text-sm text-muted-foreground">Похожие артикулы: {g.partial.length}</h4>
+              <ResultTable items={g.partial} onAdd={add} />
+            </>
+          )}
+        </div>
+      ))}
       {items && (
         <>
           <h3 className="text-sm text-muted-foreground">Точное совпадение: {items.length}</h3>

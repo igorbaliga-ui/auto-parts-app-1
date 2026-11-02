@@ -39,7 +39,7 @@ const statusCls: Record<string, string> = {
   done: 'text-emerald-500 border-emerald-500/60',
 };
 
-const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => void }) => {
+const LeadsTab = ({ url, onSearch, onCreateOrder }: { url: string; onSearch: (q: string) => void; onCreateOrder: (leadId: number, articles: string[]) => void }) => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [query, setQuery] = useState('');
   const [tab, setTabState] = useState<StatusTab>('new');
@@ -238,6 +238,12 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
                         )}
                         {l.internal_note && <div className="text-muted-foreground">Заметка: {l.internal_note}</div>}
                         {l.ai_articles && <pre className="whitespace-pre-wrap font-sans text-xs border border-border rounded-sm p-2">{l.ai_articles}</pre>}
+                        <div>
+                          <Button size="sm" onClick={() => onCreateOrder(l.id, articles(l))}>
+                            <Icon name="ShoppingCart" size={14} className="mr-1.5" />
+                            Создать заказ
+                          </Button>
+                        </div>
                         {articles(l).length > 0 && (
                           <div className="flex flex-wrap gap-2">
                             {articles(l).map((a) => (
