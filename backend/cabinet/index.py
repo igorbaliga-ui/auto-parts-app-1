@@ -438,7 +438,7 @@ def handler(event: dict, context) -> dict:
                 )
                 client = dict(cur.fetchone())
                 conn.commit()
-            return ok({'client': client})
+            return ok({'client': client, 'car': lead['car_name'] or client.get('car') or ''})
 
         if action == 'client_save':
             name = str(body.get('full_name') or '').strip()

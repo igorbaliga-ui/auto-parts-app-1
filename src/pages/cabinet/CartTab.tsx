@@ -6,9 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
 import { cabApi, money, CartItem, Client } from './api';
 
-type Props = { url: string; onChanged: () => void; onOrdered: () => void; presetClient?: Client | null; onPresetUsed?: () => void };
+type Props = { url: string; onChanged: () => void; onOrdered: () => void; presetClient?: Client | null; presetCar?: string; onPresetUsed?: () => void };
 
-const CartTab = ({ url, onChanged, onOrdered, presetClient, onPresetUsed }: Props) => {
+const CartTab = ({ url, onChanged, onOrdered, presetClient, presetCar, onPresetUsed }: Props) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [sel, setSel] = useState<number[]>([]);
@@ -38,9 +38,9 @@ const CartTab = ({ url, onChanged, onOrdered, presetClient, onPresetUsed }: Prop
   useEffect(() => {
     if (!presetClient) return;
     setClientId(String(presetClient.id));
-    setCar(presetClient.car || '');
+    setCar(presetCar ?? presetClient.car ?? '');
     onPresetUsed?.();
-  }, [presetClient, onPresetUsed]);
+  }, [presetClient, presetCar, onPresetUsed]);
 
   const patch = (id: number, p: Partial<CartItem>) => setItems((arr) => arr.map((i) => (i.id === id ? { ...i, ...p } : i)));
 

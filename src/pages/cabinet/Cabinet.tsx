@@ -51,6 +51,7 @@ const Cabinet = () => {
   const [stats, setStats] = useState<Stats | null>(null);
   const [repeat, setRepeat] = useState('');
   const [orderFor, setOrderFor] = useState<Client | null>(null);
+  const [orderCar, setOrderCar] = useState('');
   const [leadArticles, setLeadArticles] = useState<string[]>([]);
 
   const refresh = useCallback(async () => {
@@ -154,12 +155,13 @@ const Cabinet = () => {
             </div>
           )}
           {tab === 'search' && <SearchTab key={`${repeat}|${leadArticles.join(',')}`} url={url} onCartChange={refresh} initialQuery={repeat} articles={leadArticles} clientName={orderFor?.full_name} />}
-          {tab === 'cart' && <CartTab url={url} onChanged={refresh} onOrdered={() => go('orders')} presetClient={orderFor} onPresetUsed={() => setOrderFor(null)} />}
+          {tab === 'cart' && <CartTab url={url} onChanged={refresh} onOrdered={() => go('orders')} presetClient={orderFor} presetCar={orderCar} onPresetUsed={() => { setOrderFor(null); setOrderCar(''); }} />}
           {tab === 'orders' && <OrdersTab url={url} />}
           {tab === 'clients' && <ClientsTab
               url={url}
               onCreateOrder={(c) => {
                 setOrderFor(c);
+                setOrderCar(c.car || '');
                 go('cart');
               }}
             />}
@@ -174,8 +176,9 @@ const Cabinet = () => {
                 go('search');
               }}
               onCreateOrder={async (leadId, arts) => {
-                const d = await cabApi<{ client: Client }>(url, 'lead_client', { id: leadId });
+                const d = await cabApi<{ client: Client; car: string }>(url, 'lead_client', { id: leadId });
                 setOrderFor(d.client);
+                setOrderCar(d.car);
                 setLeadArticles(arts);
                 setRepeat('');
                 go('search');
