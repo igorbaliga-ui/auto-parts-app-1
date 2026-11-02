@@ -20,6 +20,18 @@ const perBrand = (list: Item[], size: number) => {
   });
 };
 
+const WAREHOUSE_STYLE: Record<string, string> = {
+  'BERG SRG': 'bg-green-600 text-white',
+  'BERG EKB': 'bg-green-500/50 text-foreground',
+  'BERG MSK': 'bg-green-500/20 text-foreground',
+};
+
+const Warehouse = ({ name }: { name: string }) => {
+  const style = WAREHOUSE_STYLE[name.trim().toUpperCase()];
+  if (!style) return <div className="text-xs text-muted-foreground">{name}</div>;
+  return <span className={`inline-block mt-0.5 px-1.5 py-0.5 rounded-sm text-xs ${style}`}>{name}</span>;
+};
+
 type Group = { article: string; items: Item[]; partial: Item[] };
 
 const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: number) => void }) => {
@@ -82,7 +94,7 @@ const ResultTable = ({ items, onAdd }: { items: Item[]; onAdd: (i: Item, qty: nu
                     <TableCell className="max-w-[260px] text-muted-foreground">{same ? '' : i.name}</TableCell>
                     <TableCell>
                       <div>{i.supplier_name}</div>
-                      <div className="text-xs text-muted-foreground">{i.warehouse}</div>
+                      <Warehouse name={i.warehouse || ''} />
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap text-muted-foreground">{i.delivery_days != null ? `${i.delivery_days} дн.` : '—'}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">{i.qty} шт.</TableCell>
