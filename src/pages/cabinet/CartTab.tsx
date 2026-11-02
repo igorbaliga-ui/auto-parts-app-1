@@ -16,6 +16,7 @@ const CartTab = ({ url, onChanged, onOrdered, presetClient, presetCar, onPresetU
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [car, setCar] = useState('');
+  const [manualCar, setManualCar] = useState(false);
   const [cars, setCars] = useState<{ car: string; vin: string }[]>([]);
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
@@ -46,6 +47,7 @@ const CartTab = ({ url, onChanged, onOrdered, presetClient, presetCar, onPresetU
   };
 
   useEffect(() => {
+    setManualCar(false);
     if (!clientId) {
       setCars([]);
       return;
@@ -192,17 +194,33 @@ const CartTab = ({ url, onChanged, onOrdered, presetClient, presetCar, onPresetU
                   <Input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="Телефон" />
                 </>
               )}
-              <Input value={car} onChange={(e) => setCar(e.target.value)} placeholder="Авто (необязательно)" />
-              {cars.length > 0 && (
-                <select value={cars.some((c) => c.car === car) ? car : ''} onChange={(e) => e.target.value && pickCar(e.target.value)} className="h-10 rounded-sm border border-input bg-background px-3 text-sm">
-                  <option value="">Машины клиента из заявок</option>
-                  {cars.map((c) => (
-                    <option key={c.car} value={c.car}>
-                      {c.car}
-                      {c.vin ? ` · ${c.vin}` : ''}
-                    </option>
-                  ))}
-                </select>
+              {cars.length > 0 ? (
+                <>
+                  <select
+                    value={manualCar ? '__other' : cars.some((c) => c.car === car) ? car : ''}
+                    onChange={(e) => {
+                      if (e.target.value === '__other') {
+                        setManualCar(true);
+                        return;
+                      }
+                      setManualCar(false);
+                      if (e.target.value) pickCar(e.target.value);
+                    }}
+                    className="h-10 rounded-sm border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">Авто клиента из заявок</option>
+                    {cars.map((c) => (
+                      <option key={c.car} value={c.car}>
+                        {c.car}
+                        {c.vin ? ` · ${c.vin}` : ''}
+                      </option>
+                    ))}
+                    <option value="__other">Другое авто (ввести вручную)</option>
+                  </select>
+                  {manualCar && <Input value={car} onChange={(e) => setCar(e.target.value)} placeholder="Авто" />}
+                </>
+              ) : (
+                <Input value={car} onChange={(e) => setCar(e.target.value)} placeholder="Авто (необязательно)" />
               )}
             </div>
             <div className="flex flex-col gap-2">
