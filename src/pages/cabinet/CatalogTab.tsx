@@ -4,8 +4,13 @@ import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import { safeGetSession } from '@/lib/storage';
 import funcs from '../../../backend/func2url.json';
+import { cabApi, Client } from './api';
 
 const URL_AI = (funcs as Record<string, string>)['lead-ai-articles'] || '';
+const URL_CAB = (funcs as Record<string, string>)['cabinet'] || '';
+
+type ClientCar = { car: string; vin: string };
+type VinInfo = { make_id: number | null; model_id: number | null; mod_id: number | null; confidence: string; text: string };
 
 type Make = { id: number; name: string };
 type Model = { id: number; name: string; from: number | null; to: number | null };
@@ -60,6 +65,11 @@ const CatalogTab = ({ onSearch }: { onSearch: (q: string) => void }) => {
   const [parts, setParts] = useState<Part[]>([]);
   const [oem, setOem] = useState<Oem[]>([]);
   const [loading, setLoading] = useState('');
+  const [clients, setClients] = useState<Client[]>([]);
+  const [clientId, setClientId] = useState('');
+  const [cars, setCars] = useState<ClientCar[]>([]);
+  const [vin, setVin] = useState('');
+  const [vinNote, setVinNote] = useState('');
   const [error, setError] = useState('');
 
   const run = async <T,>(label: string, fn: () => Promise<T>): Promise<T | null> => {
@@ -76,8 +86,92 @@ const CatalogTab = ({ onSearch }: { onSearch: (q: string) => void }) => {
   };
 
   useEffect(() => {
+    cabApi<{ clients: Client[] }>(URL_CAB, 'clients_list')
+      .then((d) => setClients(d.clients))
+      .catch(() => setClients([]));
+  }, []);
+
+  useEffect(() => {
+    if (!clientId) {
+      setCars([]);
+      return;
+    }
+    let alive = true;
+    cabApi<{ cars: ClientCar[] }>(URL_CAB, 'client_cars', { id: Number(clientId) })
+      .then((d) => alive && setCars(d.cars))
+      .catch(() => alive && setCars([]));
+    return () => {
+      alive = false;
+    };
+  }, [clientId]);
+
+  useEffect(() => {
     run('марки', () => call<{ items: Make[] }>('catalog_makes')).then((d) => d && setMakes(d.items));
   }, []);
+
+  const resetBelow = () => {
+    setModels([]);
+    setMods([]);
+    setMod(null);
+    setNodes([]);
+    setNode(null);
+    setParts([]);
+    setOem([]);
+    setOpen({});
+    setNodeFilter('');
+  };
+
+  const loadNodes = async (m: Mod) => {
+    const d = await run('узлы', () => call<{ items: Node[] }>('catalog_tree', { id: m.id }));
+    if (d) setNodes(d.items);
+  };
+
+  const byVin = async (value: string) => {
+    const v = value.replace(/\s/g, '').toUpperCase();
+    setVin(v);
+    setVinNote('');
+    const info = await run('расшифровка VIN', () => call<VinInfo>('catalog_vin', { vin: v }));
+    if (!info) return;
+    resetBelow();
+    if (!info.make_id) {
+      setMakeId('');
+      setModelId('');
+      setVinNote(`VIN расшифрован, но марку в каталоге не нашли${info.text ? `: ${info.text}` : ''}. Выберите вручную.`);
+      return;
+    }
+    setMakeId(String(info.make_id));
+    const md = await run('модели', () => call<{ items: Model[] }>('catalog_models', { id: info.make_id }));
+    if (!md) return;
+    setModels(md.items);
+    if (!info.model_id) {
+      setModelId('');
+      setVinNote(`${info.text}. Определена только марка, выберите модель вручную.`);
+      return;
+    }
+    setModelId(String(info.model_id));
+    const ms = await run('модификации', () => call<{ items: Mod[] }>('catalog_mods', { id: info.model_id }));
+    if (!ms) return;
+    setMods(ms.items);
+    const found = ms.items.find((x) => x.id === info.mod_id);
+    if (!found) {
+      setVinNote(`${info.text}. Точную модификацию определить не удалось, выберите её вручную.`);
+      return;
+    }
+    setMod(found);
+    setVinNote(info.text);
+    await loadNodes(found);
+  };
+
+  const pickCar = (idx: string) => {
+    const c = cars[Number(idx)];
+    if (!c) return;
+    if (c.vin && c.vin.replace(/\s/g, '').length === 17) {
+      byVin(c.vin);
+    } else {
+      setVin(c.vin);
+      setVinNote(c.vin ? 'В заявке VIN неполный, введите его вручную или выберите авто в списках.' : `У этого авто в заявке нет VIN (${c.car}). Выберите марку и модель вручную.`);
+    }
+  };
 
   const onMake = async (id: string) => {
     setMakeId(id);
@@ -113,8 +207,7 @@ const CatalogTab = ({ onSearch }: { onSearch: (q: string) => void }) => {
     setOpen({});
     setNodeFilter('');
     if (!m) return;
-    const d = await run('узлы', () => call<{ items: Node[] }>('catalog_tree', { id: m.id }));
-    if (d) setNodes(d.items);
+    await loadNodes(m);
   };
 
   const pick = async (n: Node) => {
@@ -170,6 +263,29 @@ const CatalogTab = ({ onSearch }: { onSearch: (q: string) => void }) => {
         <h2 className="font-head uppercase tracking-wide text-xl">Каталог по автомобилю</h2>
         <p className="text-sm text-muted-foreground">Выберите марку, модель и модификацию, затем узел: покажем детали и оригинальные номера. Схем с картинками в каталоге FAPI нет, только дерево узлов.</p>
       </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <select value={clientId} onChange={(e) => { setClientId(e.target.value); setVinNote(''); }} className={sel}>
+          <option value="">Клиент не выбран</option>
+          {clients.map((c) => (
+            <option key={c.id} value={c.id}>{c.full_name} {c.phone || ''}</option>
+          ))}
+        </select>
+        {cars.length > 0 && (
+          <select defaultValue="" key={clientId} onChange={(e) => pickCar(e.target.value)} className={sel}>
+            <option value="" disabled>Авто клиента из заявок</option>
+            {cars.map((c, i) => (
+              <option key={`${c.car}-${i}`} value={i}>{c.car}{c.vin ? ` · ${c.vin}` : ''}</option>
+            ))}
+          </select>
+        )}
+        <div className="flex gap-2">
+          <Input value={vin} onChange={(e) => setVin(e.target.value)} placeholder="Или введите VIN" maxLength={17} />
+          <Button variant="outline" disabled={!!loading || vin.replace(/\s/g, '').length !== 17} onClick={() => byVin(vin)}>
+            Найти
+          </Button>
+        </div>
+      </div>
+      {vinNote && <p className="text-sm text-muted-foreground">{vinNote}</p>}
       <div className="grid gap-2 sm:grid-cols-3">
         <select value={makeId} onChange={(e) => onMake(e.target.value)} className={sel}>
           <option value="">Марка</option>

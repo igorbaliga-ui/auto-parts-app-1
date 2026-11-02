@@ -604,6 +604,22 @@ def catalog_action(action: str, body: dict):
         except (TypeError, ValueError):
             raise FapiError('неверные параметры запроса')
 
+    if action == 'catalog_vin':
+        vin = re.sub(r'\s', '', str(body.get('vin') or '')).upper()
+        if not re.fullmatch(r'[A-HJ-NPR-Z0-9]{17}', vin):
+            raise FapiError('VIN должен состоять из 17 символов (латинские буквы и цифры, без I, O, Q)')
+        d = fapi_get('/vin', {'vin': vin, 'lang': 'ru'}, timeout=12, step='расшифровка VIN (FAPI)', strict=True)
+        if not isinstance(d, dict):
+            raise FapiError('расшифровка VIN (FAPI): пустой ответ')
+        text = ' '.join(str(x) for x in [d.get('brand_name') or d.get('manufacturer'), d.get('model_name'), d.get('modification_name')] if x)
+        if d.get('engine_code'):
+            text += f", двигатель {d['engine_code']}"
+        if d.get('model_year'):
+            text += f", {d['model_year']} г."
+        return {
+            'make_id': d.get('dt_manufacturer_id'), 'model_id': d.get('dt_model_id'), 'mod_id': d.get('dt_type_id'),
+            'confidence': d.get('confidence') or '', 'text': text,
+        }
     if action == 'catalog_makes':
         d = fapi_get('/catalogList/dt/manufacturerList', {}, timeout=10, step='марки (FAPI)', strict=True) or {}
         rows = [r for r in (d.get('mf') or []) if isinstance(r, dict) and r.get('dbi') and r.get('oe')] or [r for r in (d.get('mf') or []) if isinstance(r, dict) and r.get('dbi')]
