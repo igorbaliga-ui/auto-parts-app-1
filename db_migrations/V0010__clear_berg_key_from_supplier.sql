@@ -1,0 +1,1 @@
+UPDATE cab_suppliers SET api_url = NULL WHERE kind = 'api' AND api_url ~ '^[0-9a-f]{40,}$';

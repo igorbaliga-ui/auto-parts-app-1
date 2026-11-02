@@ -73,6 +73,7 @@ const SearchTab = ({ url, onCartChange, initialQuery, articles, clientName }: Pr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [added, setAdded] = useState('');
+  const [warning, setWarning] = useState('');
   const [groups, setGroups] = useState<Group[]>([]);
 
   const [pageSize, setPageSize] = useState(50);
@@ -110,7 +111,8 @@ const SearchTab = ({ url, onCartChange, initialQuery, articles, clientName }: Pr
     setLoading(true);
     setError('');
     try {
-      const d = await cabApi<{ items: Item[]; partial: Item[] }>(url, 'search', { query: q ?? query, with_partial: an ?? analogs });
+      const d = await cabApi<{ items: Item[]; partial: Item[]; warning?: string | null }>(url, 'search', { query: q ?? query, with_partial: an ?? analogs });
+      setWarning(d.warning || '');
       const keep = (i: Item) => !hideEmpty || i.qty > 0;
       setItems(d.items.filter(keep).slice(0, pageSize));
       setPartial(d.partial.filter(keep).slice(0, pageSize));
@@ -147,6 +149,7 @@ const SearchTab = ({ url, onCartChange, initialQuery, articles, clientName }: Pr
         {added && <span className="text-sm text-emerald-500">{added}</span>}
       </form>
       {clientName && <p className="text-sm text-muted-foreground">Заказ для клиента: {clientName}. Добавьте позиции в корзину и оформите заказ.</p>}
+      {warning && <p className="text-sm text-amber-500">{warning}</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
       {loading && groups.length === 0 && articles && articles.length > 0 && <p className="text-sm text-muted-foreground">Ищу артикулы из заявки...</p>}
       {groups.map((g) => (

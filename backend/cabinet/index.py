@@ -1,6 +1,8 @@
 import json
 import os
 import re
+import urllib.parse
+import urllib.request
 import psycopg2
 import psycopg2.extras
 from rate_limit import get_client_ip, check_rate_limit
@@ -26,6 +28,37 @@ def ok(data, code=200):
 
 def err(msg, code=400):
     return ok({'error': msg}, code)
+
+
+def berg_search(article: str, with_analogs: bool):
+    key = os.environ.get('BERG_API_KEY')
+    if not key:
+        return [], 'Ключ Берг не задан'
+    params = {'items[0][resource_article]': article, 'analogs': '1' if with_analogs else '0', 'key': key}
+    url = 'https://api.berg.ru/ordering/get_stock.json?' + urllib.parse.urlencode(params)
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={'Accept': 'application/json'}), timeout=3.5) as r:
+            data = json.loads(r.read().decode('utf-8'))
+    except Exception:
+        return [], 'Берг не ответил, показаны только прайсы'
+    out = []
+    for res in data.get('resources') or []:
+        brand = (res.get('brand') or {}).get('name') or ''
+        for o in res.get('offers') or []:
+            try:
+                price = float(o.get('price'))
+                qty = int(float(o.get('quantity') or 0))
+            except (TypeError, ValueError):
+                continue
+            days = o.get('average_period')
+            out.append({
+                'article': str(res.get('article') or article), 'brand': brand, 'name': res.get('name') or '',
+                'price': price, 'qty': qty,
+                'delivery_days': int(days) if str(days or '').isdigit() else None,
+                'warehouse': (o.get('warehouse') or {}).get('name') or '',
+                'exact': norm(res.get('article')) == norm(article),
+            })
+    return out, None
 
 
 def sale_price(price: float, markups: list) -> float:
@@ -194,12 +227,25 @@ def handler(event: dict, context) -> dict:
             for r in found + analogs:
                 r['price'] = float(r['price'])
                 r['sale'] = sale_price(r['price'], mk)
+            warning = None
+            berg = one(f"SELECT id, name FROM {s}.cab_suppliers WHERE active = true AND kind = 'api' AND position('берг' in lower(name)) > 0 ORDER BY id LIMIT 1")
+            if berg:
+                offers, warning = berg_search(q, bool(body.get('with_partial')))
+                nid = -1
+                for o in offers:
+                    row = {
+                        'id': nid, 'supplier_id': berg['id'], 'supplier_name': berg['name'] + ' (онлайн)',
+                        'article': o['article'], 'brand': o['brand'], 'name': o['name'], 'price': o['price'],
+                        'sale': sale_price(o['price'], mk), 'qty': o['qty'], 'delivery_days': o['delivery_days'], 'warehouse': o['warehouse'],
+                    }
+                    nid -= 1
+                    (found if o['exact'] else analogs).append(row)
             key = lambda r: (prio.get((r['brand'] or '').upper(), 10**6), r['price'])
             found.sort(key=key)
             analogs.sort(key=key)
             cur.execute(f"INSERT INTO {s}.cab_search_history (query, results_count) VALUES (%s,%s)", (q[:100], len(found)))
             conn.commit()
-            return ok({'items': found, 'partial': analogs})
+            return ok({'items': found, 'partial': analogs, 'warning': warning})
 
         if action == 'bulk_check':
             mk = markups()
