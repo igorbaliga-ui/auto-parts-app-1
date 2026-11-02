@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 import re
 import os
 import urllib.error
@@ -6,7 +7,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 import urllib.request
 import psycopg2
-from fapi import one_per_brand, format_block, enrich_line, fapi_catalog, fapi_options, fapi_enabled, FapiError, fapi_usage
+from fapi import fapi_get, one_per_brand, format_block, enrich_line, fapi_catalog, fapi_options, fapi_enabled, FapiError, fapi_usage
 from rate_limit import get_client_ip, check_rate_limit
 
 SYSTEM_PROMPT = (
@@ -589,6 +590,50 @@ def catalog_articles(api_key: str, vin: str, parts: str, cache, info=None, overr
     return decoded, '\n\n'.join(lines), None
 
 
+def _year(ms):
+    try:
+        return datetime.utcfromtimestamp(int(ms) / 1000).year if ms else None
+    except Exception:
+        return None
+
+
+def catalog_action(action: str, body: dict):
+    def num(k):
+        try:
+            return int(body.get(k))
+        except (TypeError, ValueError):
+            raise FapiError('неверные параметры запроса')
+
+    if action == 'catalog_makes':
+        d = fapi_get('/catalogList/dt/manufacturerList', {}, timeout=10, step='марки (FAPI)', strict=True) or {}
+        rows = [r for r in (d.get('mf') or []) if isinstance(r, dict) and r.get('dbi') and r.get('oe')] or [r for r in (d.get('mf') or []) if isinstance(r, dict) and r.get('dbi')]
+        return {'items': sorted([{'id': r['dbi'], 'name': r.get('ds') or ''} for r in rows], key=lambda x: x['name'])}
+    if action == 'catalog_models':
+        d = fapi_get('/catalogList/dt/modelList', {'mfi': num('id')}, timeout=10, step='модели (FAPI)', strict=True) or {}
+        return {'items': [{'id': r['dbi'], 'name': r.get('d') or '', 'from': _year(r.get('cb')), 'to': _year(r.get('ce'))} for r in (d.get('m') or []) if isinstance(r, dict) and r.get('dbi')]}
+    if action == 'catalog_mods':
+        d = fapi_get('/catalogList/dt/modificationList', {'mi': num('id')}, timeout=10, step='модификации (FAPI)', strict=True) or {}
+        return {'items': [{
+            'id': r['dbi'], 'name': r.get('d') or '', 'from': _year(r.get('cb')), 'to': _year(r.get('ce')),
+            'engine_code': r.get('engineCode') or '', 'engine_type': r.get('engineType') or '', 'power': r.get('power') or '',
+            'capacity': r.get('capacity') or '', 'drive': r.get('driveType') or '', 'body': r.get('bodyType') or '',
+        } for r in (d.get('m') or []) if isinstance(r, dict) and r.get('dbi')]}
+    if action == 'catalog_tree':
+        rows = fapi_get('/catalogList/dt/treeList', {'mi': num('id')}, timeout=12, step='дерево узлов (FAPI)', strict=True) or []
+        return {'items': [{'id': r['i'], 'name': r.get('d') or '', 'parent': r.get('pi') or 0} for r in rows if isinstance(r, dict) and r.get('i')]}
+    if action == 'catalog_parts':
+        mod, node = num('modi'), num('nodei')
+        parts = fapi_get('/catalogList/dt/productList', {'nodei': node, 'modi': mod}, timeout=12, step='детали узла (FAPI)', strict=True) or []
+        oem = []
+        if body.get('with_oem'):
+            oem = fapi_get('/catalogList/dt/productListOEM', {'modi': mod, 'nodei': node}, timeout=14, step='оригинальные номера (FAPI)', strict=True) or []
+        return {
+            'parts': [{'brand': r.get('mfd') or '', 'number': r.get('n') or '', 'name': r.get('d') or ''} for r in parts if isinstance(r, dict) and r.get('n')][:400],
+            'oem': [{'brand': r.get('mfd') or '', 'number': r.get('n') or '', 'name': r.get('d') or '', 'fit': r.get('fit') or ''} for r in oem if isinstance(r, dict) and r.get('n')][:200],
+        }
+    return None
+
+
 def handler(event: dict, context) -> dict:
     """Подбирает с помощью ИИ вероятные артикулы запчастей для заявки по её id (VIN, авто,
     список запчастей) и сохраняет результат в заявку (поле ai_articles) как черновик для менеджера.
@@ -615,7 +660,12 @@ def handler(event: dict, context) -> dict:
     dsn = os.environ['DATABASE_URL']
     schema = os.environ['MAIN_DB_SCHEMA']
 
-    if not check_rate_limit(dsn, schema, get_client_ip(event), 'lead-ai-articles', max_requests=30, window_seconds=300):
+    try:
+        peek = json.loads(event.get('body') or '{}')
+    except Exception:
+        peek = {}
+    is_catalog = str((peek or {}).get('action') or '').startswith('catalog_') and (peek or {}).get('action') != 'catalog_mode_get' and (peek or {}).get('action') != 'catalog_mode_set'
+    if not check_rate_limit(dsn, schema, get_client_ip(event), 'lead-ai-catalog' if is_catalog else 'lead-ai-articles', max_requests=300 if is_catalog else 30, window_seconds=300):
         return {'statusCode': 429, 'headers': headers, 'body': json.dumps({'error': 'Слишком много запросов. Попробуйте позже'})}
 
     req_headers = event.get('headers') or {}
@@ -636,6 +686,16 @@ def handler(event: dict, context) -> dict:
         finally:
             c.close()
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps(partsapi_check(check_vin))}
+    if is_catalog:
+        if not fapi_enabled():
+            return {'statusCode': 500, 'headers': headers, 'body': json.dumps({'error': 'Не задан ключ FAPI'})}
+        try:
+            result = catalog_action(str(body.get('action')), body)
+        except FapiError as e:
+            return {'statusCode': 502, 'headers': headers, 'body': json.dumps({'error': str(e)})}
+        if result is None:
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Неизвестное действие'})}
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps(result)}
     if body.get('action') in ('catalog_mode_get', 'catalog_mode_set'):
         m_conn = psycopg2.connect(dsn)
         try:

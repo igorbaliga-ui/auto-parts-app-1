@@ -16,16 +16,18 @@ import CrossesTab from './CrossesTab';
 import PriorityTab from './PriorityTab';
 import AnalyticsTab from './AnalyticsTab';
 import OemTab from './OemTab';
+import CatalogTab from './CatalogTab';
 import LeadsTab from './LeadsTab';
 import SettingsTab from './SettingsTab';
 import funcs from '../../../backend/func2url.json';
 
-type Tab = 'home' | 'leads' | 'oem' | 'settings' | 'bulk' | 'crosses' | 'priority' | 'analytics' | 'search' | 'cart' | 'orders' | 'clients' | 'garage' | 'suppliers' | 'markups' | 'history';
+type Tab = 'home' | 'leads' | 'oem' | 'catalog' | 'settings' | 'bulk' | 'crosses' | 'priority' | 'analytics' | 'search' | 'cart' | 'orders' | 'clients' | 'garage' | 'suppliers' | 'markups' | 'history';
 
 const MENU: { key: Tab; label: string; icon: string; group?: string }[] = [
   { key: 'home', label: 'Кабинет', icon: 'LayoutDashboard' },
   { key: 'search', label: 'Поиск запчастей', icon: 'Search', group: 'Поиск' },
   { key: 'oem', label: 'Оригинальный каталог / ИИ-поиск', icon: 'BookOpen' },
+  { key: 'catalog', label: 'Каталог по авто', icon: 'Car' },
   { key: 'bulk', label: 'Анализ цен', icon: 'FileSpreadsheet' },
   { key: 'history', label: 'История поиска', icon: 'History' },
   { key: 'crosses', label: 'Кроссы', icon: 'ArrowLeftRight' },
@@ -187,6 +189,14 @@ const Cabinet = () => {
           )}
           {tab === 'oem' && (
             <OemTab
+              onSearch={(q) => {
+                setRepeat(q);
+                go('search');
+              }}
+            />
+          )}
+          {tab === 'catalog' && (
+            <CatalogTab
               onSearch={(q) => {
                 setRepeat(q);
                 go('search');
