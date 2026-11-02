@@ -212,7 +212,7 @@ const SearchTab = ({ url, onCartChange, initialQuery, articles, clientName }: Pr
   };
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-[1100px] mx-auto">
+    <div className="flex flex-col gap-4 w-full max-w-[1100px] ml-auto">
       <h2 className="font-head uppercase tracking-wide text-xl">Поиск запчастей</h2>
       <form onSubmit={search} className="flex flex-wrap items-center gap-3">
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Артикул, например SC16HR11" className="max-w-xs" />
