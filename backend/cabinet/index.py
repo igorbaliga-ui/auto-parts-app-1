@@ -520,6 +520,31 @@ def handler(event: dict, context) -> dict:
             ) if last10 else []
             return ok({'orders': orders, 'leads': leads})
 
+        if action == 'client_cars':
+            cl = one(f"SELECT car, phone FROM {s}.cab_clients WHERE id = %s", (body.get('id'),))
+            if not cl:
+                return ok({'cars': []})
+            cars = []
+            last10 = re.sub(r'\D', '', cl['phone'] or '')[-10:]
+            if last10:
+                for r in rows(
+                    f"SELECT car_name, MAX(created_at) AS last FROM {s}.leads "
+                    f"WHERE right(regexp_replace(coalesce(phone, ''), '\\D', '', 'g'), 10) = %s AND coalesce(trim(car_name), '') <> '' "
+                    f"GROUP BY car_name ORDER BY last DESC LIMIT 20",
+                    (last10,),
+                ):
+                    cars.append(r['car_name'].strip())
+            if cl['car']:
+                cars.append(cl['car'].strip())
+            for r in rows(f"SELECT model FROM {s}.cab_garage WHERE client_id = %s AND coalesce(trim(model), '') <> ''", (body.get('id'),)):
+                cars.append(r['model'].strip())
+            seen, out = set(), []
+            for c in cars:
+                if c.lower() not in seen:
+                    seen.add(c.lower())
+                    out.append(c)
+            return ok({'cars': out})
+
         if action == 'lead_client':
             lead = one(f"SELECT name, phone, car_name FROM {s}.leads WHERE id = %s", (body.get('id'),))
             if not lead:

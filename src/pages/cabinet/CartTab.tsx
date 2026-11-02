@@ -16,6 +16,7 @@ const CartTab = ({ url, onChanged, onOrdered, presetClient, presetCar, onPresetU
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [car, setCar] = useState('');
+  const [cars, setCars] = useState<string[]>([]);
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -34,6 +35,24 @@ const CartTab = ({ url, onChanged, onOrdered, presetClient, presetCar, onPresetU
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!clientId) {
+      setCars([]);
+      return;
+    }
+    let alive = true;
+    cabApi<{ cars: string[] }>(url, 'client_cars', { id: Number(clientId) })
+      .then((d) => {
+        if (!alive) return;
+        setCars(d.cars);
+        setCar((cur) => cur || d.cars[0] || '');
+      })
+      .catch(() => alive && setCars([]));
+    return () => {
+      alive = false;
+    };
+  }, [url, clientId]);
 
   useEffect(() => {
     if (!presetClient) return;
@@ -162,6 +181,20 @@ const CartTab = ({ url, onChanged, onOrdered, presetClient, presetCar, onPresetU
                 </>
               )}
               <Input value={car} onChange={(e) => setCar(e.target.value)} placeholder="Авто (необязательно)" />
+              {cars.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {cars.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCar(c)}
+                      className={`text-xs px-2 py-1 rounded-sm border ${car === c ? 'border-primary bg-primary/15' : 'border-border text-muted-foreground hover:bg-muted/40'}`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex flex-col gap-2">
               <Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Комментарий к заказу" rows={3} />
