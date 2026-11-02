@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import { safeGetSession } from '@/lib/storage';
 import { cabApi, money, fmtDate } from './api';
+import LeadAmounts from './LeadAmounts';
 import funcs from '../../../backend/func2url.json';
 
 type StatusTab = 'new' | 'in_progress' | 'done' | 'all' | 'archived';
@@ -65,7 +66,7 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
     load('');
   }, [load]);
 
-  const updateLead = async (id: number, patch: { status?: string; archived?: boolean }) => {
+  const updateLead = async (id: number, patch: { status?: string; archived?: boolean; order_amount?: number | null; prepayment?: number | null }): Promise<boolean> => {
     setError('');
     try {
       const res = await fetch(funcs['leads-update'], {
@@ -75,9 +76,18 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Не удалось сохранить');
-      setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+      setLeads((ls) =>
+        ls.map((l) => {
+          if (l.id !== id) return l;
+          const n = { ...l, ...patch };
+          n.remaining = n.order_amount != null ? n.order_amount - (n.prepayment ?? 0) : null;
+          return n;
+        }),
+      );
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка');
+      return false;
     }
   };
 
@@ -163,7 +173,7 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
                 <th className="text-left p-2">Клиент</th>
                 <th className="text-left p-2">Авто / VIN</th>
                 <th className="text-left p-2">Запчасти</th>
-                <th className="text-right p-2">Сумма</th>
+                <th className="text-right p-2">Сумма / предоплата</th>
                 <th className="text-left p-2">Статус</th>
                 <th className="p-2"></th>
               </tr>
@@ -183,7 +193,9 @@ const LeadsTab = ({ url, onSearch }: { url: string; onSearch: (q: string) => voi
                       <div className="text-xs text-muted-foreground">{l.vin}</div>
                     </td>
                     <td className="p-2 max-w-[260px] truncate">{l.parts || '—'}</td>
-                    <td className="p-2 text-right whitespace-nowrap">{l.order_amount != null ? money(l.order_amount) : '—'}</td>
+                    <td className="p-2">
+                      <LeadAmounts amount={l.order_amount} prepayment={l.prepayment} onSave={(patch) => updateLead(l.id, patch)} />
+                    </td>
                     <td className="p-2">
                       <select
                         value={l.status}
