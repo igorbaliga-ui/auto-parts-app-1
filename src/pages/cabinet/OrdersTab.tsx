@@ -16,6 +16,7 @@ type Order = {
   total_buy: string;
   created_at: string;
   items_count: number;
+  berg_order_id: string | null;
 };
 
 const OrdersTab = ({ url }: { url: string }) => {
@@ -61,7 +62,7 @@ const OrdersTab = ({ url }: { url: string }) => {
         }}
         className="flex gap-2 max-w-2xl"
       >
-        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="№ заказа, клиент, телефон, авто, артикул, бренд, поставщик" />
+        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="№ заказа, № Берг, клиент, телефон, авто, артикул, бренд, поставщик" />
         <Button type="submit">
           <Icon name="Search" size={14} />
         </Button>
@@ -74,6 +75,7 @@ const OrdersTab = ({ url }: { url: string }) => {
             <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="text-left p-2">№</th>
+                <th className="text-left p-2">№ Берг</th>
                 <th className="text-left p-2">Дата</th>
                 <th className="text-left p-2">Клиент</th>
                 <th className="text-left p-2">Авто</th>
@@ -87,6 +89,7 @@ const OrdersTab = ({ url }: { url: string }) => {
               {orders.map((o) => (
                 <tr key={o.id} onClick={() => view(o.id)} className="border-t border-border cursor-pointer hover:bg-muted/30">
                   <td className="p-2 font-medium">{o.id}</td>
+                  <td className="p-2 whitespace-nowrap text-muted-foreground">{o.berg_order_id && o.berg_order_id !== 'ok' ? o.berg_order_id : o.berg_order_id ? 'отправлен' : '—'}</td>
                   <td className="p-2 whitespace-nowrap">{fmtDate(o.created_at)}</td>
                   <td className="p-2">
                     <div>{o.client_name || '—'}</div>
@@ -118,6 +121,7 @@ const OrdersTab = ({ url }: { url: string }) => {
                 <div>
                   Клиент: {open.client_name || '—'} {open.client_phone}
                 </div>
+                {open.berg_order_id && <div>Заказ в Берге: {open.berg_order_id === 'ok' ? 'отправлен, номер не получен' : `№ ${open.berg_order_id}`}</div>}
                 {open.car && <div>Авто: {open.car}</div>}
                 {open.comment && <div>Комментарий: {open.comment}</div>}
               </div>

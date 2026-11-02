@@ -9,6 +9,7 @@ export type OrderFull = {
   status: string;
   total_sale: string;
   created_at: string;
+  berg_order_id?: string | null;
   items: { id: number; article: string; brand: string; name: string; qty: number; price_sale: string; delivery_days: number | null }[];
 };
 

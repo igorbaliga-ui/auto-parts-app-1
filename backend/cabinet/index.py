@@ -458,10 +458,10 @@ def handler(event: dict, context) -> dict:
             data = rows(
                 f"SELECT o.*, (SELECT COUNT(*) FROM {s}.cab_order_items i WHERE i.order_id = o.id) AS items_count "
                 f"FROM {s}.cab_orders o "
-                f"WHERE (%s = '' OR o.id::text = %s OR o.client_name ILIKE %s OR o.client_phone ILIKE %s OR o.car ILIKE %s OR o.comment ILIKE %s "
+                f"WHERE (%s = '' OR o.id::text = %s OR o.berg_order_id ILIKE %s OR o.client_name ILIKE %s OR o.client_phone ILIKE %s OR o.car ILIKE %s OR o.comment ILIKE %s "
                 f"OR EXISTS (SELECT 1 FROM {s}.cab_order_items i WHERE i.order_id = o.id AND (i.article ILIKE %s OR i.brand ILIKE %s OR i.supplier_name ILIKE %s OR i.name ILIKE %s))) "
                 f"ORDER BY o.id DESC LIMIT 300",
-                (q, q, like, like, like, like, like, like, like, like),
+                (q, q, like, like, like, like, like, like, like, like, like),
             )
             return ok({'orders': data})
 
