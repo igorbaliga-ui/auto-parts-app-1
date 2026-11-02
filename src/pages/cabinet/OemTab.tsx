@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
 import { safeGetSession } from '@/lib/storage';
 import funcs from '../../../backend/func2url.json';
+import { cabApi, Client } from './api';
 
 type Result = { ai_articles: string; vin_decoded: string; source: string; via: string; catalog_note: string };
 
 const AI_URL = (funcs as Record<string, string>)['lead-ai-articles'] || '';
+const CAB_URL = (funcs as Record<string, string>)['cabinet'] || '';
+
+type ClientCar = { car: string; vin: string };
 
 const OemTab = ({ onSearch }: { onSearch: (q: string) => void }) => {
   const [vin, setVin] = useState('');
@@ -17,6 +21,43 @@ const OemTab = ({ onSearch }: { onSearch: (q: string) => void }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [res, setRes] = useState<Result | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [clientId, setClientId] = useState('');
+  const [cars, setCars] = useState<ClientCar[]>([]);
+
+  useEffect(() => {
+    cabApi<{ clients: Client[] }>(CAB_URL, 'clients_list')
+      .then((d) => setClients(d.clients))
+      .catch(() => setClients([]));
+  }, []);
+
+  useEffect(() => {
+    if (!clientId) {
+      setCars([]);
+      return;
+    }
+    let alive = true;
+    cabApi<{ cars: ClientCar[] }>(CAB_URL, 'client_cars', { id: Number(clientId) })
+      .then((d) => {
+        if (!alive) return;
+        setCars(d.cars);
+        if (d.cars[0]) {
+          setVin(d.cars[0].vin);
+          setCar(d.cars[0].car);
+        }
+      })
+      .catch(() => alive && setCars([]));
+    return () => {
+      alive = false;
+    };
+  }, [clientId]);
+
+  const pickCar = (idx: string) => {
+    const c = cars[Number(idx)];
+    if (!c) return;
+    setVin(c.vin);
+    setCar(c.car);
+  };
 
   const run = async () => {
     setLoading(true);
@@ -47,6 +88,24 @@ const OemTab = ({ onSearch }: { onSearch: (q: string) => void }) => {
         <p className="text-sm text-muted-foreground">Найдите оригинальные номера по VIN или названию авто, затем проверьте цены у своих поставщиков.</p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
+        <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="h-10 rounded-sm border border-input bg-background px-3 text-sm">
+          <option value="">Клиент не выбран</option>
+          {clients.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.full_name} {c.phone || ''}
+            </option>
+          ))}
+        </select>
+        {cars.length > 0 && (
+          <select onChange={(e) => pickCar(e.target.value)} className="h-10 rounded-sm border border-input bg-background px-3 text-sm">
+            {cars.map((c, i) => (
+              <option key={`${c.car}-${i}`} value={i}>
+                {c.car}
+                {c.vin ? ` · ${c.vin}` : ''}
+              </option>
+            ))}
+          </select>
+        )}
         <Input value={vin} onChange={(e) => setVin(e.target.value)} placeholder="VIN" />
         <Input value={car} onChange={(e) => setCar(e.target.value)} placeholder="Или авто, например BMW 520d 2003" />
       </div>
